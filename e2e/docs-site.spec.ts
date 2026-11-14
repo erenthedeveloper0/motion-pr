@@ -186,32 +186,45 @@ test("pages stay within the viewport on a phone", async ({ browser }) => {
     isMobile: true,
     hasTouch: true,
   });
+  // Layout is measured with reduced motion: entrance animations offset elements (rows slide in
+  // from the side) until they are revealed, which is a moment, not the layout.
+  const still = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    reducedMotion: "reduce",
+  });
   const problems = watch(page);
-  for (const route of [
+  const stillProblems = watch(still);
+  const routes = [
     "",
     "docs/",
     "docs/configuration/comparison/",
     "docs/features/easing-analysis/",
     "demo/",
     "playground/",
-  ]) {
+  ];
+  for (const route of routes) {
     await page.goto(BASE + route);
     await page.waitForTimeout(400);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
     expect(overflow, `${route} overflows on a phone`).toBeLessThanOrEqual(0);
+
     // Mount every lazy component, then look for text cut off at the edge.
-    await page.evaluate(async () => {
-      for (let y = 0; y < document.documentElement.scrollHeight; y += 600) {
+    await still.goto(BASE + route);
+    await still.evaluate(async () => {
+      for (let y = 0; y < document.documentElement.scrollHeight; y += 400) {
         scrollTo(0, y);
-        await new Promise((r) => setTimeout(r, 30));
+        await new Promise((r) => setTimeout(r, 120));
       }
       scrollTo(0, 0);
     });
-    await page.waitForTimeout(500);
-    expect(await clippedText(page), `${route}: text cut off on a phone`).toEqual([]);
+    await still.waitForTimeout(300);
+    expect(await clippedText(still), `${route}: text cut off on a phone`).toEqual([]);
   }
-  expect(problems).toEqual([]);
+  expect([...problems, ...stillProblems]).toEqual([]);
   await page.close();
+  await still.close();
 });
 
 test("soft navigation: transitions, history, scroll restoration and cleanup", async ({ page }) => {
