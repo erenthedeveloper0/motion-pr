@@ -1,6 +1,6 @@
 {
   "name": "@motionpr/report",
-  "version": "0.1.0-alpha",
+  "version": "0.1.0-alpha.1",
   "private": true,
   "description": "MotionPR report: interactive motion-inspection viewer (React) and offline HTML report generator.",
   "type": "module",

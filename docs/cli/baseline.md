@@ -37,7 +37,7 @@ npx motionpr baseline status
 ```
 
 ```text
-◐ motionpr 0.1.0-alpha  ·  baseline status
+◐ motionpr 0.1.0-alpha.1  ·  baseline status
 
   Baseline  20261113-215354-f7d6 · 1 scenarios · 1 checkpoints · 1 animations · darwin · Chromium 158.0.8127.18
   Created   2026-11-13T21:53:56.501Z

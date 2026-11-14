@@ -1,6 +1,6 @@
 {
   "name": "@motionpr/core",
-  "version": "0.1.0-alpha",
+  "version": "0.1.0-alpha.1",
   "private": true,
   "description": "MotionPR core: capture/comparison schemas, configuration, easing math, storage.",
   "type": "module",

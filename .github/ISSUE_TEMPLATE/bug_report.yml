@@ -12,7 +12,7 @@ body:
     attributes:
       label: MotionPR version
       description: Output of `npx motionpr --version`
-      placeholder: "0.1.0-alpha"
+      placeholder: "0.1.0-alpha.1"
     validations:
       required: true
   - type: textarea

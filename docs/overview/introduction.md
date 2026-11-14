@@ -48,7 +48,7 @@ measured. See [Motion comparison](../features/motion-comparison.md).
 
 ## Status
 
-MotionPR is in **alpha** (`0.1.0-alpha`). It is published on npm's `alpha` dist-tag for
+MotionPR is in **alpha** (`0.1.0-alpha.1`). It is published on npm's `alpha` dist-tag for
 feedback. The capture format can still change between minor versions, and older captures are
 migrated when they are read. Chromium is the only browser. The full list is in
 [Limitations](../advanced/limitations.md).

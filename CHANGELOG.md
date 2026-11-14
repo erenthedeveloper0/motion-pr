@@ -5,6 +5,18 @@ workspace packages it bundles are versioned with it. Format:
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MotionPR is an alpha: until `1.0`, any
 prerelease may change the capture format or the API, and every such change is listed here.
 
+## [0.1.0-alpha.1] — 2026-11-14
+
+The project moved to [`github.com/erenthedeveloper0/motionpr`](https://github.com/erenthedeveloper0/motionpr)
+and its website to [`erenthedeveloper0.github.io/motionpr`](https://erenthedeveloper0.github.io/motionpr/).
+No change to the capture format, the API or the CLI's behaviour.
+
+### Fixed
+
+- The package's homepage, repository and issue links, the README's links and images, and the
+  documentation links printed by the CLI point to the new addresses. In `0.1.0-alpha` they still
+  point to `motion-pr`, and its website links no longer resolve.
+
 ## [0.1.0-alpha] — 2026-11-13
 
 The first public release, published on npm's `alpha` dist-tag.
@@ -76,4 +88,5 @@ published or tagged, so this release collects their work and the version starts 
 - Filled values are never written to captures or reports; inputs are masked in screenshots; query
   values in recorded URLs are redacted by default. MotionPR sends no telemetry.
 
+[0.1.0-alpha.1]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.1.0-alpha.1
 [0.1.0-alpha]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.1.0-alpha

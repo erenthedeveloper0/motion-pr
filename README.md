@@ -119,10 +119,10 @@ in [Severity & thresholds](docs/features/severity.md).
 
 ## Status
 
-**Alpha — `0.1.0-alpha`, the first public release.** It works end to end on real browsers for the
-engines below, and every claim in the documentation is backed by an automated test. Do not put it
-on a path that blocks production releases yet: the capture format and the public API may change
-before `1.0`. Older captures are migrated when they are read.
+**Alpha — `0.1.0-alpha.1`.** It works end to end on real browsers for the engines below, and
+every claim in the documentation is backed by an automated test. Do not put it on a path that
+blocks production releases yet: the capture format and the public API may change before `1.0`.
+Older captures are migrated when they are read.
 
 ### Working today
 
