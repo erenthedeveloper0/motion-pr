@@ -1,0 +1,31 @@
+/* Geist and Geist Mono (SIL OFL), Latin subset, inlined into the report so it renders offline. */
+@font-face {
+  font-family: "Geist Variable";
+  src: url("../../node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2")
+    format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono Variable";
+  src: url("../../node_modules/@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2")
+    format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: #070709;
+}
+@media print {
+  html,
+  body,
+  #root {
+    height: auto;
+  }
+}

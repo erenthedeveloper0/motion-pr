@@ -1,0 +1,46 @@
+name: Bug report
+description: MotionPR captured, compared or reported something incorrectly, or a command failed.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. **Security issues go to
+        [a private advisory](https://github.com/erenthedeveloper0/motion-pr/security/advisories/new), not here.**
+  - type: input
+    id: version
+    attributes:
+      label: MotionPR version
+      description: Output of `npx motionpr --version`
+      placeholder: "0.1.0-alpha"
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `npx motionpr doctor`
+      description: Node.js, Playwright and Chromium versions, the config, and adapter health.
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Engines involved
+      multiple: true
+      options: [Native CSS, Web Animations API, GSAP, Anime.js, Lenis, Other or none]
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: The scenario from motionpr.config.ts and a small page (or the animation code) that shows the problem.
+      render: ts
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened
+      description: Include the CLI output or the difference shown in the report.
+    validations:
+      required: true

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>native fixture</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #fff;
+      }
+      button {
+        position: absolute;
+        left: 600px;
+        top: 20px;
+        font: 14px sans-serif;
+      }
+      #panel {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100px;
+        height: 100px;
+        background: rgb(255, 0, 0);
+        transform: translateX(0px);
+        transition:
+          transform 400ms cubic-bezier(0.16, 1, 0.3, 1) 100ms,
+          opacity 300ms linear;
+      }
+      body.open #panel {
+        transform: translateX(200px);
+        opacity: 0.5;
+      }
+      @keyframes rise {
+        from {
+          transform: translateY(40px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .badge {
+        position: absolute;
+        top: 200px;
+        left: 20px;
+        width: 60px;
+        height: 60px;
+        background: rgb(0, 0, 255);
+        opacity: 0;
+      }
+      body.open .badge {
+        animation: rise 300ms ease-out 200ms forwards;
+      }
+      .dot {
+        position: absolute;
+        top: 320px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        background: rgb(0, 160, 0);
+      }
+      #spinner {
+        position: absolute;
+        top: 420px;
+        left: 400px;
+        width: 20px;
+        height: 20px;
+        background: #444;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .ignored {
+        position: absolute;
+        top: 420px;
+        left: 20px;
+        width: 20px;
+        height: 20px;
+        background: #888;
+        transition: opacity 200ms;
+      }
+      body.open .ignored {
+        opacity: 0.2;
+      }
+    </style>
+  </head>
+  <body>
+    <button data-testid="toggle" type="button">Toggle</button>
+    <div id="panel" data-testid="panel"></div>
+    <div class="badge" data-motionpr-id="badge"></div>
+    <section>
+      <div><span class="dot"></span></div>
+    </section>
+    <div id="spinner"></div>
+    <div class="ignored" data-testid="noise"></div>
+    <script>
+      document.querySelector("[data-testid=toggle]").addEventListener("click", () => {
+        document.body.classList.toggle("open");
+        document
+          .querySelector(".dot")
+          .animate([{ transform: "scale(1)" }, { transform: "scale(2)" }], {
+            duration: 250,
+            easing: "steps(4, jump-end)",
+            id: "grow",
+            fill: "forwards",
+          });
+      });
+    </script>
+  </body>
+</html>

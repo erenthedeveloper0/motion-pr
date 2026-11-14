@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "paths": {
+      "@motionpr/core": ["../core/src/index.ts"],
+      "@motionpr/core/protocol": ["../core/src/protocol.ts"],
+      "@motionpr/core/identity": ["../core/src/identity.ts"],
+      "@motionpr/core/easing": ["../core/src/easing/index.ts"],
+      "@motionpr/capture": ["../capture/src/index.ts"],
+      "@motionpr/comparison": ["../comparison/src/index.ts"],
+      "@motionpr/gsap": ["../adapters/gsap/src/index.ts"],
+      "@motionpr/animejs": ["../adapters/animejs/src/index.ts"],
+      "@motionpr/lenis": ["../adapters/lenis/src/index.ts"],
+      "@motionpr/report": ["../report/src/generator/index.ts"]
+    }
+  },
+  "include": ["src"]
+}

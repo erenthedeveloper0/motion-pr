@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="4" viewBox="0 0 1600 4" preserveAspectRatio="none">
+  <!-- The brand gradient (brand/README.md), fading in and out at the edges. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#839CF6"/>
+      <stop offset="0.38" stop-color="#7E4AE6"/>
+      <stop offset="0.72" stop-color="#E5A9C7"/>
+      <stop offset="1" stop-color="#ECA67A"/>
+    </linearGradient>
+    <linearGradient id="f" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.2" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="0.8" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="m"><rect width="1600" height="4" fill="url(#f)"/></mask>
+  </defs>
+  <rect width="1600" height="4" rx="2" fill="url(#g)" mask="url(#m)"/>
+</svg>

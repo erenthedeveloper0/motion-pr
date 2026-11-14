@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>gsap fixture</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #fff;
+        font: 16px sans-serif;
+      }
+      .controls {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        display: flex;
+        gap: 8px;
+      }
+      [data-testid="title"] {
+        position: absolute;
+        top: 60px;
+        left: 20px;
+        width: 200px;
+        height: 40px;
+        background: rgb(255, 0, 0);
+      }
+      .card {
+        position: absolute;
+        top: 160px;
+        width: 60px;
+        height: 60px;
+        background: rgb(0, 0, 255);
+      }
+      [data-testid="card-1"] {
+        left: 20px;
+      }
+      [data-testid="card-2"] {
+        left: 100px;
+      }
+      [data-testid="card-3"] {
+        left: 180px;
+      }
+      [data-testid="menu"] {
+        position: absolute;
+        top: 260px;
+        left: 0;
+        width: 80px;
+        height: 80px;
+        background: rgb(0, 160, 0);
+      }
+      [data-testid="pulse"] {
+        position: absolute;
+        top: 380px;
+        left: 40px;
+        width: 40px;
+        height: 40px;
+        background: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="controls">
+      <button data-testid="play">Play</button>
+      <button data-testid="open">Open</button>
+      <button data-testid="close">Close</button>
+      <button data-testid="pulse-btn">Pulse</button>
+    </div>
+    <div data-testid="title"></div>
+    <div class="card" data-testid="card-1"></div>
+    <div class="card" data-testid="card-2"></div>
+    <div class="card" data-testid="card-3"></div>
+    <div data-testid="menu"></div>
+    <div data-testid="pulse"></div>
+    <script src="/gsap.min.js"></script>
+    <script src="/adapter.js"></script>
+    <script>
+      const { motionprGsap } = MotionprGsap;
+      window.registered = motionprGsap.register(gsap);
+      window.completeCount = 0;
+      gsap.set("[data-testid=title]", { y: 40, opacity: 0 });
+
+      const hero = gsap.timeline({
+        paused: true,
+        defaults: { ease: "power3.out" },
+        onComplete: () => window.completeCount++,
+      });
+      hero.addLabel("intro").to("[data-testid=title]", { y: 0, opacity: 1, duration: 0.6 });
+      hero
+        .addLabel("cards")
+        .to(".card", { x: 100, duration: 0.4, stagger: 0.1, ease: "back.out(1.7)" }, "cards");
+      motionprGsap.track(hero, "hero");
+      document.querySelector("[data-testid=play]").addEventListener("click", () => hero.play());
+
+      const menu = gsap
+        .timeline({ paused: true })
+        .to("[data-testid=menu]", { x: 200, duration: 0.5, ease: "power2.inOut" });
+      motionprGsap.track(menu, "menu");
+      document.querySelector("[data-testid=open]").addEventListener("click", () => menu.play());
+      document.querySelector("[data-testid=close]").addEventListener("click", () => menu.reverse());
+
+      document.querySelector("[data-testid=pulse-btn]").addEventListener("click", () => {
+        gsap.to("[data-testid=pulse]", {
+          scale: 1.5,
+          duration: 0.2,
+          repeat: 1,
+          yoyo: true,
+          repeatDelay: 0.1,
+          ease: "sine.inOut",
+          id: "pulse",
+        });
+      });
+    </script>
+  </body>
+</html>

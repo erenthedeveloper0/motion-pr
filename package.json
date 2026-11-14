@@ -1,0 +1,51 @@
+{
+  "name": "motionpr-monorepo",
+  "private": true,
+  "type": "module",
+  "description": "MotionPR monorepo: animation regression testing and motion inspection.",
+  "license": "MIT",
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "generate": "pnpm --filter @motionpr/capture generate",
+    "build": "pnpm generate && pnpm --filter @motionpr/report build && pnpm --filter @motionpr/demo-app build && pnpm --filter @erenthedeveloper0/motionpr build",
+    "build:docs": "pnpm --filter @motionpr/docs build",
+    "dev:docs": "pnpm --filter @motionpr/docs dev",
+    "dev:report": "pnpm --filter @motionpr/report dev",
+    "test": "pnpm generate && vitest run --project unit",
+    "test:integration": "pnpm generate && vitest run --project integration",
+    "test:e2e": "playwright test",
+    "test:all": "pnpm test && pnpm test:integration && pnpm test:e2e",
+    "typecheck": "pnpm generate && pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "demo:capture": "pnpm --filter @motionpr/demo-app build && tsx scripts/generate-demo.ts",
+    "pack:check": "node scripts/pack-check.mjs",
+    "bench": "tsx benchmarks/run.ts",
+    "version:check": "node scripts/sync-version.mjs --check",
+    "version:set": "node scripts/sync-version.mjs",
+    "release:prepare": "node scripts/release-prepare.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@motionpr/capture": "workspace:*",
+    "@motionpr/comparison": "workspace:*",
+    "@motionpr/core": "workspace:*",
+    "@motionpr/gsap": "workspace:*",
+    "@motionpr/report": "workspace:*",
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "eslint": "10.14.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "catalog:",
+    "playwright-core": "catalog:",
+    "prettier": "3.10.1",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "8.72.2",
+    "vitest": "catalog:"
+  }
+}

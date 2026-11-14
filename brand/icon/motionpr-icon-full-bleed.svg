@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" role="img" aria-label="MotionPR">
+<title>MotionPR</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1A1A22"/><stop offset="1" stop-color="#08080B"/></linearGradient>
+<linearGradient id="mpr-g" gradientUnits="userSpaceOnUse" x1="256" y1="768" x2="768" y2="256"><stop offset="0" stop-color="#839CF6"/><stop offset="0.38" stop-color="#7E4AE6"/><stop offset="0.72" stop-color="#E5A9C7"/><stop offset="1" stop-color="#ECA67A"/></linearGradient>
+<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="42"/></filter>
+</defs>
+<rect width="1024" height="1024" fill="url(#bg)"/>
+<path fill="url(#mpr-g)" opacity=".5" filter="url(#glow)" d="M371.167 371.167A209.669 209.669 0 1 0 652.833 652.833A209.669 209.669 0 0 1 371.167 371.167ZM371.167 371.167A209.669 209.669 0 1 1 652.833 652.833A209.669 209.669 0 0 0 371.167 371.167Z"/>
+<path fill="url(#mpr-g)" d="M371.167 371.167A209.669 209.669 0 1 0 652.833 652.833A209.669 209.669 0 0 1 371.167 371.167ZM371.167 371.167A209.669 209.669 0 1 1 652.833 652.833A209.669 209.669 0 0 0 371.167 371.167Z"/>
+</svg>

@@ -1,0 +1,10 @@
+# One line ending everywhere: generated files and scripted edits match exact strings, and a CRLF
+# checkout on Windows would make those matches fail.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.tgz binary

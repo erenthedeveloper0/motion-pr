@@ -1,0 +1,167 @@
+@import "tailwindcss" source(none);
+@source "../";
+
+/*
+ * MotionPR design system.
+ * Brand: ink/graphite surfaces, Paper text, a single violet accent for focus and selection,
+ * and the brand gradient's direction of motion as the comparison code:
+ * baseline = cool blue (before), candidate = warm peach (after).
+ */
+@theme {
+  --font-sans:
+    "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:
+    "Geist Mono Variable", "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --color-ink: #070709;
+  --color-g-950: #0b0b0e;
+  --color-g-900: #101015;
+  --color-g-875: #13131a;
+  --color-g-850: #17171f;
+  --color-g-800: #1c1c25;
+  --color-g-750: #22222c;
+  --color-g-700: #2a2a35;
+  --color-g-600: #383845;
+  --color-g-500: #4d4d5c;
+  --color-g-400: #6c6b7c;
+  --color-g-300: #8f8da0;
+  --color-g-200: #b4b2c3;
+  --color-paper: #f3f1fa;
+
+  --color-violet: #7e4ae6;
+  --color-violet-hi: #9b74f0;
+  --color-cyan: #68d6e8;
+  --color-base: #839cf6;
+  --color-cand: #eca67a;
+  --color-pink: #e5a9c7;
+
+  --color-sev-critical: #f2667a;
+  --color-sev-warning: #f3c96b;
+  --color-sev-info: #68d6e8;
+  --color-sev-uncertain: #d59ce8;
+  --color-ok: #6fd6a8;
+
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --text-2xs: 10.5px;
+  --text-2xs--line-height: 14px;
+  --text-xs: 11.5px;
+  --text-xs--line-height: 16px;
+  --text-sm: 12.5px;
+  --text-sm--line-height: 18px;
+
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --shadow-panel: 0 1px 0 0 rgb(255 255 255 / 0.03) inset, 0 24px 48px -24px rgb(0 0 0 / 0.6);
+  --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.06), 0 18px 40px -12px rgb(0 0 0 / 0.75);
+}
+
+@layer base {
+  .mpr-root {
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    color: var(--color-paper);
+    background: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: dark;
+  }
+  .mpr-root *,
+  .mpr-root *::before,
+  .mpr-root *::after {
+    border-color: rgb(243 241 250 / 0.075);
+  }
+  .mpr-root :focus-visible {
+    outline: 1.5px solid var(--color-violet-hi);
+    outline-offset: 1px;
+    border-radius: 4px;
+  }
+  .mpr-root ::selection {
+    background: rgb(126 74 230 / 0.45);
+  }
+  .mpr-root .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Fine film grain over the canvas, generated (no network). */
+  .mpr-grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+  }
+  .mpr-panel {
+    background:
+      linear-gradient(180deg, rgb(255 255 255 / 0.012), transparent 40%), var(--color-g-900);
+  }
+  .mpr-checker {
+    background-color: #0d0d11;
+    background-image:
+      linear-gradient(45deg, rgb(255 255 255 / 0.025) 25%, transparent 25%),
+      linear-gradient(-45deg, rgb(255 255 255 / 0.025) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgb(255 255 255 / 0.025) 75%),
+      linear-gradient(-45deg, transparent 75%, rgb(255 255 255 / 0.025) 75%);
+    background-size: 16px 16px;
+    background-position:
+      0 0,
+      0 8px,
+      8px -8px,
+      -8px 0;
+  }
+  .mpr-hatch {
+    background-image: repeating-linear-gradient(135deg, currentColor 0 1px, transparent 1px 5px);
+  }
+  .mpr-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(243 241 250 / 0.12) transparent;
+  }
+  .mpr-range {
+    appearance: none;
+    background: transparent;
+    height: 18px;
+  }
+  .mpr-range::-webkit-slider-runnable-track {
+    height: 2px;
+    background: var(--color-g-600);
+    border-radius: 2px;
+  }
+  .mpr-range::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    margin-top: -5px;
+    border-radius: 50%;
+    background: var(--color-paper);
+    box-shadow: 0 0 0 3px rgb(126 74 230 / 0.35);
+  }
+  .mpr-range::-moz-range-track {
+    height: 2px;
+    background: var(--color-g-600);
+  }
+  .mpr-range::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--color-paper);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mpr-root *,
+  .mpr-root *::before,
+  .mpr-root *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@motionpr/capture",
+  "version": "0.1.0-alpha",
+  "private": true,
+  "description": "MotionPR capture engine: Playwright scenario runner and in-page animation agent.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "node scripts/build-agent.mjs",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.agent.json"
+  },
+  "dependencies": {
+    "@motionpr/core": "workspace:*",
+    "playwright-core": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "esbuild": "catalog:",
+    "typescript": "catalog:",
+    "pngjs": "catalog:",
+    "@types/pngjs": "catalog:",
+    "vitest": "catalog:"
+  }
+}

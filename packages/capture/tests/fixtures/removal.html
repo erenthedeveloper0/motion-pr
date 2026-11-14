@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        margin: 0;
+      }
+      .toast {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 120px;
+        height: 40px;
+        background: #222;
+      }
+      .toast.leaving {
+        animation: out 200ms ease-in forwards;
+      }
+      @keyframes out {
+        to {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <button data-testid="dismiss" style="position: absolute; top: 200px; left: 10px">
+      Dismiss
+    </button>
+    <div class="toast" data-testid="toast"></div>
+    <script>
+      document.querySelector("[data-testid=dismiss]").addEventListener("click", () => {
+        const toast = document.querySelector(".toast");
+        toast.classList.add("leaving");
+        toast.addEventListener("animationend", () => toast.remove());
+      });
+    </script>
+  </body>
+</html>

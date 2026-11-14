@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-label="MotionPR">
+<title>MotionPR</title>
+<style>
+.a,.b{transform-box:view-box}
+.a{animation:mpr-a 1.6s cubic-bezier(.16,1,.3,1) .35s both}
+.b{animation:mpr-b 1.6s cubic-bezier(.16,1,.3,1) .35s both}
+@keyframes mpr-a{from{transform:translate(46.331px,-46.331px)}to{transform:translate(0,0)}}
+@keyframes mpr-b{from{transform:translate(-46.331px,46.331px)}to{transform:translate(0,0)}}
+@media (prefers-reduced-motion:reduce){.a,.b{animation:none!important}}
+</style>
+<defs>
+<linearGradient id="mpr-g" gradientUnits="userSpaceOnUse" x1="0" y1="512" x2="512" y2="0"><stop offset="0" stop-color="#839CF6"/><stop offset="0.38" stop-color="#7E4AE6"/><stop offset="0.72" stop-color="#E5A9C7"/><stop offset="1" stop-color="#ECA67A"/></linearGradient>
+<mask id="not-b" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512"><rect width="512" height="512" fill="#fff"/><circle class="b" cx="302.331" cy="209.669" r="209.669" fill="#000"/></mask>
+<mask id="not-a" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512"><rect width="512" height="512" fill="#fff"/><circle class="a" cx="209.669" cy="302.331" r="209.669" fill="#000"/></mask>
+</defs>
+<g mask="url(#not-b)"><circle class="a" cx="209.669" cy="302.331" r="209.669" fill="url(#mpr-g)"/></g>
+<g mask="url(#not-a)"><circle class="b" cx="302.331" cy="209.669" r="209.669" fill="url(#mpr-g)"/></g>
+</svg>
