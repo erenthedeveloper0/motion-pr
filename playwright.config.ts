@@ -10,7 +10,8 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   timeout: 60_000,
   fullyParallel: true,
-  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
+  // In CI, failures also become GitHub annotations: readable on the run and the pull request.
+  reporter: process.env.CI ? [["github"], ["list"], ["html", { open: "never" }]] : "list",
   use: {
     browserName: "chromium",
     viewport: { width: 1600, height: 1000 },
