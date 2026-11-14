@@ -8,7 +8,7 @@ import { gsap } from "./lib/motion.js";
 const LOADERS = {
   hero: () => import("./components/hero.js"),
   compare: () => import("./components/hero.js"),
-  findings: () => import("./components/findings.js"),
+  horizon: () => import("./components/horizon.js"),
   "code-diff": () => import("./components/code-diff.js"),
   workflow: () => import("./components/workflow.js"),
   "diff-viewer": () => import("./components/diff-viewer.js"),
@@ -118,16 +118,18 @@ export function mountAll(root = document) {
 
 /**
  * Mounts, now, every pending component that starts above `bottom` (a document y). Used before
- * restoring a scroll position: components change height when they mount, so the page above the
+ * restoring a scroll position or jumping to an anchor: components change height when they mount, so the page above the
  * reader's place must be laid out as it was when they left. Mounting moves what follows, hence
  * a few passes; it gives up waiting after `timeout` ms rather than hold up the navigation.
  */
 export async function mountAbove(root, bottom, { timeout = 1200 } = {}) {
   const deadline = performance.now() + timeout;
-  for (let pass = 0; pass < 4 && performance.now() < deadline; pass++) {
+  for (let pass = 0; pass < 6 && performance.now() < deadline; pass++) {
     const jobs = [];
+    // `bottom` may be a function: a target that moves down as what is above it grows.
+    const limit = typeof bottom === "function" ? bottom() : bottom;
     for (const el of [...pending]) {
-      if (!root.contains(el) || el.getBoundingClientRect().top + scrollY >= bottom) continue;
+      if (!root.contains(el) || el.getBoundingClientRect().top + scrollY >= limit) continue;
       io?.unobserve(el);
       pending.delete(el);
       jobs.push(mountOne(el));

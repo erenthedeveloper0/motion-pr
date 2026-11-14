@@ -59,91 +59,126 @@
   font-size: 0.86em;
 }
 
-/* Hero */
+/* Hero: a vertical composition. The tagline as a staircase (each line enters 90 ms after the
+   previous one, and says so), then the horizon: the brand mark at planetary scale, its lit rim
+   the difference between two versions (components/horizon.js), then the page's index. */
 .hero {
+  --horizon-h: clamp(420px, 54vw, 780px);
   position: relative;
+  isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-  gap: 48px clamp(32px, 4vw, 72px);
-  align-items: center;
-  max-width: 1440px;
-  min-height: min(100svh, 980px);
-  margin: 0 auto;
-  padding: calc(var(--header-h) + clamp(32px, 6vh, 72px)) var(--gutter) clamp(40px, 6vh, 72px);
-}
-.hero::before {
-  /* The brand's arc horizon, as on the banner: a soft glow behind the instrument. */
-  content: "";
-  position: absolute;
-  right: -18vw;
-  top: 4%;
-  width: 74vw;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(
-    closest-side,
-    rgb(126 74 230 / 0.2),
-    rgb(131 156 246 / 0.06) 55%,
-    transparent 72%
-  );
-  pointer-events: none;
-  z-index: -1;
+  justify-items: center;
+  padding: calc(var(--header-h) + clamp(32px, 6vh, 92px)) 0 clamp(56px, 8vh, 104px);
+  overflow: hidden;
 }
 .hero__grain {
   position: absolute;
   inset: 0;
-  z-index: -1;
-  opacity: 0.05;
+  z-index: 2;
+  opacity: 0.07;
   pointer-events: none;
+  /* Fades out with the hero, so no seam shows where the next section begins. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .hero__copy {
+  position: relative;
+  z-index: 3;
   display: grid;
-  /* minmax(0, …): the install command must not widen the column past the viewport. */
   grid-template-columns: minmax(0, 1fr);
-  gap: 26px;
-  max-width: 640px;
+  justify-items: center;
+  width: min(100%, 1240px);
+  padding-inline: var(--gutter);
+  text-align: center;
 }
 .hero__eyebrow {
-  margin: 0;
+  margin: 0 0 clamp(20px, 3.6vh, 46px);
+  color: var(--text-2);
+  letter-spacing: 0.2em;
 }
 .hero__title {
+  display: grid;
+  justify-items: start;
+  width: fit-content;
+  max-width: 100%;
   margin: 0;
   color: var(--paper);
-  font: 540 clamp(40px, 4.7vw, 76px) / 0.98 var(--font-sans);
-  letter-spacing: -0.05em;
+  /* As large as the width allows, but the horizon must still rise into the first screen. */
+  font: 520 clamp(40px, min(6.4vw, 9.6vh), 120px) / 0.95 var(--font-sans);
+  letter-spacing: -0.058em;
+  text-align: left;
 }
 .hero__title:focus {
   outline: none;
 }
 .hero__line {
   display: block;
-  overflow: hidden;
-  padding-bottom: 0.06em;
+  /* A mask for the rise, vertical only: the stagger ticks may sit outside the line. */
+  clip-path: inset(-0.08em -50vw -0.16em -50vw);
+  padding-bottom: 0.04em;
 }
-.hero__line > span {
-  display: inline-block;
+.hero__line--2 {
+  padding-left: 1.55em;
+  color: var(--g-200);
 }
-.hero__line--muted {
+.hero__line--3 {
+  padding-left: 3.1em;
   color: var(--g-300);
 }
+.hero__words {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+.hero__tick {
+  position: absolute;
+  top: 0.2em;
+  left: 100%;
+  margin-left: 0.5em;
+  color: #a98bf2;
+  font: 500 clamp(10px, 0.115em, 13px) / 1 var(--font-mono);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.hero__tick::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: 0.1em;
+  box-shadow: 0 0 10px currentColor;
+}
 .hero__lede {
-  margin: 0;
-  max-width: 52ch;
+  max-width: 62ch;
+  text-wrap: balance;
+  margin: clamp(22px, 3.4vh, 44px) 0 0;
   color: var(--text-2);
-  font-size: clamp(17px, 1.35vw, 19px);
+  font-size: clamp(16px, 1.25vw, 18.5px);
   line-height: 1.6;
 }
 .hero__actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 12px;
+  margin-top: clamp(20px, 3vh, 30px);
+}
+.hero__install {
+  display: flex;
+  justify-content: center;
+  max-width: 100%;
+  margin-top: 14px;
 }
 .hero__engines {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 6px 18px;
-  margin: 0;
+  margin: 6px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -158,6 +193,195 @@
   height: 5px;
   border-radius: 50%;
   background: var(--g-500);
+}
+
+/* The horizon. The canvas is full bleed; its glow reaches up under the actions. */
+.horizon {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin: calc(var(--horizon-h) * -0.37) 0 0;
+  pointer-events: none;
+}
+.horizon__canvas {
+  display: block;
+  width: 100%;
+  height: var(--horizon-h);
+  /* The glow fades out before the canvas ends: no edge, however bright the lights get. */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 26%,
+    #000 88%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 88%, transparent 100%);
+}
+.horizon__lights {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--horizon-h);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 26%,
+    #000 88%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 88%, transparent 100%);
+}
+.horizon__caption {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  max-width: 820px;
+  margin: calc(var(--horizon-h) * -0.4) auto 0;
+  padding-inline: var(--gutter);
+  text-align: center;
+  pointer-events: auto;
+}
+.horizon__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.horizon__play {
+  flex: none;
+}
+.horizon__readout {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+  margin: 0;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.horizon__readout > span > span {
+  display: inline-block;
+  min-width: 4ch;
+  color: var(--paper);
+  text-align: left;
+}
+.horizon__r--b > span {
+  color: var(--blue) !important;
+}
+.horizon__r--c > span {
+  color: var(--peach) !important;
+}
+.horizon__legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 22px;
+  margin: 0;
+  color: var(--text-2);
+}
+.horizon__key {
+  white-space: nowrap;
+}
+.horizon__key::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  margin-right: 8px;
+  border-radius: 1px;
+  vertical-align: 0.3em;
+}
+.horizon__key--b::before {
+  background: var(--blue);
+  box-shadow: 0 0 8px var(--blue);
+}
+.horizon__key--c::before {
+  background: var(--peach);
+  box-shadow: 0 0 8px var(--peach);
+}
+.horizon__note {
+  max-width: 60ch;
+  text-wrap: balance;
+  margin: 0;
+  color: var(--text-3);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+/* The page's index, under the horizon: dotted leaders that light up like a playhead passing. */
+.hero__index {
+  position: relative;
+  z-index: 3;
+  width: min(100% - 2 * var(--gutter), 700px);
+  margin-top: clamp(44px, 7vh, 80px);
+}
+.hero__index ol {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hero__index a {
+  --dots: radial-gradient(circle, #000 0.95px, transparent 1.35px) 0 50% / 7px 3px repeat-x;
+  display: grid;
+  grid-template-columns: auto minmax(28px, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+  padding: 9px 2px;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: clamp(16px, 1.3vw, 19.5px);
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+.hero__index-n {
+  color: var(--text-3);
+  font: 500 13px / 1.9 var(--font-mono);
+  letter-spacing: 0.06em;
+  transition: color var(--dur-base) var(--ease-out);
+}
+.hero__index-leader {
+  position: relative;
+  height: 3px;
+  margin-bottom: 0.42em;
+  background: var(--g-500);
+  -webkit-mask: var(--dots);
+  mask: var(--dots);
+  transform-origin: 0 50%;
+}
+.hero__index-leader::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-x);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+.hero__index-label {
+  transition:
+    color var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+.hero__index a:hover .hero__index-leader::after,
+.hero__index a:focus-visible .hero__index-leader::after {
+  transform: scaleX(1);
+}
+.hero__index a:hover .hero__index-n,
+.hero__index a:focus-visible .hero__index-n {
+  color: var(--peach);
+}
+.hero__index a:hover .hero__index-label,
+.hero__index a:focus-visible .hero__index-label {
+  color: var(--paper);
+  transform: translateX(-3px);
+}
+.landing .section[id] {
+  scroll-margin-top: calc(var(--header-h) + 8px);
 }
 .install {
   display: flex;
@@ -194,13 +418,20 @@
 /* Statement */
 .statement__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
   gap: 40px;
   align-items: start;
 }
 .diff-card {
   margin: 0;
   padding: 18px 0 8px;
+}
+/* The one-line change stays beside its effect while the instrument scrolls by. */
+@media (min-width: 1081px) {
+  .statement__grid .diff-card {
+    position: sticky;
+    top: calc(var(--header-h) + 32px);
+  }
 }
 .diff-card figcaption {
   padding: 0 20px 12px;
@@ -247,36 +478,13 @@
 }
 .statement__findings {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
 }
 .statement__intro {
   margin: 0;
   color: var(--text-2);
   font-size: 17px;
-}
-.findings-list {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.finding-row {
-  display: grid;
-  grid-template-columns: 92px 90px 1fr;
-  gap: 4px 14px;
-  align-items: baseline;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--g-950);
-}
-.finding-row__msg {
-  color: var(--text);
-  font-size: 15px;
-}
-.finding-row__how {
-  grid-column: 3;
 }
 .statement__note {
   margin: 0;
@@ -753,13 +961,6 @@
 }
 
 @media (max-width: 1080px) {
-  .hero {
-    grid-template-columns: minmax(0, 1fr);
-    min-height: 0;
-  }
-  .hero__copy {
-    max-width: 720px;
-  }
   .section__head--split,
   .statement__grid,
   .engines__panel,
@@ -791,12 +992,6 @@
   }
 }
 @media (max-width: 560px) {
-  .finding-row {
-    grid-template-columns: 1fr;
-  }
-  .finding-row__how {
-    grid-column: 1;
-  }
   .site-footer__cols {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -856,4 +1051,45 @@
 }
 .workflow--compact .workflow__step strong {
   color: var(--paper);
+}
+
+/* Phones: a tighter staircase that fits the screen, the ticks give way to the words. */
+@media (max-width: 720px) {
+  .hero {
+    --horizon-h: 460px;
+  }
+  .hero__title {
+    font-size: clamp(32px, 9.3vw, 64px);
+  }
+  .hero__line--2 {
+    padding-left: 0.55em;
+  }
+  .hero__line--3 {
+    padding-left: 1.1em;
+  }
+  .hero__eyebrow {
+    letter-spacing: 0.12em;
+  }
+  .hero__tick {
+    display: none;
+  }
+  .horizon__ease {
+    display: none;
+  }
+  .horizon__readout {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    gap: 4px 18px;
+  }
+  .hero__index a {
+    gap: 10px;
+    font-size: 15.5px;
+  }
+  .hero__index-n {
+    font-size: 12px;
+  }
+}
+
+.nowrap {
+  white-space: nowrap;
 }

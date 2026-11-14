@@ -124,28 +124,59 @@ function enginesHtml(up, engines) {
   return `<div class="engines" data-component="engines"><div class="engines__tabs" role="tablist" aria-label="Animation engines"><span class="engines__indicator" aria-hidden="true"></span>${tabs}</div>${panels}</div>`;
 }
 
+// The tagline as a staircase: each line enters 90 ms after the previous one (ui/enter.js), and
+// says so.
+const HERO_LINES = [
+  ["Your code changed.", "0 ms"],
+  ["See how your", "+90 ms"],
+  ["interface moves.", "+180 ms"],
+];
+// The landing page's sections, in order: the hero's index links to them.
+const LANDING_SECTIONS = [
+  ["change", "The change review cannot see"],
+  ["how-it-works", "How it works"],
+  ["measured", "Measured, not guessed"],
+  ["engines", "Engines"],
+  ["easing", "Easing analysis"],
+  ["scroll", "Scroll motion"],
+  ["ci", "Continuous integration"],
+];
+
 export function landingBody({ up, version, summary, engines }) {
   const c = summary.counts;
   return `<main id="main" class="landing" tabindex="-1">
 <section class="hero" aria-labelledby="hero-title">
   <div class="hero__grain" aria-hidden="true"></div>
   <div class="hero__copy">
-    <p class="label hero__eyebrow" data-hero="eyebrow">Animation regression testing <span aria-hidden="true">·</span> v${escapeHtml(version)}</p>
-    <h1 id="hero-title" class="hero__title" tabindex="-1"><span class="hero__line"><span data-hero="line">Your code changed.</span></span><span class="hero__line hero__line--muted"><span data-hero="line">See how your interface moves.</span></span></h1>
+    <p class="label hero__eyebrow" data-hero="eyebrow"><span>Animation regression testing</span> <span aria-hidden="true">·</span> <span class="nowrap">v${escapeHtml(version)}</span></p>
+    <h1 id="hero-title" class="hero__title" tabindex="-1">${HERO_LINES.map(
+      ([text, tick], i) =>
+        `<span class="hero__line hero__line--${i + 1}"><span class="hero__words" data-hero="line">${escapeHtml(text)}<span class="hero__tick" aria-hidden="true">${tick}</span></span></span>`,
+    ).join("")}</h1>
     <p class="hero__lede" data-hero="lede">MotionPR drives your app in Chromium, records every animation and scroll as data, compares it with an approved baseline, and opens a report where both versions play on one clock.</p>
     <div class="hero__actions" data-hero="actions">
       <a class="button" href="${up}docs/getting-started/installation/">Get started ${ICONS.arrow}</a>
       <a class="button button--ghost" href="${up}demo/">Open the interactive demo</a>
     </div>
-    <div data-hero="install">${installBox("hero-install")}</div>
-    <ul class="hero__engines label" aria-label="Supported engines" data-hero="engines"><li>Native CSS</li><li>WAAPI</li><li>GSAP</li><li>Anime.js</li><li>Lenis</li></ul>
+    <div class="hero__install" data-hero="install">${installBox("hero-install")}</div>
   </div>
-  <div class="hero__stage" data-component="hero" data-dataset="navigation/open" data-track="motionpr-id:nav-panel::css-transition::transform">
-    <p class="mp-component__fallback">The navigation panel of the demo app: baseline 320 ms on cubic-bezier(0.16, 1, 0.3, 1), candidate 560 ms on ease-in-out. MotionPR reported a duration and an easing change (warnings).</p>
-  </div>
+  <figure class="horizon" data-component="horizon" data-eager data-dataset="navigation/open" data-track="motionpr-id:nav-panel::css-transition::transform" data-hero="horizon">
+    <canvas class="horizon__canvas" aria-hidden="true"></canvas>
+    <figcaption class="horizon__caption">
+      <p class="horizon__legend label"><span class="horizon__key horizon__key--b">Baseline 320 ms<span class="horizon__ease"> · cubic-bezier(0.16, 1, 0.3, 1)</span></span><span class="horizon__key horizon__key--c">Candidate 560 ms<span class="horizon__ease"> · ease-in-out</span></span></p>
+      <p class="horizon__note">The demo app's navigation panel as MotionPR captured it, 5× slower: one light per version rides the horizon with its real timing, and the arc opens as far as they differ.</p>
+      <ul class="hero__engines label" aria-label="Supported engines"><li>Native CSS</li><li>WAAPI</li><li>GSAP</li><li>Anime.js</li><li>Lenis</li></ul>
+    </figcaption>
+  </figure>
+  <nav class="hero__index" aria-label="On this page" data-hero="index">
+    <ol>${LANDING_SECTIONS.map(
+      ([id, label], i) =>
+        `<li><a href="#${id}"><span class="hero__index-n">[${String(i + 1).padStart(2, "0")}]</span><span class="hero__index-leader" aria-hidden="true"></span><span class="hero__index-label">${escapeHtml(label)}</span></a></li>`,
+    ).join("")}</ol>
+  </nav>
 </section>
 
-<section class="statement section" aria-labelledby="statement-title">
+<section id="change" class="statement section" aria-labelledby="statement-title">
   <div class="section__head">
     <p class="label section__index"><span>01</span> The change review cannot see</p>
     <h2 id="statement-title" class="section__title">One line in a pull request.<br /><span class="muted">A different interface in your hands.</span></h2>
@@ -160,14 +191,16 @@ export function landingBody({ up, version, summary, engines }) {
 <span class="d-ctx">}</span></code></pre>
     </figure>
     <div class="statement__findings">
-      <p class="statement__intro">The diff reads like a tidy-up. MotionPR replays both versions and measures what changed:</p>
-      <ol class="findings-list" data-component="findings" data-dataset="navigation/open" data-track="motionpr-id:nav-panel::css-transition::transform"></ol>
+      <p class="statement__intro">The diff reads like a tidy-up. MotionPR replays both versions on one clock and measures what changed:</p>
+      <div class="statement__stage" data-component="hero" data-dataset="navigation/open" data-track="motionpr-id:nav-panel::css-transition::transform">
+        <p class="mp-component__fallback">The navigation panel of the demo app: baseline 320 ms on cubic-bezier(0.16, 1, 0.3, 1), candidate 560 ms on ease-in-out. MotionPR reported a duration and an easing change (warnings).</p>
+      </div>
       <p class="statement__note label">Real output · demo app · scenario <b>navigation</b> · checkpoint <b>open</b></p>
     </div>
   </div>
 </section>
 
-<section class="workflow section" aria-labelledby="workflow-title" data-component="workflow">
+<section id="how-it-works" class="workflow section" aria-labelledby="workflow-title" data-component="workflow">
   <div class="section__head">
     <p class="label section__index"><span>02</span> How it works</p>
     <h2 id="workflow-title" class="section__title">Capture. Analyze. Compare.<br /><span class="muted">Inspect. Report.</span></h2>
@@ -184,7 +217,7 @@ export function landingBody({ up, version, summary, engines }) {
   </div>
 </section>
 
-<section class="findings-section section" aria-labelledby="findings-title">
+<section id="measured" class="findings-section section" aria-labelledby="findings-title">
   <div class="section__head section__head--split">
     <div>
       <p class="label section__index"><span>03</span> Measured, not guessed</p>
@@ -195,7 +228,7 @@ export function landingBody({ up, version, summary, engines }) {
   <div data-component="diff-viewer"><p class="mp-component__fallback">${c.critical} critical, ${c.warning} warnings, ${c.info} info, ${c.uncertain} uncertain.</p></div>
 </section>
 
-<section class="engines-section section" aria-labelledby="engines-title">
+<section id="engines" class="engines-section section" aria-labelledby="engines-title">
   <div class="section__head">
     <p class="label section__index"><span>04</span> Engines</p>
     <h2 id="engines-title" class="section__title">The browser's animations, natively.<br /><span class="muted">Your engine's, through one line.</span></h2>
@@ -203,7 +236,7 @@ export function landingBody({ up, version, summary, engines }) {
   ${enginesHtml(up, engines)}
 </section>
 
-<section class="curves-section section" aria-labelledby="curves-title">
+<section id="easing" class="curves-section section" aria-labelledby="curves-title">
   <div class="section__head section__head--split">
     <div>
       <p class="label section__index"><span>05</span> Easing analysis</p>
@@ -214,7 +247,7 @@ export function landingBody({ up, version, summary, engines }) {
   <div data-component="easing-lab" data-baseline="cubic-bezier(0.16, 1, 0.3, 1)" data-candidate="ease-in-out"></div>
 </section>
 
-<section class="scroll-section section" aria-labelledby="scroll-title">
+<section id="scroll" class="scroll-section section" aria-labelledby="scroll-title">
   <div class="section__head section__head--split">
     <div>
       <p class="label section__index"><span>06</span> Scroll motion</p>
@@ -225,7 +258,7 @@ export function landingBody({ up, version, summary, engines }) {
   <div data-component="scroll" data-dataset="lenis-journal/scrolled"></div>
 </section>
 
-<section class="ci-section section" aria-labelledby="ci-title">
+<section id="ci" class="ci-section section" aria-labelledby="ci-title">
   <div class="section__head">
     <p class="label section__index"><span>07</span> Continuous integration</p>
     <h2 id="ci-title" class="section__title">Least privilege.<br /><span class="muted">Most signal.</span></h2>

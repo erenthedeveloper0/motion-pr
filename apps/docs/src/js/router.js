@@ -13,6 +13,11 @@ let hooks = {
   beforeSwap: async () => {},
   afterSwap: async () => {},
   restoreScroll: async ({ x, y }) => window.scrollTo(x, y),
+  scrollToTarget: (target, { instant = false } = {}) =>
+    target.scrollIntoView({
+      behavior: instant || reducedMotion() ? "auto" : "smooth",
+      block: "start",
+    }),
   enter: () => {},
 };
 
@@ -124,8 +129,13 @@ export async function navigate(href, { push = true, scroll = null } = {}) {
     if (url.hash) {
       history.pushState({ mp: true, x: scrollX, y: scrollY }, "", url.href);
       const target = document.getElementById(decodeURIComponent(url.hash.slice(1)));
-      target?.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "start" });
-      target?.focus?.({ preventScroll: true });
+      if (target) {
+        hooks.scrollToTarget(target);
+        // Move focus there too, so keyboard and screen-reader users arrive where they looked.
+        if (!target.matches("a, button, input, select, textarea, [tabindex]"))
+          target.setAttribute("tabindex", "-1");
+        target.focus({ preventScroll: true });
+      }
     }
     return;
   }
@@ -177,7 +187,7 @@ export async function navigate(href, { push = true, scroll = null } = {}) {
     await hooks.afterSwap(imported, { url });
     const target = url.hash ? document.getElementById(decodeURIComponent(url.hash.slice(1))) : null;
     if (scroll) await hooks.restoreScroll(scroll);
-    else if (target) target.scrollIntoView({ block: "start" });
+    else if (target) await hooks.scrollToTarget(target, { instant: true });
     stopPlayhead();
     hooks.enter(imported);
     const focusTarget = imported.querySelector("h1[tabindex]") ?? imported.querySelector("main");

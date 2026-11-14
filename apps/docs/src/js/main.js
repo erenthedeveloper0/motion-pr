@@ -35,6 +35,56 @@ function unmountPage() {
   for (const st of ScrollTrigger.getAll()) st.kill();
 }
 
+// Mounting content above the viewport makes the browser's scroll anchoring move the page natively;
+// bring Lenis's own idea of the position (and the page's height) back in line before using it.
+function sync(lenis) {
+  lenis.resize();
+  lenis.scrollTo(scrollY, { immediate: true, force: true });
+}
+
+async function scrollToTarget(target, { instant = false } = {}) {
+  const shell = document.querySelector("[data-shell]");
+  await mountAbove(shell, () => target.getBoundingClientRect().top + scrollY + innerHeight);
+  ScrollTrigger.refresh();
+  const lenis = getLenis();
+  const offset = (document.querySelector(".site-header")?.offsetHeight ?? 64) + 8;
+  const now = instant || reducedMotion();
+  // What was laid out above the target can still settle after the move: check on arrival and
+  // correct, unless the reader has started scrolling on their own.
+  const quit = new AbortController();
+  for (const type of ["wheel", "touchstart", "keydown", "pointerdown"])
+    addEventListener(type, () => quit.abort(), { once: true, passive: true, signal: quit.signal });
+  setTimeout(() => quit.abort(), 3000);
+  const settle = (tries = 2) => {
+    if (quit.signal.aborted) return;
+    const off = target.getBoundingClientRect().top - offset;
+    if (Math.abs(off) > 3) {
+      if (lenis) {
+        sync(lenis);
+        lenis.scrollTo(scrollY + off, { immediate: true, force: true });
+      } else window.scrollBy(0, off);
+    }
+    if (tries > 1) setTimeout(() => settle(tries - 1), 200);
+    else quit.abort();
+  };
+  if (lenis) {
+    sync(lenis);
+    lenis.scrollTo(target.getBoundingClientRect().top + scrollY - offset, {
+      immediate: now,
+      onComplete: () => setTimeout(settle, 60),
+    });
+    if (now) setTimeout(settle, 120);
+  } else {
+    target.scrollIntoView({ behavior: now ? "auto" : "smooth", block: "start" });
+    if (now) setTimeout(settle, 120);
+    else
+      addEventListener("scrollend", () => setTimeout(settle, 60), {
+        once: true,
+        signal: quit.signal,
+      });
+  }
+}
+
 function boot() {
   document.documentElement.classList.add("is-ready");
   const header = initHeader();
@@ -43,6 +93,10 @@ function boot() {
   let shell = document.querySelector("[data-shell]");
   mountPage(shell);
   entrance = enter(shell);
+  const hashTarget = location.hash
+    ? document.getElementById(decodeURIComponent(location.hash.slice(1)))
+    : null;
+  if (hashTarget) scrollToTarget(hashTarget, { instant: true });
 
   initRouter({
     beforeSwap: async () => {
@@ -63,11 +117,15 @@ function boot() {
       ScrollTrigger.refresh();
       const lenis = getLenis();
       if (lenis) {
-        lenis.resize(); // its scroll limit was measured before the components above mounted
+        sync(lenis); // its scroll limit was measured before the components above mounted
         lenis.scrollTo(y, { immediate: true, force: true });
       } else window.scrollTo(x, y);
       ScrollTrigger.update();
     },
+    // In-page anchors: first lay out everything above the target (lazy components grow when they
+    // mount and would push it away mid-scroll), then Lenis scrolls the landing page, below the
+    // header; elsewhere the browser does, honouring scroll-margin.
+    scrollToTarget,
     enter: (next) => {
       entrance = enter(next);
     },

@@ -11,7 +11,8 @@ export function mountLanding(shell) {
   const cleanups = [];
   const fine = matchMedia("(pointer: fine)").matches;
   if (!reducedMotion() && fine) {
-    lenis = new Lenis({ lerp: 0.1, anchors: { offset: -80 }, autoRaf: false });
+    // In-page anchors go through the router (main.js scrollToTarget), not Lenis's own handler.
+    lenis = new Lenis({ lerp: 0.1, autoRaf: false });
     const raf = (time) => lenis?.raf(time * 1000);
     lenis.on("scroll", ScrollTrigger.update);
     gsap.ticker.add(raf);
@@ -66,7 +67,52 @@ export function mountLanding(shell) {
           0.25,
         );
     }
-    // CTA: the title tracks scroll a little, the only parallax on the page.
+    // The index under the horizon: each leader draws itself towards its section's name.
+    const index = shell.querySelector(".hero__index");
+    if (index) {
+      gsap
+        .timeline({ scrollTrigger: { trigger: index, start: "top 92%", once: true } })
+        .fromTo(
+          index.querySelectorAll(".hero__index-leader"),
+          { scaleX: 0 },
+          { scaleX: 1, duration: 1, ease: EASE.out, stagger: 0.06 },
+          0,
+        )
+        .fromTo(
+          index.querySelectorAll(".hero__index-n"),
+          { opacity: 0 },
+          { opacity: 1, duration: DUR.slow, stagger: 0.06 },
+          0,
+        )
+        .fromTo(
+          index.querySelectorAll(".hero__index-label"),
+          { opacity: 0, x: 14 },
+          {
+            opacity: 1,
+            x: 0,
+            duration: DUR.story,
+            ease: EASE.out,
+            stagger: 0.06,
+            clearProps: "transform",
+          },
+          0.25,
+        );
+    }
+    // As the hero leaves, its words lift away a little faster than the horizon: depth, briefly.
+    const copy = shell.querySelector(".hero__copy");
+    if (copy)
+      gsap.to(copy, {
+        y: -70,
+        opacity: 0.35,
+        ease: "none",
+        scrollTrigger: {
+          trigger: shell.querySelector(".hero"),
+          start: "top top",
+          end: "60% top",
+          scrub: true,
+        },
+      });
+    // CTA: the title tracks scroll a little.
     const cta = shell.querySelector(".cta__title");
     if (cta)
       gsap.fromTo(

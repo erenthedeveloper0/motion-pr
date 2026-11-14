@@ -389,7 +389,9 @@ test("reduced motion: no smooth scrolling, no autoplay, content fully visible", 
     .first()
     .evaluate((el) => getComputedStyle(el).transform);
   expect(transform === "none" || transform === "matrix(1, 0, 0, 1, 0, 0)").toBe(true);
-  await expect(page.locator(".instrument__findings li").first()).toBeVisible();
+  // The horizon is a still frame: both versions arrived, nothing playing until asked.
+  await expect(page.locator(".horizon__readout")).toContainText("baseline 100%");
+  await expect(page.getByRole("button", { name: "Play the horizon" })).toBeVisible();
   await page.waitForTimeout(800);
   expect(await stats(page)).toMatchObject({ lenis: false, frameLoops: 0, reducedMotion: true });
   await page.locator(".primary-nav").getByRole("link", { name: "Playground" }).click();
@@ -540,8 +542,58 @@ test("a missing page loads as the real 404 page, whose links work", async ({ pag
   await expect(page).toHaveURL(`${BASE}docs/`);
 });
 
-test("hero instrument plays, pauses and scrubs real data", async ({ page }) => {
+test("hero horizon plays the real timing, pauses, and its index reaches every section", async ({
+  page,
+}) => {
+  const problems = watch(page);
   await page.goto(BASE);
+  const horizon = page.locator(".horizon");
+  await expect(horizon.locator(".horizon__legend")).toContainText("Baseline 320 ms");
+  await expect(horizon.locator(".horizon__legend")).toContainText("Candidate 560 ms");
+  // It plays on its own: the readout moves through the run.
+  const readout = horizon.locator(".horizon__readout");
+  await expect(readout).toContainText(/t \d+ ms/);
+  const t1 = await readout.textContent();
+  await expect.poll(() => readout.textContent()).not.toBe(t1);
+  await horizon.getByRole("button", { name: "Pause the horizon" }).click();
+  await expect(horizon.getByRole("button", { name: "Play the horizon" })).toBeVisible();
+  const frozen = await readout.textContent();
+  await page.waitForTimeout(500);
+  expect(await readout.textContent()).toBe(frozen);
+  // Each entry of the index lands its section just below the header, with focus moved there.
+  const header = await page.locator(".site-header").evaluate((el) => el.offsetHeight);
+  for (const [id, label] of [
+    ["engines", "Engines"],
+    ["ci", "Continuous integration"],
+    ["change", "The change review cannot see"],
+  ]) {
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.locator(".hero__index a", { hasText: label }).click();
+    await expect(page).toHaveURL(`${BASE}#${id}`);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          (i) => Math.round(document.getElementById(i)!.getBoundingClientRect().top),
+          id,
+        ),
+      )
+      .toBeGreaterThanOrEqual(header);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          (i) => Math.round(document.getElementById(i)!.getBoundingClientRect().top),
+          id,
+        ),
+      )
+      .toBeLessThanOrEqual(header + 12);
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe(id);
+  }
+  expect(problems).toEqual([]);
+});
+
+test("the instrument in section 01 plays, pauses and scrubs real data", async ({ page }) => {
+  await page.goto(BASE);
+  await page.locator("#change .statement__stage").scrollIntoViewIfNeeded();
   const hero = page.locator(".instrument");
   await expect(hero.locator(".instrument__findings")).toContainText(
     "Duration 320ms → 560ms (+240ms, +75%)",
