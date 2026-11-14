@@ -1,0 +1,26 @@
+{
+  "name": "@motionpr/docs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "MotionPR documentation website and landing page (static).",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --serve",
+    "data": "tsx scripts/extract-site-data.ts"
+  },
+  "devDependencies": {
+    "@fontsource-variable/geist": "catalog:",
+    "@fontsource-variable/geist-mono": "catalog:",
+    "@motionpr/comparison": "workspace:*",
+    "@motionpr/core": "workspace:*",
+    "animejs": "catalog:",
+    "esbuild": "catalog:",
+    "gsap": "catalog:",
+    "lenis": "catalog:",
+    "marked": "catalog:",
+    "shiki": "catalog:",
+    "tsx": "catalog:"
+  }
+}

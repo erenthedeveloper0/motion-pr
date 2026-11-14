@@ -1,0 +1,16 @@
+pnpm-lock.yaml
+dist/
+coverage/
+brand/
+.motionpr/
+**/public/demo/
+apps/docs/public/
+apps/docs/data/
+release/
+.tmp/
+fixtures/demo-captures/
+packages/capture/src/agent/agent-bundle.generated.ts
+CHANGELOG.md
+packages/cli/README.md
+packages/cli/LICENSE
+packages/cli/THIRD_PARTY_NOTICES.md

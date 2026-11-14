@@ -1,0 +1,29 @@
+name: Feature request
+description: Propose a capability, an engine, or a change to how MotionPR compares motion.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [roadmap](https://github.com/erenthedeveloper0/motion-pr/blob/main/ROADMAP.md) and the
+        [limitations](https://erenthedeveloper0.github.io/motion-pr/docs/advanced/limitations/) first: the
+        thing you need may already be planned or documented.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to catch or review, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: The proposal
+      description: The config, step, API or report change you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways to get there, and what each costs (capture time, false positives, maintenance).

@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+packages/capture/src/agent/agent-bundle.generated.ts
+
+# Test & tool output
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.vitest-cache/
+*.log
+.tmp/
+
+# MotionPR working data (approved baselines are meant to be committed,
+# latest captures and generated reports are not)
+.motionpr/captures/
+.motionpr/report/
+.motionpr/tmp/
+motionpr-demo/
+
+# Packed tarballs
+*.tgz
+release/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+.env
+.env.*
+!.env.example
+
+# Copied into the package at build time (packages/cli/scripts/copy-assets.mjs)
+packages/cli/README.md
+packages/cli/LICENSE
+packages/cli/THIRD_PARTY_NOTICES.md
+
+# Generated demo report for the docs site (pnpm demo:capture --html apps/docs/public/demo)
+apps/docs/public/

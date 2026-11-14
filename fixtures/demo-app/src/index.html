@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en" data-variant="baseline">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Halcyon Studio · MotionPR demo fixture</title>
+    <meta
+      name="description"
+      content="Fictional studio site used to demonstrate MotionPR. Not a real company."
+    />
+    <script>
+      // Variant comes from the path prefix (/baseline/ or /candidate/) or ?variant=.
+      (function () {
+        var fromPath = location.pathname.split("/")[1];
+        var fromQuery = new URLSearchParams(location.search).get("variant");
+        var variant = fromQuery || (fromPath === "candidate" ? "candidate" : "baseline");
+        document.documentElement.dataset.variant =
+          variant === "candidate" ? "candidate" : "baseline";
+      })();
+    </script>
+    <link rel="stylesheet" href="vendor/lenis.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Halcyon Studio home"
+        ><span class="brand-mark" aria-hidden="true"></span>Halcyon</a
+      >
+      <p class="status">
+        <span class="status-dot" data-motionpr-id="status-dot" aria-hidden="true"></span>Booking
+        spring projects
+      </p>
+      <div class="header-actions">
+        <button class="btn btn-ghost" type="button" data-testid="modal-open">Book a call</button>
+        <button
+          class="menu-toggle"
+          type="button"
+          data-testid="menu-toggle"
+          aria-expanded="false"
+          aria-controls="nav-panel"
+          aria-label="Open menu"
+        >
+          <span></span><span></span>
+        </button>
+      </div>
+    </header>
+
+    <div class="nav-scrim" data-motionpr-id="nav-scrim" data-testid="nav-scrim"></div>
+    <nav class="nav-panel" id="nav-panel" data-motionpr-id="nav-panel" aria-label="Main">
+      <button class="nav-close" type="button" data-testid="menu-close" aria-label="Close menu">
+        Close
+      </button>
+      <ol class="nav-links">
+        <li class="nav-link" data-motionpr-id="nav-link-1"><a href="#work">Work</a></li>
+        <li class="nav-link" data-motionpr-id="nav-link-2"><a href="#case">Case study</a></li>
+        <li class="nav-link" data-motionpr-id="nav-link-3"><a href="#features">Practice</a></li>
+        <li class="nav-link" data-motionpr-id="nav-link-4"><a href="#faq">Questions</a></li>
+      </ol>
+      <p class="nav-foot">hello@halcyon.example</p>
+    </nav>
+
+    <main id="top">
+      <section class="hero">
+        <p class="eyebrow">Interface & motion studio</p>
+        <h1 class="hero-title">
+          <span class="line-mask"
+            ><span class="hero-line" data-motionpr-id="hero-line-1">Quiet interfaces,</span></span
+          >
+          <span class="line-mask"
+            ><span class="hero-line" data-motionpr-id="hero-line-2">precisely</span></span
+          >
+          <span class="line-mask"
+            ><span class="hero-line" data-motionpr-id="hero-line-3">moved.</span></span
+          >
+        </h1>
+        <span class="hero-underline" data-motionpr-id="hero-underline" aria-hidden="true"></span>
+        <div class="hero-actions" data-motionpr-id="hero-actions">
+          <a class="btn btn-primary" href="#work" data-testid="cta-primary">See selected work</a>
+          <button class="btn btn-ghost" type="button" data-testid="play-intro">Replay intro</button>
+        </div>
+      </section>
+
+      <section class="work" id="work" data-testid="work">
+        <div class="section-head">
+          <h2>Selected work</h2>
+          <button class="btn btn-ghost" type="button" data-testid="reveal-work">Reveal work</button>
+        </div>
+        <div class="work-grid">
+          <div class="work-glow" aria-hidden="true"></div>
+          <article class="work-card" data-motionpr-id="work-card-1">
+            <span>01</span>
+            <h3>Tidal</h3>
+            <p>Banking onboarding</p>
+          </article>
+          <article class="work-card" data-motionpr-id="work-card-2">
+            <span>02</span>
+            <h3>Fieldnote</h3>
+            <p>Research tooling</p>
+          </article>
+          <article class="work-card" data-motionpr-id="work-card-3">
+            <span>03</span>
+            <h3>Orbit</h3>
+            <p>Launch campaign</p>
+          </article>
+          <article class="work-card" data-motionpr-id="work-card-4">
+            <span>04</span>
+            <h3>Atlas</h3>
+            <p>Design system</p>
+          </article>
+          <article class="work-card" data-motionpr-id="work-card-5">
+            <span>05</span>
+            <h3>Ember</h3>
+            <p>Retail checkout</p>
+          </article>
+          <article class="work-card" data-motionpr-id="work-card-6">
+            <span>06</span>
+            <h3>Lumen</h3>
+            <p>Editorial platform</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="case" id="case" data-testid="case-study">
+        <div class="section-head">
+          <h2>Case study · Tidal</h2>
+          <button class="btn btn-ghost" type="button" data-testid="reveal-image">
+            Reveal image
+          </button>
+        </div>
+        <figure class="case-figure">
+          <div
+            class="case-image"
+            data-motionpr-id="case-image"
+            role="img"
+            aria-label="Abstract product artwork"
+          >
+            <div class="case-art" data-motionpr-id="case-art">
+              <svg viewBox="0 0 1200 440" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <rect width="1200" height="440" fill="#111117" />
+                <circle cx="380" cy="250" r="150" fill="#839CF6" />
+                <circle cx="480" cy="180" r="150" fill="#7E4AE6" />
+                <circle cx="740" cy="230" r="120" fill="#E5A9C7" />
+                <circle cx="830" cy="190" r="120" fill="#111117" />
+                <rect x="940" y="120" width="140" height="200" rx="18" fill="#ECA67A" />
+                <rect x="120" y="320" width="960" height="2" fill="#2a2a33" />
+              </svg>
+            </div>
+          </div>
+          <figcaption>Onboarding flow, 2026. Motion system with 14 named transitions.</figcaption>
+        </figure>
+      </section>
+
+      <section class="features" id="features" data-testid="features">
+        <h2>How we work <span class="feature-badge" data-motionpr-id="feature-badge">New</span></h2>
+        <div class="feature-list">
+          <div class="feature" data-motionpr-id="feature-1">
+            <h3>Motion specs</h3>
+            <p>Every transition is named, timed and reviewed like code.</p>
+          </div>
+          <div class="feature" data-motionpr-id="feature-2">
+            <h3>Regression checks</h3>
+            <p>Motion is captured on every pull request.</p>
+          </div>
+          <div class="feature" data-motionpr-id="feature-3">
+            <h3>Accessible by default</h3>
+            <p>Reduced-motion variants ship with every animation.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" id="faq" data-testid="faq">
+        <h2>Questions</h2>
+        <div class="faq-item" data-motionpr-id="faq-item-1">
+          <button class="faq-toggle" type="button" data-testid="faq-toggle-1" aria-expanded="false">
+            How long does a project take?<span
+              class="faq-chevron"
+              data-motionpr-id="faq-chevron-1"
+              aria-hidden="true"
+            ></span>
+          </button>
+          <div class="faq-answer" data-motionpr-id="faq-answer-1">
+            <div>
+              <p>
+                Most engagements run six to ten weeks, including a motion audit and a regression
+                baseline.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="faq-item" data-motionpr-id="faq-item-2">
+          <button class="faq-toggle" type="button" data-testid="faq-toggle-2" aria-expanded="false">
+            Do you work with existing teams?<span class="faq-chevron" aria-hidden="true"></span>
+          </button>
+          <div class="faq-answer">
+            <div><p>Yes. We pair with in-house engineers and leave tooling behind.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Anime.js: staggered service cards and a sequenced process timeline. -->
+      <section class="services" id="services" data-testid="services">
+        <div class="section-head">
+          <p class="eyebrow">Services · Anime.js</p>
+          <button class="btn btn-ghost" type="button" data-testid="reveal-services">
+            Show services
+          </button>
+        </div>
+        <ul class="service-list">
+          <li class="service" data-motionpr-id="service-1">Interface systems</li>
+          <li class="service" data-motionpr-id="service-2">Motion direction</li>
+          <li class="service" data-motionpr-id="service-3">Prototyping</li>
+          <li class="service" data-motionpr-id="service-4">Engineering</li>
+        </ul>
+        <div class="process" data-testid="process">
+          <button class="btn btn-ghost" type="button" data-testid="play-process">
+            Play process
+          </button>
+          <ol class="process-steps">
+            <li class="process-step" data-motionpr-id="process-discover">Discover</li>
+            <li class="process-step" data-motionpr-id="process-design">Design</li>
+            <li class="process-step" data-motionpr-id="process-ship">Ship</li>
+          </ol>
+          <span class="process-bar" data-motionpr-id="process-bar" aria-hidden="true"></span>
+        </div>
+      </section>
+
+      <!-- Lenis smooth scrolling with GSAP ScrollTrigger parallax. -->
+      <section class="journal" id="journal" data-testid="journal">
+        <p class="eyebrow">Journal · Lenis + ScrollTrigger</p>
+        <h2>Notes on quiet motion</h2>
+        <div class="journal-frame">
+          <div class="journal-image" data-motionpr-id="journal-image" aria-hidden="true"></div>
+        </div>
+        <p class="journal-copy">
+          Smooth scrolling is driven by Lenis; the image drifts with a scrubbed ScrollTrigger.
+        </p>
+      </section>
+      <div class="journal-spacer" aria-hidden="true"></div>
+    </main>
+
+    <div
+      class="modal"
+      data-testid="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <div class="modal-backdrop" data-motionpr-id="modal-backdrop"></div>
+      <div class="dialog" data-motionpr-id="dialog">
+        <h2 id="modal-title">Book an intro call</h2>
+        <p>Thirty minutes, no slides. Tell us about the interface you are building.</p>
+        <div class="dialog-actions">
+          <button class="btn btn-primary" type="button">Choose a time</button>
+          <button class="btn btn-ghost" type="button" data-testid="modal-close">Not now</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="vendor/gsap.min.js"></script>
+    <script src="vendor/ScrollTrigger.min.js"></script>
+    <script src="vendor/anime.umd.min.js"></script>
+    <script src="vendor/lenis.min.js"></script>
+    <script src="vendor/motionpr-gsap.js"></script>
+    <script src="vendor/motionpr-animejs.js"></script>
+    <script src="vendor/motionpr-lenis.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

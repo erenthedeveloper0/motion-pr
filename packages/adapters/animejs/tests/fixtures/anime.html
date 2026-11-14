@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Anime.js fixture</title>
+    <style>
+      body {
+        margin: 0;
+        font: 14px sans-serif;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        padding: 8px;
+      }
+      .box,
+      .item,
+      .tl,
+      .w {
+        width: 40px;
+        height: 40px;
+        background: #6c5ce7;
+      }
+      .w {
+        background: #00b894;
+      }
+      button {
+        font: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="row">
+      <button data-testid="basic">basic</button>
+      <button data-testid="stagger">stagger</button>
+      <button data-testid="timeline">timeline</button>
+      <button data-testid="custom">custom</button>
+      <button data-testid="reverse">reverse</button>
+      <button data-testid="object">object</button>
+      <button data-testid="svg">svg</button>
+      <button data-testid="waapi">waapi</button>
+      <button data-testid="speed">speed</button>
+      <button data-testid="tl-stagger">tl-stagger</button>
+      <button data-testid="pause">pause</button>
+    </div>
+    <div class="row">
+      <div class="box" data-testid="box"></div>
+      <div class="box" data-testid="combo"></div>
+    </div>
+    <div class="row">
+      <div class="item" data-testid="item-1"></div>
+      <div class="item" data-testid="item-2"></div>
+      <div class="item" data-testid="item-3"></div>
+      <div class="item" data-testid="item-4"></div>
+    </div>
+    <div class="row">
+      <div class="tl" data-testid="tl-a"></div>
+      <div class="tl" data-testid="tl-b"></div>
+      <div class="tl" data-testid="tl-c"></div>
+    </div>
+    <div class="row">
+      <div class="box" data-testid="custom-box"></div>
+      <div class="box" data-testid="rev-box"></div>
+      <div class="box" data-testid="speed-box"></div>
+      <div class="box" data-testid="pause-box"></div>
+    </div>
+    <div class="row">
+      <div class="w" data-testid="w-1"></div>
+      <div class="w" data-testid="w-2"></div>
+    </div>
+    <div class="row">
+      <div
+        class="tls"
+        data-testid="tls-1"
+        style="width: 30px; height: 30px; background: #e17055"
+      ></div>
+      <div
+        class="tls"
+        data-testid="tls-2"
+        style="width: 30px; height: 30px; background: #e17055"
+      ></div>
+      <div
+        class="tls"
+        data-testid="tls-3"
+        style="width: 30px; height: 30px; background: #e17055"
+      ></div>
+    </div>
+    <svg width="220" height="80" data-testid="svg-root">
+      <circle data-testid="dot" cx="20" cy="40" r="10" fill="#d63031" />
+    </svg>
+    <script src="anime.umd.min.js"></script>
+    <script src="adapter.js"></script>
+    <script>
+      const candidate = new URLSearchParams(location.search).get("variant") === "candidate";
+      const { animate, createTimeline, stagger, waapi, eases, engine } = window.anime;
+      const motion = MotionprAnime.createAnimeInstrumentation({ eases, engine });
+      window.motion = motion;
+      const track = motion.wrapAnimate(animate);
+      const timeline = motion.wrapTimeline(createTimeline);
+      const waapiAnimate = motion.wrapWaapi(waapi.animate);
+      window.counts = { update: 0, complete: 0, begin: 0, pause: 0 };
+      window.updateThis = [];
+      const $ = (s) => document.querySelector(`[data-testid=${s}]`);
+      const on = (id, fn) => $(id).addEventListener("click", fn);
+
+      on("basic", () => {
+        track($("box"), {
+          translateX: [0, 200],
+          duration: candidate ? 900 : 600,
+          ease: candidate ? "inOutQuad" : "out(3)",
+          onUpdate(self) {
+            window.counts.update++;
+            window.updateThis.push(this === self);
+          },
+          onBegin: () => window.counts.begin++,
+          onComplete: () => window.counts.complete++,
+          onPause: () => window.counts.pause++,
+        });
+        track($("combo"), { opacity: [0, 1], scale: [0.5, 1], duration: 500, ease: "outBack" });
+      });
+      on("stagger", () => {
+        track(".item", {
+          translateY: [24, 0],
+          opacity: [0, 1],
+          duration: 400,
+          delay: stagger(candidate ? 120 : 80),
+          ease: "out(2)",
+        });
+      });
+      on("timeline", () => {
+        const tl = timeline({ defaults: { duration: 400, ease: "outQuad" } });
+        tl.label("intro")
+          .add($("tl-a"), { translateX: [0, 100] })
+          .label("middle")
+          .add($("tl-b"), { translateX: [0, 100] }, candidate ? "-=100" : "-=200")
+          .label("outro")
+          .add($("tl-c"), { translateX: [0, 100] });
+        motion.track(tl, "intro-tl");
+      });
+      on("custom", () => {
+        track($("custom-box"), {
+          translateX: [0, 150],
+          duration: 500,
+          ease: candidate ? (t) => t * t : (t) => t * t * t,
+        });
+      });
+      on("reverse", () => {
+        track($("rev-box"), {
+          translateX: [0, 160],
+          duration: 500,
+          reversed: true,
+          ease: "linear",
+        });
+      });
+      window.target = { value: 0 };
+      on("object", () => {
+        track(window.target, { value: 100, duration: 300, ease: "linear" });
+      });
+      on("svg", () => {
+        track($("dot"), { cx: [20, 180], r: [10, 30], duration: 500, ease: "linear" });
+      });
+      on("waapi", () => {
+        waapiAnimate([$("w-1"), $("w-2")], {
+          translateX: [0, 120],
+          opacity: [0.2, 1],
+          duration: candidate ? 700 : 500,
+          ease: "ease-out",
+        });
+      });
+      on("speed", () => {
+        track($("speed-box"), {
+          translateX: [0, 120],
+          duration: 800,
+          ease: "linear",
+          playbackRate: candidate ? 1 : 2,
+        });
+      });
+      on("tl-stagger", () => {
+        const tl = timeline({ defaults: { ease: "linear" } });
+        tl.add(".tls", { translateY: [0, 30], duration: 300 }, stagger(100));
+        motion.track(tl, "tl-stagger");
+      });
+      on("pause", () => {
+        const a = track($("pause-box"), { translateX: [0, 100], duration: 600, ease: "linear" });
+        setTimeout(() => a.pause(), 200);
+        setTimeout(() => a.resume(), 400);
+      });
+    </script>
+  </body>
+</html>

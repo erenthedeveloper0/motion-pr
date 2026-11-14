@@ -1,0 +1,27 @@
+{
+  "name": "@motionpr/animejs",
+  "version": "0.1.0-alpha",
+  "private": true,
+  "description": "MotionPR Anime.js v4 adapter (published as @erenthedeveloper0/motionpr/animejs).",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@motionpr/core": "workspace:*"
+  },
+  "devDependencies": {
+    "animejs": "catalog:",
+    "typescript": "catalog:",
+    "@motionpr/capture": "workspace:*",
+    "@motionpr/comparison": "workspace:*",
+    "esbuild": "catalog:",
+    "playwright-core": "catalog:",
+    "vitest": "catalog:",
+    "@types/node": "catalog:"
+  }
+}

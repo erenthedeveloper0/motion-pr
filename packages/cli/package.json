@@ -1,0 +1,117 @@
+{
+  "name": "@erenthedeveloper0/motionpr",
+  "version": "0.1.0-alpha",
+  "description": "Animation regression testing and motion inspection for CSS, WAAPI, GSAP, Anime.js and Lenis. Your code changed. See how your interface moves.",
+  "keywords": [
+    "animation",
+    "anime.js",
+    "animejs",
+    "ci",
+    "css-animations",
+    "css-transitions",
+    "gsap",
+    "lenis",
+    "motion",
+    "playwright",
+    "regression-testing",
+    "scroll",
+    "smooth-scroll",
+    "visual-testing",
+    "web-animations"
+  ],
+  "homepage": "https://erenthedeveloper0.github.io/motion-pr/",
+  "bugs": {
+    "url": "https://github.com/erenthedeveloper0/motion-pr/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/erenthedeveloper0/motion-pr.git",
+    "directory": "packages/cli"
+  },
+  "license": "MIT",
+  "author": "erenthedeveloper0 (https://github.com/erenthedeveloper0)",
+  "type": "module",
+  "sideEffects": false,
+  "bin": {
+    "motionpr": "./dist/bin.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./gsap": {
+      "types": "./dist/gsap.d.ts",
+      "default": "./dist/gsap.js"
+    },
+    "./animejs": {
+      "types": "./dist/animejs.d.ts",
+      "default": "./dist/animejs.js"
+    },
+    "./lenis": {
+      "types": "./dist/lenis.d.ts",
+      "default": "./dist/lenis.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "tsdown && node scripts/copy-assets.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "prepublishOnly": "node -e \"console.error('Do not publish this folder: its manifest still holds catalog: and workspace: specifiers. Run pnpm release:prepare at the repository root and publish the tarball it prints (PUBLISHING.md).');process.exit(1)\""
+  },
+  "dependencies": {
+    "@clack/prompts": "catalog:",
+    "commander": "catalog:",
+    "jiti": "catalog:",
+    "picocolors": "catalog:",
+    "pixelmatch": "catalog:",
+    "playwright-core": "catalog:",
+    "pngjs": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "animejs": "^4.0.0",
+    "gsap": "^3.12.0",
+    "lenis": "^1.1.0"
+  },
+  "peerDependenciesMeta": {
+    "animejs": {
+      "optional": true
+    },
+    "gsap": {
+      "optional": true
+    },
+    "lenis": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@motionpr/animejs": "workspace:*",
+    "@motionpr/capture": "workspace:*",
+    "@motionpr/comparison": "workspace:*",
+    "@motionpr/core": "workspace:*",
+    "@motionpr/gsap": "workspace:*",
+    "@motionpr/lenis": "workspace:*",
+    "@motionpr/report": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/pngjs": "catalog:",
+    "gsap": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

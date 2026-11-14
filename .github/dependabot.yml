@@ -1,0 +1,40 @@
+version: 2
+updates:
+  # Actions are pinned to commit SHAs (their tags in comments); keep them current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # The workspace packages move in lockstep through scripts/sync-version.mjs (PUBLISHING.md).
+      - dependency-name: "@motionpr/*"
+      - dependency-name: "@erenthedeveloper0/*"
+      # Playwright decides the Chromium build captures are made with; a new major changes how
+      # pages render and therefore baselines. Upgrade on purpose, not weekly.
+      - dependency-name: "playwright-core"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@playwright/test"
+        update-types: ["version-update:semver-major"]
+      # The engines are tested at the versions in pnpm-workspace.yaml; a major is a new
+      # compatibility claim that needs its own browser tests.
+      - dependency-name: "gsap"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "animejs"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "lenis"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+    groups:
+      dependencies:
+        patterns: ["*"]

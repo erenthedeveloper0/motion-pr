@@ -1,0 +1,171 @@
+/* Code blocks: title, language, copy, highlighted lines, tabs. */
+.code {
+  margin: 1.5em 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #0d0d13;
+}
+.code-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 6px 0 14px;
+  border-bottom: 1px solid var(--line);
+  background: rgb(243 241 250 / 0.02);
+}
+.code-title {
+  overflow: hidden;
+  color: var(--text-2);
+  font: 500 12px/1 var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.code-lang {
+  color: var(--text-3);
+  font: 500 10.5px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.code--terminal .code-head::before {
+  content: "";
+  flex: none;
+  width: 34px;
+  height: 8px;
+  background:
+    radial-gradient(circle at 4px 4px, var(--g-600) 3.5px, transparent 4px),
+    radial-gradient(circle at 17px 4px, var(--g-600) 3.5px, transparent 4px),
+    radial-gradient(circle at 30px 4px, var(--g-600) 3.5px, transparent 4px);
+}
+.copy {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  margin-left: auto;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-3);
+  font: 500 12px/1 var(--font-sans);
+  transition:
+    color var(--dur-quick) var(--ease-out),
+    border-color var(--dur-quick) var(--ease-out),
+    background-color var(--dur-quick) var(--ease-out);
+}
+.copy:hover {
+  color: var(--paper);
+  border-color: var(--line-2);
+  background: var(--g-900);
+}
+.copy::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6'%3E%3Crect x='5' y='5' width='9' height='9' rx='2'/%3E%3Cpath d='M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6'%3E%3Crect x='5' y='5' width='9' height='9' rx='2'/%3E%3Cpath d='M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+.copy.is-copied {
+  color: var(--ok);
+}
+.copy.is-copied::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 8.5l3.2 3L13 4.5'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 8.5l3.2 3L13 4.5'/%3E%3C/svg%3E");
+}
+.code-body {
+  position: relative;
+}
+.code pre,
+pre.shiki {
+  margin: 0;
+  padding: 16px 0;
+  overflow-x: auto;
+  background: transparent !important;
+  color: #e7e4f1;
+  font-size: 13.5px;
+  line-height: 1.65;
+  tab-size: 2;
+  scrollbar-width: thin;
+  scrollbar-color: var(--g-700) transparent;
+}
+.code pre code {
+  display: grid;
+  min-width: max-content;
+}
+.code .line {
+  display: block;
+  padding: 0 18px;
+  min-height: 1.65em;
+}
+.code .line.hl {
+  background: linear-gradient(90deg, rgb(126 74 230 / 0.2), rgb(126 74 230 / 0.06));
+  box-shadow: inset 2px 0 0 var(--violet-hi);
+}
+.code pre:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Tabs of equivalent code blocks */
+.code-tabs {
+  margin: 1.5em 0;
+}
+.code-tabs .code {
+  margin: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+.code-tabs .code-head {
+  display: none;
+}
+.code-tabs__list {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: rgb(243 241 250 / 0.02);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.code-tabs__list button {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  height: 40px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--text-3);
+  font: 500 12.5px/1 var(--font-mono);
+  transition: color var(--dur-quick) var(--ease-out);
+}
+.code-tabs__list button:hover {
+  color: var(--text);
+}
+.code-tabs__list button[aria-selected="true"] {
+  color: var(--paper);
+}
+.code-tabs__indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--gradient-x);
+}
+.code-tabs .code-tabs__copy {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+}
+.code-tabs {
+  position: relative;
+}

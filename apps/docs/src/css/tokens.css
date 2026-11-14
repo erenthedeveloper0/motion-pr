@@ -1,0 +1,106 @@
+/* MotionPR design tokens. Palette and surfaces are the brand's (brand/README.md) and the report
+   viewer's (packages/report), so the site and the reports it links to read as one product. */
+@font-face {
+  font-family: "Geist";
+  src: url("./fonts/geist.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("./fonts/geist-mono.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Brand */
+  --ink: #070709;
+  --paper: #f3f1fa;
+  --graphite: #111116;
+  --blue: #839cf6;
+  --violet: #7e4ae6;
+  --pink: #e5a9c7;
+  --peach: #eca67a;
+  --gradient: linear-gradient(
+    45deg,
+    var(--blue) 0%,
+    var(--violet) 38%,
+    var(--pink) 72%,
+    var(--peach) 100%
+  );
+  --gradient-x: linear-gradient(
+    90deg,
+    var(--blue) 0%,
+    var(--violet) 38%,
+    var(--pink) 72%,
+    var(--peach) 100%
+  );
+
+  /* Surfaces (report viewer greys) */
+  --g-950: #0b0b0e;
+  --g-900: #101015;
+  --g-875: #13131a;
+  --g-850: #17171f;
+  --g-800: #1c1c25;
+  --g-750: #22222c;
+  --g-700: #2a2a35;
+  --g-600: #383845;
+  --g-500: #4d4d5c;
+  --g-400: #6c6b7c;
+  --g-300: #8f8da0;
+  --g-200: #b4b2c3;
+
+  /* Text */
+  --text: #e9e6f2;
+  --text-body: #cfccdc;
+  --text-2: #a9a6b9;
+  --text-3: #8f8da0;
+  --line: rgb(243 241 250 / 0.075);
+  --line-2: rgb(243 241 250 / 0.12);
+  --line-3: rgb(243 241 250 / 0.2);
+
+  /* Meaning */
+  --baseline: var(--blue);
+  --candidate: var(--peach);
+  --focus: #9b74f0;
+  --violet-hi: #a98bf0;
+  --sev-critical: #f2667a;
+  --sev-warning: #f3c96b;
+  --sev-info: #68d6e8;
+  --sev-uncertain: #d59ce8;
+  --ok: #6fd6a8;
+
+  /* Type */
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Space & shape */
+  --header-h: 64px;
+  --gutter: clamp(16px, 4vw, 40px);
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+
+  /* Motion. The two brand curves (motion/motionpr-mark-intro.svg, -loop.svg) and a matching in. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --dur-instant: 90ms;
+  --dur-quick: 160ms;
+  --dur-base: 240ms;
+  --dur-slow: 420ms;
+  --dur-story: 800ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0ms;
+    --dur-quick: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+    --dur-story: 0ms;
+  }
+}

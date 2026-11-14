@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Lenis fixture</title>
+    <link rel="stylesheet" href="lenis.css" />
+    <style>
+      body {
+        margin: 0;
+        font: 14px sans-serif;
+      }
+      section {
+        height: 900px;
+        border-bottom: 1px solid #ccc;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+      .reveal {
+        opacity: 0;
+        transform: translateY(30px);
+        transition:
+          opacity 400ms ease-out,
+          transform 400ms ease-out;
+        width: 200px;
+        height: 60px;
+        background: #0984e3;
+      }
+      .in-view .reveal {
+        opacity: 1;
+        transform: none;
+      }
+      .horizontal body {
+        display: flex;
+        width: max-content;
+      }
+      .horizontal section {
+        width: 900px;
+        height: 100vh;
+        flex: none;
+        border-right: 1px solid #ccc;
+      }
+    </style>
+    <script>
+      // ?lerp=, ?raf=external|auto, ?attach=0, ?orientation=horizontal, ?stop=1
+      window.params = new URLSearchParams(location.search);
+      if (params.get("orientation") === "horizontal")
+        document.documentElement.classList.add("horizontal");
+    </script>
+  </head>
+  <body>
+    <section id="s1"><h1>One</h1></section>
+    <section id="s2" data-testid="s2"><div class="reveal" data-testid="reveal-2"></div></section>
+    <section id="s3"><h1>Three</h1></section>
+    <section id="s4"><h1>Four</h1></section>
+    <script src="lenis.min.js"></script>
+    <script src="adapter.js"></script>
+    <script>
+      // raf=external: the app drives lenis.raf(); raf=none: nobody does (proves MotionPR never does).
+      const rafMode = params.get("raf") ?? "auto";
+      const external = rafMode === "external";
+      const lerp = params.has("lerp") ? Number(params.get("lerp")) : 0.1;
+      const lenis = new Lenis({
+        autoRaf: rafMode === "auto",
+        lerp,
+        orientation: params.get("orientation") === "horizontal" ? "horizontal" : "vertical",
+        gestureOrientation: "both",
+      });
+      window.lenis = lenis;
+      window.appEvents = 0;
+      lenis.on("scroll", () => window.appEvents++);
+      window.rafCalls = 0;
+      if (external) {
+        const loop = (time) => {
+          window.rafCalls++;
+          lenis.raf(time);
+          requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
+      }
+      window.optionsBefore = JSON.stringify({
+        lerp: lenis.options.lerp,
+        duration: lenis.options.duration,
+        smoothWheel: lenis.options.smoothWheel,
+      });
+      if (params.get("attach") !== "0") {
+        window.handle = MotionprLenis.motionprLenis.attach(lenis, { name: "main" });
+        // A second attach must not add a second listener.
+        window.handle2 = MotionprLenis.motionprLenis.attach(lenis);
+      }
+      if (params.get("stop") === "1") lenis.stop();
+      new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) if (e.isIntersecting) e.target.classList.add("in-view");
+        },
+        { threshold: 0.4 },
+      ).observe(document.querySelector("#s2"));
+    </script>
+  </body>
+</html>

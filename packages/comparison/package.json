@@ -1,0 +1,25 @@
+{
+  "name": "@motionpr/comparison",
+  "version": "0.1.0-alpha",
+  "private": true,
+  "description": "MotionPR comparison engine: animation matching, timing/easing/property/visual diffs, severity.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@motionpr/core": "workspace:*",
+    "pixelmatch": "catalog:",
+    "pngjs": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/pngjs": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

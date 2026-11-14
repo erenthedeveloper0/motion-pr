@@ -1,0 +1,77 @@
+/* Demo, playground and 404 pages. */
+.app-page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: calc(var(--header-h) + 48px) var(--gutter) 40px;
+}
+.app-page__head {
+  display: grid;
+  gap: 14px;
+  max-width: 880px;
+  margin-bottom: 40px;
+}
+.app-page__head .label {
+  margin: 0;
+}
+.app-page__title {
+  margin: 0;
+  overflow: hidden;
+  padding-bottom: 0.06em;
+  color: var(--paper);
+  font: 540 clamp(36px, 5vw, 68px) / 1 var(--font-sans);
+  letter-spacing: -0.045em;
+}
+.app-page__title:focus {
+  outline: none;
+}
+.app-page__title .h1-inner {
+  display: inline-block;
+}
+.app-page__lede {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--text-2);
+  font-size: 18px;
+  line-height: 1.6;
+}
+.app-page__lede code,
+.app-page__p code {
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--g-900);
+  font-size: 0.86em;
+}
+.app-page__section {
+  display: grid;
+  gap: 16px;
+  margin-top: 72px;
+}
+.app-page__h2 {
+  margin: 0;
+  color: var(--paper);
+  font: 560 clamp(24px, 2.4vw, 32px) / 1.15 var(--font-sans);
+  letter-spacing: -0.03em;
+}
+.app-page__p {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--text-2);
+}
+.not-found {
+  display: grid;
+  justify-items: start;
+  gap: 18px;
+  min-height: 70vh;
+  align-content: center;
+}
+.not-found__mark {
+  width: 120px;
+}
+.not-found .label {
+  margin: 0;
+}
+html.menu-open,
+html.search-open {
+  overflow: hidden;
+}

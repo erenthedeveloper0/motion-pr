@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="MotionPR">
+<title>MotionPR</title>
+<defs><linearGradient id="mpr-g" gradientUnits="userSpaceOnUse" x1="3" y1="61" x2="61" y2="3"><stop offset="0" stop-color="#839CF6"/><stop offset="0.38" stop-color="#7E4AE6"/><stop offset="0.72" stop-color="#E5A9C7"/><stop offset="1" stop-color="#ECA67A"/></linearGradient></defs>
+<path fill="url(#mpr-g)" d="M16.046 16.046A23.752 23.752 0 1 0 47.954 47.954A23.752 23.752 0 0 1 16.046 16.046ZM16.046 16.046A23.752 23.752 0 1 1 47.954 47.954A23.752 23.752 0 0 0 16.046 16.046Z"/>
+</svg>
