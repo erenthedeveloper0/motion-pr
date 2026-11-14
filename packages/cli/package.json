@@ -19,13 +19,13 @@
     "visual-testing",
     "web-animations"
   ],
-  "homepage": "https://erenthedeveloper0.github.io/motion-pr/",
+  "homepage": "https://erenthedeveloper0.github.io/motionpr/",
   "bugs": {
-    "url": "https://github.com/erenthedeveloper0/motion-pr/issues"
+    "url": "https://github.com/erenthedeveloper0/motionpr/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/erenthedeveloper0/motion-pr.git",
+    "url": "git+https://github.com/erenthedeveloper0/motionpr.git",
     "directory": "packages/cli"
   },
   "license": "MIT",

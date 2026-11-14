@@ -5,8 +5,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Check the [roadmap](https://github.com/erenthedeveloper0/motion-pr/blob/main/ROADMAP.md) and the
-        [limitations](https://erenthedeveloper0.github.io/motion-pr/docs/advanced/limitations/) first: the
+        Check the [roadmap](https://github.com/erenthedeveloper0/motionpr/blob/main/ROADMAP.md) and the
+        [limitations](https://erenthedeveloper0.github.io/motionpr/docs/advanced/limitations/) first: the
         thing you need may already be planned or documented.
   - type: textarea
     id: problem

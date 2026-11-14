@@ -4,12 +4,12 @@ import { dirname, join, resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 /**
- * The website (apps/docs), tested as a product: the production build served under /motion-pr/
+ * The website (apps/docs), tested as a product: the production build served under /motionpr/
  * exactly like GitHub Pages serves it, in a real browser.
  */
 const DIST = resolve("apps/docs/dist");
 const PORT = 4399;
-const BASE = `http://localhost:${PORT}/motion-pr/`;
+const BASE = `http://localhost:${PORT}/motionpr/`;
 let server: ChildProcess;
 
 test.describe.configure({ mode: "serial" });
@@ -127,9 +127,9 @@ test("every internal link, anchor and asset in the build resolves", () => {
     )) {
       const [, path = "", hash] = m;
       if (!path && !hash) continue;
-      // The site is served under /motion-pr/ (404.html uses that absolute base).
-      let target = path.startsWith("/motion-pr/")
-        ? join(DIST, path.slice("/motion-pr/".length))
+      // The site is served under /motionpr/ (404.html uses that absolute base).
+      let target = path.startsWith("/motionpr/")
+        ? join(DIST, path.slice("/motionpr/".length))
         : path
           ? resolve(base, path)
           : file;
@@ -162,7 +162,7 @@ test("search index and sitemap cover every documentation page", () => {
       index.some((e) => e.u === page),
       page,
     ).toBe(true);
-    expect(sitemap, page).toContain(`https://erenthedeveloper0.github.io/motion-pr/${page}`);
+    expect(sitemap, page).toContain(`https://erenthedeveloper0.github.io/motionpr/${page}`);
   }
 });
 
@@ -670,4 +670,43 @@ test("interactive demo drives both variants of the real demo app", async ({ page
     "false",
   );
   expect(problems).toEqual([]);
+});
+
+test("after a new deploy, soft navigation loads the new build instead of mixing builds", async ({
+  page,
+}) => {
+  await page.goto(BASE);
+  const app = await page.evaluate(
+    () => document.querySelector<HTMLScriptElement>('script[type="module"][src]')!.src,
+  );
+  expect(app).toMatch(/\/assets\/app-[A-Z0-9]+\.js$/);
+  // The next page comes from a "newer deploy": its script has another name.
+  await page.route(`${BASE}docs/`, async (route) => {
+    const res = await route.fetch();
+    const body = (await res.text()).replace(/assets\/app-[A-Z0-9]+\.js/, "assets/app-NEWDEPLOY.js");
+    await route.fulfill({ response: res, body });
+  });
+  await page.evaluate(() => ((window as unknown as { __mark: number }).__mark = 1));
+  await page.locator(".primary-nav").getByRole("link", { name: "Docs", exact: true }).click();
+  await expect(page).toHaveURL(`${BASE}docs/`);
+  await expect(page.getByRole("heading", { level: 1, name: "Documentation" })).toBeVisible();
+  // A real page load, not a swap: the old document (and its marker) is gone.
+  expect(
+    await page.evaluate(() => (window as unknown as { __mark?: number }).__mark),
+  ).toBeUndefined();
+});
+
+test("a component whose chunk is gone (a tab older than the deploy) reloads the page once", async ({
+  page,
+}) => {
+  let failures = 0;
+  await page.route(/\/assets\/chunks\/easing-lab-[A-Z0-9]+\.js$/, async (route) => {
+    if (failures++ === 0) return route.fulfill({ status: 404, body: "gone" });
+    return route.continue();
+  });
+  await page.goto(`${BASE}docs/features/easing-analysis/`);
+  // The first load fails to import the lab, reloads, and the second load mounts it.
+  await expect(page.locator(".lab").first()).toBeVisible({ timeout: 15_000 });
+  expect(failures).toBe(2);
+  await expect(page.locator(".mp-component.is-failed")).toHaveCount(0);
 });

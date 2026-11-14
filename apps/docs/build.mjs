@@ -2,7 +2,7 @@
 // apps/docs/dist as static files.
 //
 //   node build.mjs            build
-//   node build.mjs --serve    build, then serve dist at http://localhost:4321/motion-pr/
+//   node build.mjs --serve    build, then serve dist at http://localhost:4321/motionpr/
 //
 // Inputs: /docs/**/*.md (the documentation, also readable on GitHub), site/nav.mjs (order),
 // data/site-data.json (real demo captures, see scripts/extract-site-data.ts), src/ (JS + CSS),
@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import { NAV, PAGES } from "./site/nav.mjs";
 import { frontmatter, plainText, renderMarkdown, slugify } from "./site/markdown.mjs";
-import { SITE, document, head } from "./site/layout.mjs";
+import { ASSETS, SITE, document, head } from "./site/layout.mjs";
 import {
   demoBody,
   docsIndexBody,
@@ -34,7 +34,7 @@ const root = resolve(here, "../..");
 const dist = join(here, "dist");
 const docsDir = join(root, "docs");
 const VERSION = JSON.parse(readFileSync(join(root, "packages/cli/package.json"), "utf8")).version;
-const BASE_PATH = "/motion-pr/";
+const BASE_PATH = "/motionpr/";
 const PRODUCTION = !process.argv.includes("--dev");
 
 const docUrl = (slug) => `docs/${slug}/`; // site-relative
@@ -413,6 +413,7 @@ async function bundle() {
     target: ["es2020", "chrome100", "firefox100", "safari15.4"],
     minify: PRODUCTION,
     sourcemap: PRODUCTION ? false : "linked",
+    entryNames: "[name]-[hash]",
     chunkNames: "chunks/[name]-[hash]",
     external: ["*.woff2"],
     alias: { "@motionpr/core": join(here, "src/js/lib/core-browser.js") },
@@ -424,6 +425,15 @@ async function bundle() {
     // relative imports normally.
     nodePaths: [coreDir],
   });
+  // Hand the hashed entry names to the page template.
+  for (const [file, out] of Object.entries(result.metafile.outputs)) {
+    const name = file.split("/").pop();
+    if (out.entryPoint?.endsWith("src/js/main.js")) ASSETS.js = name;
+    else if (out.entryPoint?.endsWith("src/css/index.css") && name.endsWith(".css"))
+      ASSETS.css = name;
+  }
+  if (ASSETS.js === "app.js" || ASSETS.css === "site.css")
+    throw new Error("could not find the hashed bundle names in the build output");
   const bytes = Object.entries(result.metafile.outputs)
     .filter(([f]) => /\.(js|css)$/.test(f))
     .reduce((a, [, o]) => a + o.bytes, 0);
@@ -525,10 +535,11 @@ async function build() {
   await rm(dist, { recursive: true, force: true });
   await mkdir(dist, { recursive: true });
   const siteData = JSON.parse(await readFile(join(here, "data/site-data.json"), "utf8"));
+  // The bundle first: the pages reference its hashed file names.
+  const js = await bundle();
   const docs = await buildDocs();
   await buildPages(siteData);
   const assets = await copyAssets();
-  const js = await bundle();
   const urls = await seo();
   console.log(
     `docs site: ${docs.count} doc pages, ${docs.search} search entries, ${urls} sitemap URLs, ${(js.bytes / 1024).toFixed(0)} kB JS+CSS (${js.outputs} files)` +

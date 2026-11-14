@@ -46,4 +46,4 @@ npx @erenthedeveloper0/motionpr@alpha demo                 # without installing 
 npx motionpr demo -s navigation -s gsap-intro --no-open     # two scenarios, print the path
 ```
 
-The same report is published on the website: [demo report](https://erenthedeveloper0.github.io/motion-pr/report/).
+The same report is published on the website: [demo report](https://erenthedeveloper0.github.io/motionpr/report/).

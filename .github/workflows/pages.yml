@@ -1,5 +1,5 @@
 # Builds the website (apps/docs) with a fresh, real report of the demo app and deploys it to
-# GitHub Pages: https://erenthedeveloper0.github.io/motion-pr/
+# GitHub Pages: https://erenthedeveloper0.github.io/motionpr/
 # Pages must be enabled once: Settings → Pages → Source: GitHub Actions. Until then the first job
 # says so and the deployment is skipped instead of failing.
 name: Pages

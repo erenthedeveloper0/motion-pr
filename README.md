@@ -9,14 +9,14 @@
 
 Capture every animation and scroll in a real browser. Compare it with an approved baseline. See the difference, frame by frame.
 
-[![CI](https://github.com/erenthedeveloper0/motion-pr/actions/workflows/ci.yml/badge.svg)](https://github.com/erenthedeveloper0/motion-pr/actions/workflows/ci.yml)
+[![CI](https://github.com/erenthedeveloper0/motionpr/actions/workflows/ci.yml/badge.svg)](https://github.com/erenthedeveloper0/motionpr/actions/workflows/ci.yml)
 [![npm (alpha)](https://img.shields.io/npm/v/%40erenthedeveloper0%2Fmotionpr/alpha?label=npm%40alpha&color=7e4ae6)](https://www.npmjs.com/package/@erenthedeveloper0/motionpr)
 [![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.12-3c873a)](https://nodejs.org)
 [![Chromium](https://img.shields.io/badge/browser-Chromium%20%C2%B7%20Playwright%201.65-839cf6)](docs/advanced/support-matrix.md)
 [![Telemetry](https://img.shields.io/badge/telemetry-none-eca67a)](docs/configuration/privacy.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-[Website](https://erenthedeveloper0.github.io/motion-pr/) · [Documentation](https://erenthedeveloper0.github.io/motion-pr/docs/) · [Interactive demo](https://erenthedeveloper0.github.io/motion-pr/demo/) · [Changelog](CHANGELOG.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
+[Website](https://erenthedeveloper0.github.io/motionpr/) · [Documentation](https://erenthedeveloper0.github.io/motionpr/docs/) · [Interactive demo](https://erenthedeveloper0.github.io/motionpr/demo/) · [Changelog](CHANGELOG.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -208,7 +208,7 @@ npx @erenthedeveloper0/motionpr@alpha demo      # the demo app in two versions, 
 Or work on the repository (Node ≥ 22.18 and pnpm through Corepack):
 
 ```bash
-git clone https://github.com/erenthedeveloper0/motion-pr.git && cd motion-pr
+git clone https://github.com/erenthedeveloper0/motionpr.git && cd motionpr
 corepack enable && pnpm install
 npx playwright-core install chromium
 pnpm build                  # agent bundle, report viewer, demo app, CLI
@@ -217,7 +217,7 @@ pnpm test                   # unit tests
 pnpm test:integration       # real Chromium: capture engine, adapters, CLI
 pnpm test:e2e               # the demo app captured for real; the report viewer and the website driven like a user
 pnpm pack:check --install   # what ships to npm, installed into a clean project and run
-pnpm dev:docs               # the website on http://localhost:4321/motion-pr/
+pnpm dev:docs               # the website on http://localhost:4321/motionpr/
 ```
 
 ### What the tests cover
@@ -271,7 +271,7 @@ scripts/         pack check, release preparation, version sync, demo capture
 - **Operations:** [GitHub Actions](docs/ci/github-actions.md) · [Baseline management](docs/ci/baseline-management.md) ·
   [Troubleshooting](docs/advanced/troubleshooting.md) · [Privacy](docs/configuration/privacy.md)
 
-Everything is also on the website, with search: **https://erenthedeveloper0.github.io/motion-pr/docs/**
+Everything is also on the website, with search: **https://erenthedeveloper0.github.io/motionpr/docs/**
 
 <img alt="" src=".github/images/divider.svg" width="100%" height="4">
 

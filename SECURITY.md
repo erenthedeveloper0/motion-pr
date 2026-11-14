@@ -8,7 +8,7 @@ Reports are welcome and are handled first.
 
 **Do not open a public issue.** Report privately through GitHub:
 
-<https://github.com/erenthedeveloper0/motion-pr/security/advisories/new>
+<https://github.com/erenthedeveloper0/motionpr/security/advisories/new>
 
 Include what you can of the following; a partial report is still useful:
 

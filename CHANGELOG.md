@@ -76,4 +76,4 @@ published or tagged, so this release collects their work and the version starts 
 - Filled values are never written to captures or reports; inputs are masked in screenshots; query
   values in recorded URLs are redacted by default. MotionPR sends no telemetry.
 
-[0.1.0-alpha]: https://github.com/erenthedeveloper0/motion-pr/releases/tag/v0.1.0-alpha
+[0.1.0-alpha]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.1.0-alpha

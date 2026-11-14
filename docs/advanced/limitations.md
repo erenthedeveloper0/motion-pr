@@ -49,5 +49,5 @@ a hidden one.
   they are read. Files written by a newer MotionPR are rejected with an actionable error.
 - The adapter protocol (`PROTOCOL_VERSION = 1`) may change before 1.0.
 
-The [roadmap](https://github.com/erenthedeveloper0/motion-pr/blob/main/ROADMAP.md) lists what is
+The [roadmap](https://github.com/erenthedeveloper0/motionpr/blob/main/ROADMAP.md) lists what is
 planned.

@@ -13,7 +13,7 @@ writes `.github/workflows/motionpr.yml`. This is the file it generated for an np
 
 ```yaml title=".github/workflows/motionpr.yml"
 # MotionPR: animation regression checks.
-# See https://github.com/erenthedeveloper0/motion-pr/blob/main/docs/ci/github-actions.md
+# See https://github.com/erenthedeveloper0/motionpr/blob/main/docs/ci/github-actions.md
 # Third-party actions are pinned to full commit SHAs; Dependabot can keep them updated.
 name: MotionPR
 

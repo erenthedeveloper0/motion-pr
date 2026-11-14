@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Thanks for taking the time. **Security issues go to
-        [a private advisory](https://github.com/erenthedeveloper0/motion-pr/security/advisories/new), not here.**
+        [a private advisory](https://github.com/erenthedeveloper0/motionpr/security/advisories/new), not here.**
   - type: input
     id: version
     attributes:

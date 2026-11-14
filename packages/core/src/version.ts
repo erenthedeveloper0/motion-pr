@@ -7,9 +7,9 @@ export const MOTIONPR_VERSION = "0.1.0-alpha";
 /** npm name of the public package (packages/cli/package.json `name`; verified by a unit test). */
 export const MOTIONPR_PACKAGE = "@erenthedeveloper0/motionpr";
 /** Source repository. */
-export const MOTIONPR_REPOSITORY = "https://github.com/erenthedeveloper0/motion-pr";
+export const MOTIONPR_REPOSITORY = "https://github.com/erenthedeveloper0/motionpr";
 /** Documentation website (GitHub Pages). */
-export const MOTIONPR_DOCS_URL = "https://erenthedeveloper0.github.io/motion-pr/";
+export const MOTIONPR_DOCS_URL = "https://erenthedeveloper0.github.io/motionpr/";
 
 /**
  * npm dist-tag a version is published under: prereleases never go to `latest`,

@@ -60,7 +60,7 @@
 }
 
 /* Hero: a vertical composition. The tagline as a staircase (each line enters 90 ms after the
-   previous one, and says so), then the horizon: the brand mark at planetary scale, its lit rim
+   previous one), then the horizon: the brand mark at planetary scale, its lit rim
    the difference between two versions (components/horizon.js), then the page's index. */
 .hero {
   --horizon-h: clamp(420px, 54vw, 780px);
@@ -114,7 +114,7 @@
 }
 .hero__line {
   display: block;
-  /* A mask for the rise, vertical only: the stagger ticks may sit outside the line. */
+  /* A mask for the rise, vertical only. */
   clip-path: inset(-0.08em -50vw -0.16em -50vw);
   padding-bottom: 0.04em;
 }
@@ -130,27 +130,6 @@
   position: relative;
   display: inline-block;
   white-space: nowrap;
-}
-.hero__tick {
-  position: absolute;
-  top: 0.2em;
-  left: 100%;
-  margin-left: 0.5em;
-  color: #a98bf2;
-  font: 500 clamp(10px, 0.115em, 13px) / 1 var(--font-mono);
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-.hero__tick::before {
-  content: "";
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin-right: 7px;
-  border-radius: 50%;
-  background: currentColor;
-  vertical-align: 0.1em;
-  box-shadow: 0 0 10px currentColor;
 }
 .hero__lede {
   max-width: 62ch;
@@ -172,27 +151,6 @@
   justify-content: center;
   max-width: 100%;
   margin-top: 14px;
-}
-.hero__engines {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px 18px;
-  margin: 6px 0 0;
-  padding: 0;
-  list-style: none;
-}
-.hero__engines li {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.hero__engines li::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--g-500);
 }
 
 /* The horizon. The canvas is full bleed; its glow reaches up under the actions. */
@@ -1053,7 +1011,7 @@
   color: var(--paper);
 }
 
-/* Phones: a tighter staircase that fits the screen, the ticks give way to the words. */
+/* Phones: a tighter staircase that fits the screen. */
 @media (max-width: 720px) {
   .hero {
     --horizon-h: 460px;
@@ -1069,9 +1027,6 @@
   }
   .hero__eyebrow {
     letter-spacing: 0.12em;
-  }
-  .hero__tick {
-    display: none;
   }
   .horizon__ease {
     display: none;

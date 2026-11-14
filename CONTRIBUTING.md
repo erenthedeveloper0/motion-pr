@@ -13,8 +13,8 @@ published package needs ≥ 22.12) and **pnpm** through Corepack. `.nvmrc` pins 
 uses.
 
 ```bash
-git clone https://github.com/erenthedeveloper0/motion-pr.git
-cd motion-pr
+git clone https://github.com/erenthedeveloper0/motionpr.git
+cd motionpr
 corepack enable
 pnpm install
 npx playwright-core install chromium
@@ -49,7 +49,7 @@ pnpm pack:check --install       # what ships to npm, installed into a clean proj
 | `pnpm test:e2e`                   | Captures the demo app; drives the report viewer and the website     |
 | `pnpm pack:check`                 | Packs the public package and verifies its contents and entry points |
 | `pnpm bench`                      | Performance measurements of comparison and report building          |
-| `pnpm dev:docs`                   | Builds and serves the website on `http://localhost:4321/motion-pr/` |
+| `pnpm dev:docs`                   | Builds and serves the website on `http://localhost:4321/motionpr/`  |
 
 ## The conventions
 

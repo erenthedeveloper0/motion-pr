@@ -5,7 +5,7 @@
 //   toc    — items arrive top to bottom, quietly
 import { DUR, EASE, STAGGER, gsap, reducedMotion } from "../lib/motion.js";
 
-/** Delay between the hero's lines, in seconds: the "+90 ms" the page prints beside them. */
+/** Delay between the hero's lines, in seconds. */
 const HERO_STAGGER = 0.09;
 
 export function enter(shell) {
@@ -21,8 +21,7 @@ export function enter(shell) {
   const layout = shell.dataset.layout;
 
   if (layout === "landing") {
-    // The staircase: each line rises 90 ms after the previous one, as its tick says
-    // (site/pages.mjs, HERO_LINES).
+    // The staircase: each line rises 90 ms after the previous one.
     const lines = shell.querySelectorAll('[data-hero="line"]');
     // The pre-entrance CSS hides lines with translateY(108%); start from an explicit y: 0 so the
     // offset GSAP reads from it does not survive the entrance.
@@ -31,12 +30,6 @@ export function enter(shell) {
       { yPercent: 108, y: 0 },
       { yPercent: 0, y: 0, duration: 1.15, stagger: HERO_STAGGER },
       0.15,
-    );
-    tl.fromTo(
-      shell.querySelectorAll(".hero__tick"),
-      { opacity: 0, x: -8 },
-      { opacity: 1, x: 0, duration: DUR.story, stagger: HERO_STAGGER },
-      0.95,
     );
     tl.fromTo(
       shell.querySelector('[data-hero="eyebrow"]'),

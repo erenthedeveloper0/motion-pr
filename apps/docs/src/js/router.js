@@ -40,6 +40,15 @@ function eligible(url, anchor) {
   return true;
 }
 
+/** The script a page boots from: its file name is the build's content hash (build.mjs). */
+function buildOf(doc, base) {
+  const src = doc.querySelector('script[type="module"][src]')?.getAttribute("src");
+  return src ? new URL(src, base).pathname : null;
+}
+// The build this tab is running, read once at boot: later the script tag's relative src would
+// resolve against whichever page the router has since moved to.
+const BOOT_BUILD = buildOf(document, location.href);
+
 function fetchPage(url) {
   const key = url.pathname + url.search;
   if (!cache.has(key)) {
@@ -150,6 +159,8 @@ export async function navigate(href, { push = true, scroll = null } = {}) {
     const doc = new DOMParser().parseFromString(html, "text/html");
     const next = doc.querySelector("[data-shell]");
     if (!next) throw new Error("no shell");
+    // A page from a newer deploy needs that deploy's scripts: load it for real.
+    if (buildOf(doc, url) !== BOOT_BUILD) throw new Error("new deploy");
     const persistentLinks = document.querySelectorAll("[data-persist] a[href]");
     const freshLinks = doc.querySelectorAll("[data-persist] a[href]");
     if (persistentLinks.length !== freshLinks.length) throw new Error("persistent links differ");
@@ -194,7 +205,9 @@ export async function navigate(href, { push = true, scroll = null } = {}) {
     if (!target && focusTarget) focusTarget.focus({ preventScroll: true });
     announce(doc.title.replace(/ · MotionPR.*$/, ""));
   } catch (error) {
-    console.warn("[motionpr] soft navigation failed, loading the page", error);
+    // A newer deploy is expected, not a failure; anything else is worth a warning.
+    if (error?.message !== "new deploy")
+      console.warn("[motionpr] soft navigation failed, loading the page", error);
     location.assign(url.href);
   } finally {
     if (navigating === token) navigating = null;

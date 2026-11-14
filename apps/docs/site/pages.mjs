@@ -124,13 +124,8 @@ function enginesHtml(up, engines) {
   return `<div class="engines" data-component="engines"><div class="engines__tabs" role="tablist" aria-label="Animation engines"><span class="engines__indicator" aria-hidden="true"></span>${tabs}</div>${panels}</div>`;
 }
 
-// The tagline as a staircase: each line enters 90 ms after the previous one (ui/enter.js), and
-// says so.
-const HERO_LINES = [
-  ["Your code changed.", "0 ms"],
-  ["See how your", "+90 ms"],
-  ["interface moves.", "+180 ms"],
-];
+// The tagline as a staircase: each line enters 90 ms after the previous one (ui/enter.js).
+const HERO_LINES = ["Your code changed.", "See how your", "interface moves."];
 // The landing page's sections, in order: the hero's index links to them.
 const LANDING_SECTIONS = [
   ["change", "The change review cannot see"],
@@ -150,8 +145,8 @@ export function landingBody({ up, version, summary, engines }) {
   <div class="hero__copy">
     <p class="label hero__eyebrow" data-hero="eyebrow"><span>Animation regression testing</span> <span aria-hidden="true">·</span> <span class="nowrap">v${escapeHtml(version)}</span></p>
     <h1 id="hero-title" class="hero__title" tabindex="-1">${HERO_LINES.map(
-      ([text, tick], i) =>
-        `<span class="hero__line hero__line--${i + 1}"><span class="hero__words" data-hero="line">${escapeHtml(text)}<span class="hero__tick" aria-hidden="true">${tick}</span></span></span>`,
+      (text, i) =>
+        `<span class="hero__line hero__line--${i + 1}"><span class="hero__words" data-hero="line">${escapeHtml(text)}</span></span>`,
     ).join("")}</h1>
     <p class="hero__lede" data-hero="lede">MotionPR drives your app in Chromium, records every animation and scroll as data, compares it with an approved baseline, and opens a report where both versions play on one clock.</p>
     <div class="hero__actions" data-hero="actions">
@@ -165,7 +160,6 @@ export function landingBody({ up, version, summary, engines }) {
     <figcaption class="horizon__caption">
       <p class="horizon__legend label"><span class="horizon__key horizon__key--b">Baseline 320 ms<span class="horizon__ease"> · cubic-bezier(0.16, 1, 0.3, 1)</span></span><span class="horizon__key horizon__key--c">Candidate 560 ms<span class="horizon__ease"> · ease-in-out</span></span></p>
       <p class="horizon__note">The demo app's navigation panel as MotionPR captured it, 5× slower: one light per version rides the horizon with its real timing, and the arc opens as far as they differ.</p>
-      <ul class="hero__engines label" aria-label="Supported engines"><li>Native CSS</li><li>WAAPI</li><li>GSAP</li><li>Anime.js</li><li>Lenis</li></ul>
     </figcaption>
   </figure>
   <nav class="hero__index" aria-label="On this page" data-hero="index">

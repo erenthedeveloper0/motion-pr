@@ -59,4 +59,4 @@ migrated when they are read. Chromium is the only browser. The full list is in
 - [How it works](how-it-works.md): capture, analyze, compare, inspect, report.
 - [Getting started](../getting-started/requirements.md): a reviewed motion change in about ten
   minutes.
-- [Interactive demo](https://erenthedeveloper0.github.io/motion-pr/demo/): the demo app's real baseline and candidate.
+- [Interactive demo](https://erenthedeveloper0.github.io/motionpr/demo/): the demo app's real baseline and candidate.

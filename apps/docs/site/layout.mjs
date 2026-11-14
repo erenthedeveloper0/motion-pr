@@ -1,5 +1,5 @@
 // HTML shells shared by every page. Links are relative (`up` climbs to the site root), so the
-// same build works under https://erenthedeveloper0.github.io/motion-pr/ and on a local server.
+// same build works under https://erenthedeveloper0.github.io/motionpr/ and on a local server.
 import {
   lockupGeometry,
   GRADIENT_STOPS,
@@ -10,8 +10,8 @@ import { escapeHtml } from "./markdown.mjs";
 
 export const SITE = {
   name: "MotionPR",
-  url: "https://erenthedeveloper0.github.io/motion-pr/",
-  repo: "https://github.com/erenthedeveloper0/motion-pr",
+  url: "https://erenthedeveloper0.github.io/motionpr/",
+  repo: "https://github.com/erenthedeveloper0/motionpr",
   npm: "https://www.npmjs.com/package/@erenthedeveloper0/motionpr",
   package: "@erenthedeveloper0/motionpr",
   tagline: "Your code changed. See how your interface moves.",
@@ -38,6 +38,13 @@ export function logoSvg(id = "logo") {
   const stops = GRADIENT_STOPS.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join("");
   return `<svg viewBox="0 0 ${g.width} ${g.height}" role="img" aria-label="MotionPR"><defs><linearGradient id="${id}-g" gradientUnits="userSpaceOnUse" x1="0" y1="${markY + LOCKUP.markSize}" x2="${LOCKUP.markSize}" y2="${markY}">${stops}</linearGradient></defs><path class="logo-mark" data-mark-x="0" data-mark-y="${markY}" data-mark-size="${LOCKUP.markSize}" fill="url(#${id}-g)" d="${g.mark.path}"/><path fill="#F3F1FA" d="${g.wordmark}"/></svg>`;
 }
+
+/**
+ * The bundle's file names, content-hashed by the build (build.mjs sets them before any page is
+ * written). A page therefore always loads the scripts of its own build: a cached page cannot pair
+ * with a newer deploy's chunks, and a new deploy is never served an old, cached app.js.
+ */
+export const ASSETS = { js: "app.js", css: "site.css" };
 
 export function head({
   title,
@@ -82,8 +89,8 @@ ${noindex ? '<meta name="robots" content="noindex" />' : `<link rel="canonical" 
 <link rel="apple-touch-icon" href="${up}apple-touch-icon.png" />
 <link rel="manifest" href="${up}site.webmanifest" />
 <link rel="preload" href="${up}assets/fonts/geist.woff2" as="font" type="font/woff2" crossorigin />
-<link rel="stylesheet" href="${up}assets/site.css" />
-<script type="module" src="${up}assets/app.js"></script>
+<link rel="stylesheet" href="${up}assets/${ASSETS.css}" />
+<script type="module" src="${up}assets/${ASSETS.js}"></script>
 ${ld}`;
 }
 

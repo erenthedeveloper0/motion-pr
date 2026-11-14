@@ -84,9 +84,29 @@ async function mountOne(el) {
     }
     record.cleanup = cleanup ?? null;
   } catch (error) {
+    if (isStaleBuild(error) && reloadOnce()) return;
     console.error(`[motionpr] component "${name}" failed`, error);
     el.classList.add("is-failed");
   }
+}
+
+// A tab left open across a deploy still runs the old build, whose chunks the new deploy no longer
+// has. Reloading once picks up the new build; a second failure within a minute is a real error.
+const isStaleBuild = (error) =>
+  /dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(
+    String(error?.message ?? error),
+  );
+function reloadOnce() {
+  const key = "motionpr:reloaded-for-build";
+  try {
+    const last = Number(sessionStorage.getItem(key) ?? 0);
+    if (Date.now() - last < 60_000) return false;
+    sessionStorage.setItem(key, String(Date.now()));
+  } catch {
+    return false; // no storage: never risk a reload loop
+  }
+  location.reload();
+  return true;
 }
 
 function observer() {

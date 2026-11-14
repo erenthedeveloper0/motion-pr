@@ -24,8 +24,8 @@ await cp(demo, `${dist}demo-app`, { recursive: true });
 
 // npm shows the README without the repository around it: make relative links and images
 // absolute (GitHub blob links for documents, raw URLs for images).
-const REPO = "https://github.com/erenthedeveloper0/motion-pr";
-const RAW = "https://raw.githubusercontent.com/erenthedeveloper0/motion-pr/main";
+const REPO = "https://github.com/erenthedeveloper0/motionpr";
+const RAW = "https://raw.githubusercontent.com/erenthedeveloper0/motionpr/main";
 export function absolutizeReadme(markdown) {
   return markdown
     .replace(/(src|srcset)="(?!https?:)([^"]+)"/g, (_, attr, path) => `${attr}="${RAW}/${path}"`)

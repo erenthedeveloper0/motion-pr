@@ -258,7 +258,7 @@ describe("package identity", () => {
     expect(pkg.name).toBe(MOTIONPR_PACKAGE);
     expect(pkg.homepage).toBe(MOTIONPR_DOCS_URL);
     expect(pkg.repository.url).toBe(`git+${MOTIONPR_REPOSITORY}.git`);
-    expect(MOTIONPR_REPOSITORY).toBe("https://github.com/erenthedeveloper0/motion-pr");
+    expect(MOTIONPR_REPOSITORY).toBe("https://github.com/erenthedeveloper0/motionpr");
     expect(pkg.bugs.url).toBe(`${MOTIONPR_REPOSITORY}/issues`);
     expect(Object.keys(pkg.bin)).toEqual(["motionpr"]);
     // Manual publishing: provenance can only be generated in CI, so it must not be requested.
