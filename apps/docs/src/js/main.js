@@ -2,7 +2,7 @@
 // page shell is mounted per page and torn down before the next one replaces it.
 import { ScrollTrigger, gsap, onReducedMotionChange, reducedMotion } from "./lib/motion.js";
 import { ticker } from "./lib/ticker.js";
-import { mountAll, registryStats, unmountAll } from "./registry.js";
+import { mountAbove, mountAll, registryStats, unmountAll } from "./registry.js";
 import { initRouter, navigate } from "./router.js";
 import { breatheMark, initHeader } from "./ui/header.js";
 import { initSearch } from "./ui/search.js";
@@ -56,6 +56,17 @@ function boot() {
       header.onRoute();
       breatheMark(false);
       ScrollTrigger.refresh();
+    },
+    // Back/forward: lay the page out above the reader's old place, then go there.
+    restoreScroll: async ({ x, y }) => {
+      await mountAbove(shell, y + innerHeight);
+      ScrollTrigger.refresh();
+      const lenis = getLenis();
+      if (lenis) {
+        lenis.resize(); // its scroll limit was measured before the components above mounted
+        lenis.scrollTo(y, { immediate: true, force: true });
+      } else window.scrollTo(x, y);
+      ScrollTrigger.update();
     },
     enter: (next) => {
       entrance = enter(next);

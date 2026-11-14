@@ -116,6 +116,28 @@ export function mountAll(root = document) {
   }
 }
 
+/**
+ * Mounts, now, every pending component that starts above `bottom` (a document y). Used before
+ * restoring a scroll position: components change height when they mount, so the page above the
+ * reader's place must be laid out as it was when they left. Mounting moves what follows, hence
+ * a few passes; it gives up waiting after `timeout` ms rather than hold up the navigation.
+ */
+export async function mountAbove(root, bottom, { timeout = 1200 } = {}) {
+  const deadline = performance.now() + timeout;
+  for (let pass = 0; pass < 4 && performance.now() < deadline; pass++) {
+    const jobs = [];
+    for (const el of [...pending]) {
+      if (!root.contains(el) || el.getBoundingClientRect().top + scrollY >= bottom) continue;
+      io?.unobserve(el);
+      pending.delete(el);
+      jobs.push(mountOne(el));
+    }
+    if (!jobs.length) return;
+    const left = Math.max(0, deadline - performance.now());
+    await Promise.race([Promise.all(jobs), new Promise((r) => setTimeout(r, left))]);
+  }
+}
+
 export function unmountAll(root = document) {
   for (const el of [...pending]) {
     if (root.contains(el)) {

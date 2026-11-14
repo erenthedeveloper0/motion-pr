@@ -422,6 +422,124 @@ test("the 404 page is styled and links home at any depth", async ({ page }) => {
   await expect(page).toHaveURL(`${BASE}docs/`);
 });
 
+test("header and mobile menu links work after moving to a page at another depth", async ({
+  page,
+  browser,
+}) => {
+  // The header stays on screen across soft navigations while its links are relative to the page
+  // it was rendered for; each move must hand it the new page's links.
+  const problems = watch(page);
+  const failed: string[] = [];
+  page.on("console", (m) => {
+    if (m.text().includes("soft navigation failed")) failed.push(m.text());
+  });
+  const nav = (name: string) =>
+    page.locator(".primary-nav").getByRole("link", { name, exact: true });
+  const logo = page.locator(".site-header .brand-link");
+  await page.goto(BASE);
+  await page.getByRole("link", { name: "Get started" }).first().click();
+  await expect(page).toHaveURL(`${BASE}docs/getting-started/installation/`);
+  await logo.click();
+  await expect(page).toHaveURL(BASE);
+  await expect(page.locator("#hero-title")).toBeVisible();
+  await page.getByRole("link", { name: "Get started" }).first().click();
+  await expect(page).toHaveURL(`${BASE}docs/getting-started/installation/`);
+  await nav("Playground").click();
+  await expect(page).toHaveURL(`${BASE}playground/`);
+  await nav("Docs").click();
+  await expect(page).toHaveURL(`${BASE}docs/`);
+  await page.locator(".docs-index").getByRole("link", { name: "GSAP", exact: true }).click();
+  await expect(page).toHaveURL(`${BASE}docs/integrations/gsap/`);
+  await nav("Demo").click();
+  await expect(page).toHaveURL(`${BASE}demo/`);
+  await expect(page.getByRole("heading", { level: 1, name: /demo app/ })).toBeVisible();
+  await logo.click();
+  await expect(page).toHaveURL(BASE);
+  expect(await page.locator("h1").first().textContent()).not.toContain("does not exist");
+  expect([...problems, ...failed]).toEqual([]);
+
+  const phone = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  await phone.goto(`${BASE}docs/configuration/comparison/`);
+  const menu = async (name: string) => {
+    await phone.locator("[data-menu-toggle]").click();
+    await phone.locator("#mobile-nav").getByRole("link", { name, exact: true }).click();
+  };
+  await menu("Home");
+  await expect(phone).toHaveURL(BASE);
+  await menu("Playground");
+  await expect(phone).toHaveURL(`${BASE}playground/`);
+  await menu("Docs");
+  await expect(phone).toHaveURL(`${BASE}docs/`);
+  await expect(phone.getByRole("heading", { level: 1, name: "Documentation" })).toBeVisible();
+  await phone.close();
+});
+
+test("back to a scrolled landing page returns to the same place, without a reload", async ({
+  page,
+}) => {
+  const failed: string[] = [];
+  page.on("console", (m) => {
+    if (m.text().includes("soft navigation failed")) failed.push(m.text());
+  });
+  await page.goto(BASE);
+  await expect.poll(() => stats(page).then((s) => s.lenis)).toBe(true);
+  // Scroll the way a reader does, so the sections on the way mount and grow.
+  for (let i = 0; i < 12; i++) {
+    await page.mouse.wheel(0, 700);
+    await page.waitForTimeout(120);
+  }
+  await page.waitForTimeout(1500);
+  const place = () =>
+    page.evaluate(() => {
+      const heads = [...document.querySelectorAll("main .section__title")];
+      const h = heads.filter((el) => el.getBoundingClientRect().top < innerHeight).at(-1);
+      return {
+        y: Math.round(scrollY),
+        title: h?.textContent?.trim(),
+        top: h?.getBoundingClientRect().top,
+      };
+    });
+  const before = await place();
+  expect(before.y).toBeGreaterThan(5000);
+  const marker = await page.evaluate(() => ((window as unknown as { __mark: number }).__mark = 1));
+  for (let round = 0; round < 2; round++) {
+    await page.locator(".primary-nav").getByRole("link", { name: "Docs", exact: true }).click();
+    await expect(page).toHaveURL(`${BASE}docs/`);
+    await page.goBack();
+    await expect(page.locator("#hero-title")).toBeAttached();
+    await expect.poll(place).toMatchObject({ y: before.y, title: before.title });
+    // Same document: the page was swapped, not reloaded.
+    expect(await page.evaluate(() => (window as unknown as { __mark?: number }).__mark)).toBe(
+      marker,
+    );
+  }
+  expect(failed).toEqual([]);
+});
+
+test("a missing page loads as the real 404 page, whose links work", async ({ page }) => {
+  await page.goto(`${BASE}docs/`);
+  await page.evaluate(() => {
+    const a = document.createElement("a");
+    a.href = "getting-started/no-such-page/";
+    a.textContent = "broken";
+    a.id = "broken-link";
+    document.querySelector("main")!.append(a);
+  });
+  await page.locator("#broken-link").click();
+  await expect(page).toHaveURL(`${BASE}docs/getting-started/no-such-page/`);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "This page does not exist." }),
+  ).toBeVisible();
+  await page.locator(".primary-nav").getByRole("link", { name: "Playground", exact: true }).click();
+  await expect(page).toHaveURL(`${BASE}playground/`);
+  await page.locator(".primary-nav").getByRole("link", { name: "Docs", exact: true }).click();
+  await expect(page).toHaveURL(`${BASE}docs/`);
+});
+
 test("hero instrument plays, pauses and scrubs real data", async ({ page }) => {
   await page.goto(BASE);
   const hero = page.locator(".instrument");

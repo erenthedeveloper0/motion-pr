@@ -9,7 +9,12 @@ const cache = new Map();
 const MAX_CACHE = 24;
 let navigating = null;
 let renderedPath = location.pathname + location.search;
-let hooks = { beforeSwap: async () => {}, afterSwap: async () => {}, enter: () => {} };
+let hooks = {
+  beforeSwap: async () => {},
+  afterSwap: async () => {},
+  restoreScroll: async ({ x, y }) => window.scrollTo(x, y),
+  enter: () => {},
+};
 
 function siteRoot() {
   const meta = document.querySelector('meta[name="mp-root"]')?.content ?? "";
@@ -18,6 +23,8 @@ function siteRoot() {
 
 function eligible(url, anchor) {
   if (url.origin !== location.origin) return false;
+  // The 404 page resolves its links through <base href>; a swapped-in page would inherit it.
+  if (document.querySelector("base[href]")) return false;
   if (!url.pathname.startsWith(siteRoot().pathname)) return false;
   if (anchor?.dataset.router === "off" || anchor?.hasAttribute("download")) return false;
   if (anchor?.target && anchor.target !== "_self") return false;
@@ -32,7 +39,9 @@ function fetchPage(url) {
   const key = url.pathname + url.search;
   if (!cache.has(key)) {
     const p = fetch(key, { credentials: "same-origin" }).then((r) => {
-      if (!r.ok && r.status !== 404) throw new Error(`HTTP ${r.status}`);
+      // A missing page loads for real (navigate() falls back to location.assign): the 404 page
+      // needs its own <base href>, which a swap would not bring along.
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       if (!r.headers.get("content-type")?.includes("text/html")) throw new Error("not html");
       return r.text();
     });
@@ -131,6 +140,9 @@ export async function navigate(href, { push = true, scroll = null } = {}) {
     const doc = new DOMParser().parseFromString(html, "text/html");
     const next = doc.querySelector("[data-shell]");
     if (!next) throw new Error("no shell");
+    const persistentLinks = document.querySelectorAll("[data-persist] a[href]");
+    const freshLinks = doc.querySelectorAll("[data-persist] a[href]");
+    if (persistentLinks.length !== freshLinks.length) throw new Error("persistent links differ");
     await hooks.beforeSwap(shell);
     if (push) history.pushState({ mp: true, x: 0, y: 0 }, "", url.href);
     document.title = doc.title;
@@ -147,19 +159,25 @@ export async function navigate(href, { push = true, scroll = null } = {}) {
     }
     for (const attr of ["data-layout", "data-page"])
       document.documentElement.setAttribute(attr, doc.documentElement.getAttribute(attr) ?? "");
+    // The header, mobile menu and search stay on screen across pages, but their links are
+    // relative to the page they were rendered for: take the new page's version of each link.
+    persistentLinks.forEach((a, i) => a.setAttribute("href", freshLinks[i].getAttribute("href")));
     const imported = document.importNode(next, true);
     const sidebarTop = shell.querySelector(".sidebar")?.scrollTop;
     shell.replaceWith(imported);
     // The new sidebar opens where the reader left the old one.
     const sidebar = imported.querySelector(".sidebar");
     if (sidebar && sidebarTop) sidebar.scrollTop = sidebarTop;
-    // Scroll before the entrance: hash target, restored position, or top.
-    const target = url.hash ? document.getElementById(decodeURIComponent(url.hash.slice(1))) : null;
-    if (scroll) window.scrollTo(scroll.x, scroll.y);
-    else if (target) target.scrollIntoView({ block: "start" });
-    else window.scrollTo(0, 0);
+    // Mount the page at the top, as a fresh load would. Creating ScrollTriggers while the page is
+    // already scrolled far down makes the "once" reveals above the fold fire and remove themselves
+    // in the middle of ScrollTrigger's own refresh, which throws. Then go to the hash target or
+    // the restored position (still before the entrance, in the same frame).
+    window.scrollTo(0, 0);
     renderedPath = url.pathname + url.search;
     await hooks.afterSwap(imported, { url });
+    const target = url.hash ? document.getElementById(decodeURIComponent(url.hash.slice(1))) : null;
+    if (scroll) await hooks.restoreScroll(scroll);
+    else if (target) target.scrollIntoView({ block: "start" });
     stopPlayhead();
     hooks.enter(imported);
     const focusTarget = imported.querySelector("h1[tabindex]") ?? imported.querySelector("main");
