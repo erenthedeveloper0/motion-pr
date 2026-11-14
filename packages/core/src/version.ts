@@ -12,7 +12,7 @@ export const MOTIONPR_REPOSITORY = "https://github.com/erenthedeveloper0/motion-
 export const MOTIONPR_DOCS_URL = "https://erenthedeveloper0.github.io/motion-pr/";
 
 /**
- * npm dist-tag a version is published under (PUBLISHING.md): prereleases never go to `latest`,
+ * npm dist-tag a version is published under: prereleases never go to `latest`,
  * so `npm install @erenthedeveloper0/motionpr` cannot pick one up by accident.
  */
 export function distTagFor(version: string): "alpha" | "beta" | "next" | "latest" {

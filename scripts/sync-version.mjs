@@ -1,7 +1,7 @@
 // Keeps every workspace package and packages/core/src/version.ts on the version of the public
 // package (packages/cli/package.json).
 //
-//   node scripts/sync-version.mjs 0.1.0-alpha.1   set the version everywhere (PUBLISHING.md)
+//   node scripts/sync-version.mjs 0.1.0-alpha.1   set the version everywhere
 //   node scripts/sync-version.mjs                 copy packages/cli's version everywhere
 //   node scripts/sync-version.mjs --check         exit 1 when anything is out of sync
 import { readFile, writeFile } from "node:fs/promises";

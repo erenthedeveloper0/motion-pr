@@ -45,14 +45,9 @@ const ROOT_DOCS = [
   "SUPPORT.md",
   "CODE_OF_CONDUCT.md",
   "CHANGELOG.md",
-  "PUBLISHING.md",
-  "RELEASE_CHECKLIST.md",
   "ROADMAP.md",
-  "BUILD_STATUS.md",
   "ARCHITECTURE.md",
   "CONTRIBUTORS.md",
-  "REPOSITORY_SETUP.md",
-  "NPM_PACKAGE_AUDIT.md",
 ];
 
 describe("docs", () => {

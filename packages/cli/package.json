@@ -68,7 +68,7 @@
   "scripts": {
     "build": "tsdown && node scripts/copy-assets.mjs",
     "typecheck": "tsc -p tsconfig.json",
-    "prepublishOnly": "node -e \"console.error('Do not publish this folder: its manifest still holds catalog: and workspace: specifiers. Run pnpm release:prepare at the repository root and publish the tarball it prints (PUBLISHING.md).');process.exit(1)\""
+    "prepublishOnly": "node -e \"console.error('Do not publish this folder: its manifest still holds catalog: and workspace: specifiers. Run pnpm release:prepare at the repository root and publish the tarball it prints.');process.exit(1)\""
   },
   "dependencies": {
     "@clack/prompts": "catalog:",

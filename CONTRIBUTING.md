@@ -103,7 +103,8 @@ the project's MIT licence.
 - **Security issues:** never in a public issue. See [SECURITY.md](SECURITY.md).
 - **Features:** start with an issue that describes the problem and the alternatives you
   considered. Check [ROADMAP.md](ROADMAP.md) first; it may already be planned.
-- **Releases** are made by the maintainer: [PUBLISHING.md](PUBLISHING.md).
+- **Releases** are made by the maintainer, by hand: `pnpm release:prepare` builds and
+  verifies the tarball that gets published. No workflow publishes to npm.
 
 When your first pull request is merged, add yourself to [CONTRIBUTORS.md](CONTRIBUTORS.md).
 

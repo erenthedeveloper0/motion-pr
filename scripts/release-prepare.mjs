@@ -1,4 +1,4 @@
-// Prepares a release of @erenthedeveloper0/motionpr for a MANUAL publish (PUBLISHING.md).
+// Prepares a release of @erenthedeveloper0/motionpr for a MANUAL publish.
 // It never publishes: it builds, runs the release gates, writes the verified tarball to
 // release/, asks npm for a dry run of publishing exactly that file, and prints the command.
 //
@@ -58,7 +58,7 @@ try {
 console.log(
   tagged.split("\n").includes(`v${version}`)
     ? `  ✓ HEAD is tagged v${version}`
-    : `  ! HEAD is not tagged v${version} yet (PUBLISHING.md, step 4)`,
+    : `  ! HEAD is not tagged v${version} yet (tag it before publishing)`,
 );
 
 step("Build");
@@ -104,7 +104,7 @@ try {
 console.log(`
 Ready. Nothing has been published.
 
-Publish it yourself, from the repository root, after reading PUBLISHING.md:
+Publish it yourself, from the repository root:
 
   npm publish ./release/${tarball} --access public --tag ${distTag}
 `);

@@ -14,7 +14,7 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     ignore:
-      # The workspace packages move in lockstep through scripts/sync-version.mjs (PUBLISHING.md).
+      # The workspace packages move in lockstep through scripts/sync-version.mjs.
       - dependency-name: "@motionpr/*"
       - dependency-name: "@erenthedeveloper0/*"
       # Playwright decides the Chromium build captures are made with; a new major changes how

@@ -1,5 +1,5 @@
 # Quality assurance for the MotionPR repository. Read-only token, no secrets, and nothing here
-# publishes anything: releases are manual (PUBLISHING.md).
+# publishes anything: releases are manual.
 name: CI
 
 on:

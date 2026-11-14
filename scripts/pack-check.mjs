@@ -9,7 +9,7 @@
 //   node scripts/pack-check.mjs --out <dir>     keep the verified tarball in <dir>
 //
 // pnpm packs the tarball because it rewrites the workspace's catalog:/workspace: specifiers;
-// that tarball, unchanged, is what PUBLISHING.md publishes.
+// that tarball, unchanged, is what gets published.
 import { execFileSync } from "node:child_process";
 import {
   copyFileSync,
