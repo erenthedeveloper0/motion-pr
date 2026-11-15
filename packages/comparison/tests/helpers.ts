@@ -202,12 +202,14 @@ export function bundle(
     createdAt: "2026-11-13T00:00:00.000Z",
     project: { name: "test" },
     environment: {
-      browser: { name: "chromium", version: "158", headless: true },
+      browser: { name: "chromium", version: "158", headless: true, channel: null, userAgent: null },
       platform: "linux",
       arch: "x64",
       node: "v24",
       playwright: "1.65.0",
       ci: false,
+      osRelease: null,
+      capabilities: null,
     },
     settings: {
       colorScheme: "light",

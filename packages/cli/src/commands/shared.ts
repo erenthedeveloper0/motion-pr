@@ -1,5 +1,13 @@
-import { MOTIONPR_VERSION, type Diagnostic } from "@motionpr/core";
-import type { CaptureEvent } from "@motionpr/capture";
+import {
+  BROWSER_LABELS,
+  MOTIONPR_VERSION,
+  MotionprError,
+  parseBrowserSelection,
+  type BrowserName,
+  type Diagnostic,
+  type ResolvedConfig,
+} from "@motionpr/core";
+import { isBrowserInstalled, launchOptionsFor, type CaptureEvent } from "@motionpr/capture";
 import { Terminal, formatDuration, isCI, type Spinner } from "../output/terminal.ts";
 
 export interface GlobalOptions {
@@ -11,6 +19,59 @@ export interface GlobalOptions {
   verbose?: boolean;
   color?: boolean;
   ci?: boolean;
+}
+
+/**
+ * Engines a command runs with: `--browser` (repeatable, comma lists, `all`), else the
+ * MOTIONPR_BROWSER environment variable, else the config's `browser.name`. Unknown names are an
+ * error; nothing falls back to Chromium.
+ */
+export function selectBrowsers(
+  value: string | readonly string[] | undefined,
+  fallback: BrowserName,
+): BrowserName[] {
+  const given = typeof value === "string" ? [value] : (value ?? []);
+  const env = process.env.MOTIONPR_BROWSER?.trim();
+  return parseBrowserSelection(given.length ? given : env ? [env] : [], fallback);
+}
+
+export function browserList(names: readonly BrowserName[]): string {
+  const labels = names.map((n) => BROWSER_LABELS[n]);
+  return labels.length <= 1
+    ? (labels[0] ?? "")
+    : `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}`;
+}
+
+/**
+ * Fails before anything runs when a selected engine's Playwright build is missing, naming every
+ * missing engine and the command that installs them. Engines launched from a configured channel
+ * or binary are checked when they launch instead.
+ */
+export function assertBrowsersInstalled(
+  browsers: readonly BrowserName[],
+  config: ResolvedConfig,
+  headless = config.browser.headless,
+): void {
+  const missing = browsers.filter((b) => {
+    const options = launchOptionsFor(config, b);
+    if (options.executablePath || options.channel) return false;
+    return !isBrowserInstalled(b, { headless });
+  });
+  if (!missing.length) return;
+  throw new MotionprError(
+    "BROWSER_NOT_INSTALLED",
+    `${browserList(missing)} for MotionPR ${missing.length === 1 ? "is" : "are"} not installed.`,
+    {
+      hint: `Run \`npx motionpr install ${missing.join(" ")}\` (add --with-deps on Linux CI). Nothing was captured: MotionPR never substitutes another browser.`,
+    },
+  );
+}
+
+/** Exit code of several runs: any error (2) wins over a regression (1) over success (0). */
+export function combineExitCodes(codes: readonly number[]): number {
+  if (codes.some((c) => c === 2)) return 2;
+  if (codes.some((c) => c === 1)) return 1;
+  return codes.some((c) => c !== 0) ? 2 : 0;
 }
 
 export function makeTerminal(options: GlobalOptions): Terminal {
@@ -44,7 +105,7 @@ export function captureProgress(t: Terminal): (event: CaptureEvent) => void {
   return (event) => {
     switch (event.type) {
       case "browser":
-        t.debug(`Chromium ${event.version}`);
+        t.debug(`${BROWSER_LABELS[event.name]} ${event.version}`);
         break;
       case "scenario:start":
         current = `${event.key}`;

@@ -18,6 +18,9 @@ export {
   type MotionprErrorCode,
 } from "./errors.ts";
 
+// Browsers
+export * from "./browsers.ts";
+
 // Configuration
 export * from "./config/schema.ts";
 export {

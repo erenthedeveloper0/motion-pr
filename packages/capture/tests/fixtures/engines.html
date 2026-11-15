@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>engine fixture</title>
+    <!--
+      Native motion whose details differ most between engines: several properties of one
+      transition with their own timing, a transition that ends before the next frame, an
+      interrupted (reversed) transition, CSS animation timing variants, and Web Animations that
+      are reversed, cancelled, finished early, delayed, alternated or keyframed with offsets.
+    -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #fff;
+        font: 14px sans-serif;
+      }
+      .box {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        left: 20px;
+      }
+      #multi {
+        top: 20px;
+        background-color: rgb(255, 0, 0);
+        transition:
+          transform 300ms ease-in,
+          opacity 200ms linear 50ms,
+          background-color 250ms steps(5, end);
+      }
+      body.t-on #multi {
+        transform: translateX(200px);
+        opacity: 0.4;
+        background-color: rgb(0, 0, 255);
+      }
+      #quick {
+        top: 70px;
+        background: #0a0;
+        transition: opacity 30ms linear;
+      }
+      body.t-on #quick {
+        opacity: 0.5;
+      }
+      #slider {
+        top: 120px;
+        background: #f80;
+        transition: transform 600ms linear;
+      }
+      #slider.out {
+        transform: translateX(300px);
+      }
+      #c-anim {
+        top: 170px;
+        background: #808;
+      }
+      @keyframes hop {
+        0% {
+          transform: translateY(0px);
+          animation-timing-function: ease-out;
+        }
+        40% {
+          transform: translateY(-30px);
+          animation-timing-function: ease-in;
+        }
+        100% {
+          transform: translateY(0px);
+        }
+      }
+      body.c-on #c-anim {
+        animation: hop 200ms linear 50ms 2 alternate-reverse backwards;
+      }
+      #w-multi {
+        top: 220px;
+        background: #088;
+      }
+      #w-reverse {
+        top: 270px;
+        background: #880;
+      }
+      #w-cancel {
+        top: 320px;
+        background: #444;
+      }
+      #w-delay {
+        top: 370px;
+        background: #c06;
+      }
+      #w-finish {
+        top: 420px;
+        background: #06c;
+      }
+      #w-keys {
+        top: 470px;
+        background: #6c0;
+      }
+      button {
+        position: absolute;
+        right: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <button data-testid="transitions" type="button" style="top: 20px">transitions</button>
+    <button data-testid="interrupt" type="button" style="top: 60px">interrupt</button>
+    <button data-testid="css-anim" type="button" style="top: 100px">css animation</button>
+    <button data-testid="waapi" type="button" style="top: 140px">waapi</button>
+    <button data-testid="waapi-cancel" type="button" style="top: 180px">waapi cancel</button>
+    <div class="box" id="multi" data-testid="multi"></div>
+    <div class="box" id="quick" data-testid="quick"></div>
+    <div class="box" id="slider" data-testid="slider"></div>
+    <div class="box" id="c-anim" data-testid="c-anim"></div>
+    <div class="box" id="w-multi" data-testid="w-multi"></div>
+    <div class="box" id="w-reverse" data-testid="w-reverse"></div>
+    <div class="box" id="w-cancel" data-testid="w-cancel"></div>
+    <div class="box" id="w-delay" data-testid="w-delay"></div>
+    <div class="box" id="w-finish" data-testid="w-finish"></div>
+    <div class="box" id="w-keys" data-testid="w-keys"></div>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      document.querySelector("[data-testid=transitions]").addEventListener("click", () => {
+        document.body.classList.toggle("t-on");
+      });
+      // Starts a 600ms transition and reverses it after 150ms: engines replace the running
+      // transition with one back to the start, shortened to the distance already travelled.
+      document.querySelector("[data-testid=interrupt]").addEventListener("click", () => {
+        $("slider").classList.add("out");
+        setTimeout(() => $("slider").classList.remove("out"), 150);
+      });
+      document.querySelector("[data-testid=css-anim]").addEventListener("click", () => {
+        document.body.classList.toggle("c-on");
+      });
+      document.querySelector("[data-testid=waapi]").addEventListener("click", () => {
+        const move = [{ transform: "translateX(0px)" }, { transform: "translateX(240px)" }];
+        $("w-multi").animate(move, { duration: 400, easing: "ease-out", id: "w-move" });
+        $("w-multi").animate([{ opacity: 1 }, { opacity: 0.2 }], {
+          duration: 300,
+          delay: 100,
+          fill: "forwards",
+          id: "w-fade",
+        });
+        $("w-reverse")
+          .animate(move, { duration: 400, easing: "linear", id: "w-rev", fill: "both" })
+          .reverse();
+        $("w-delay").animate(move, {
+          duration: 200,
+          delay: 150,
+          endDelay: 50,
+          iterations: 2,
+          direction: "alternate",
+          fill: "both",
+          id: "w-delay",
+        });
+        $("w-finish").animate(move, { duration: 1000, fill: "forwards", id: "w-finish" }).finish();
+        $("w-keys").animate(
+          [
+            { transform: "translateX(0px)", easing: "ease-in" },
+            { transform: "translateX(60px)", offset: 0.3, easing: "ease-out" },
+            { transform: "translateX(240px)" },
+          ],
+          { duration: 500, id: "w-keys" },
+        );
+      });
+      // Cancelled 120 ms in, on a wall-clock timer: when the cancel lands on the animation's
+      // timeline depends on scheduling, so this is kept out of the determinism scenario.
+      document.querySelector("[data-testid=waapi-cancel]").addEventListener("click", () => {
+        const move = [{ transform: "translateX(0px)" }, { transform: "translateX(240px)" }];
+        const cancel = $("w-cancel").animate(move, { duration: 800, id: "w-cancel" });
+        setTimeout(() => cancel.cancel(), 120);
+      });
+    </script>
+  </body>
+</html>

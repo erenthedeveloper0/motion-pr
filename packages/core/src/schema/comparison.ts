@@ -260,7 +260,10 @@ const captureRefSchema = z.object({
   id: z.string(),
   createdAt: z.string(),
   motionprVersion: z.string(),
+  /** Engine and version, e.g. `firefox 159.0`. */
   browser: z.string(),
+  /** Engine alone (`chromium`, `firefox`, `webkit`); comparisons written before 0.2 used Chromium. */
+  browserName: z.string().default("chromium"),
   platform: z.string(),
   configHash: z.string(),
 });
@@ -272,6 +275,11 @@ export const comparisonResultSchema = z.object({
   createdAt: z.string(),
   baseline: captureRefSchema,
   candidate: captureRefSchema,
+  /**
+   * True when baseline and candidate come from different engines (requested explicitly). Visual
+   * and scheduling-dependent differences are then reported as `uncertain`.
+   */
+  crossBrowser: z.boolean().default(false),
   failOn: z.enum(["critical", "warning", "info", "never"]),
   failOnUncertain: z.boolean(),
   summary: z.object({

@@ -4,11 +4,15 @@
  */
 import { join, relative, sep } from "node:path";
 import {
+  browserPaths,
+  captureBrowser,
   generateCaptureId,
+  isBrowserName,
   pruneCaptures,
   readCaptureBundle,
   setLatestCapture,
   webServers,
+  type BrowserName,
   type CaptureBundle,
   type ComparisonConfig,
   type ComparisonResult,
@@ -27,6 +31,11 @@ import { readViewerTemplate } from "./assets.ts";
 import type { LoadedConfig } from "./config/load.ts";
 
 export interface CaptureProjectOptions {
+  /**
+   * Engine to capture with (default: the config's `browser.name`). The capture is written to
+   * `.motionpr/captures/<browser>/<id>` and becomes that engine's `latest`.
+   */
+  browserName?: BrowserName;
   scenarios?: string[];
   viewports?: string[];
   headless?: boolean;
@@ -47,29 +56,51 @@ export interface ProjectCapture {
   dir: string;
 }
 
+/**
+ * Starts the configured web servers (or reuses running ones, per config) once, for one or more
+ * captures. Returns null when none are configured or `enabled` is false.
+ */
+export async function startProjectServers(
+  loaded: LoadedConfig,
+  options: Pick<CaptureProjectOptions, "serverLogger" | "signal" | "onServers"> & {
+    enabled?: boolean;
+  } = {},
+): Promise<{ stop(): Promise<void> } | null> {
+  const servers =
+    options.enabled === false || webServers(loaded.config).length === 0
+      ? null
+      : await startWebServers(webServers(loaded.config), {
+          cwd: loaded.rootDir,
+          ...(options.serverLogger ? { logger: options.serverLogger } : {}),
+          ...(options.signal ? { signal: options.signal } : {}),
+        });
+  if (servers) options.onServers?.(servers.stop);
+  return servers;
+}
+
 /** Starts web servers if configured, captures every scenario, and records the capture as latest. */
 export async function captureProject(
   loaded: LoadedConfig,
   options: CaptureProjectOptions = {},
 ): Promise<ProjectCapture> {
   const { config, rootDir, paths } = loaded;
+  const browserName = options.browserName ?? config.browser.name;
+  const captures = browserPaths(paths, browserName).captures;
   const id = generateCaptureId();
-  const dir = options.outputDir ?? join(paths.captures, id);
-  const servers =
-    options.webServer === false || webServers(config).length === 0
-      ? null
-      : await startWebServers(webServers(config), {
-          cwd: rootDir,
-          ...(options.serverLogger ? { logger: options.serverLogger } : {}),
-          ...(options.signal ? { signal: options.signal } : {}),
-        });
-  if (servers) options.onServers?.(servers.stop);
+  const dir = options.outputDir ?? join(captures, id);
+  const servers = await startProjectServers(loaded, {
+    enabled: options.webServer !== false,
+    ...(options.serverLogger ? { serverLogger: options.serverLogger } : {}),
+    ...(options.signal ? { signal: options.signal } : {}),
+    ...(options.onServers ? { onServers: options.onServers } : {}),
+  });
   try {
     const outcome = await runCapture({
       config,
       rootDir,
       outputDir: dir,
       id,
+      browserName,
       ...(options.scenarios ? { scenarios: options.scenarios } : {}),
       ...(options.viewports ? { viewports: options.viewports } : {}),
       ...(options.headless !== undefined ? { headless: options.headless } : {}),
@@ -78,11 +109,10 @@ export async function captureProject(
       ...(options.onEvent ? { onEvent: options.onEvent } : {}),
     });
     const insideCaptures =
-      !relative(paths.captures, dir).startsWith("..") &&
-      relative(paths.captures, dir).split(sep).length === 1;
+      !relative(captures, dir).startsWith("..") && relative(captures, dir).split(sep).length === 1;
     if (insideCaptures) {
-      await setLatestCapture(paths.captures, id);
-      await pruneCaptures(paths.captures, config.output.keep);
+      await setLatestCapture(captures, id);
+      await pruneCaptures(captures, config.output.keep);
     }
     return outcome;
   } finally {
@@ -96,6 +126,8 @@ export interface CompareDirsOptions {
   config: ComparisonConfig;
   /** Where comparison.json and diff images go. */
   outputDir: string;
+  /** Allow captures of different engines (see `compareCaptures`). Default false. */
+  allowCrossBrowser?: boolean;
 }
 
 export interface DirComparison {
@@ -114,6 +146,7 @@ export async function compareDirs(options: CompareDirsOptions): Promise<DirCompa
     candidate: { dir: options.candidateDir, bundle: candidate },
     config: options.config,
     outputDir: options.outputDir,
+    ...(options.allowCrossBrowser ? { allowCrossBrowser: true } : {}),
   });
   return { result, baseline, candidate };
 }
@@ -143,9 +176,25 @@ export async function writeReport(options: WriteReportOptions): Promise<Generate
   });
 }
 
-/** Default directory for comparison output (diff images + comparison.json). */
-export function comparisonDir(paths: MotionprPaths): string {
-  return join(paths.data, "comparison");
+/**
+ * Name of the directory a comparison's output goes to: the engine (`firefox`), or
+ * `<baseline>-vs-<candidate>` for a cross-browser comparison.
+ */
+export function comparisonKey(baseline: CaptureBundle, candidate: CaptureBundle): string {
+  const b = captureBrowser(baseline);
+  const c = captureBrowser(candidate);
+  const safe = (n: string) => (isBrowserName(n) ? n : "other");
+  return b === c ? safe(c) : `${safe(b)}-vs-${safe(c)}`;
+}
+
+/** Directory for one engine's comparison output (diff images + comparison.json). */
+export function comparisonDir(paths: MotionprPaths, key: string = "chromium"): string {
+  return join(paths.data, "comparison", key);
+}
+
+/** Directory for one engine's HTML report. */
+export function reportDir(paths: MotionprPaths, key: string = "chromium"): string {
+  return join(paths.report, key);
 }
 
 export function failOnOverride(

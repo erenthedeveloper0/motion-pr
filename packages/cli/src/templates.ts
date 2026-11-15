@@ -82,6 +82,9 @@ export function configTemplate(o: ConfigTemplateOptions): string {
   baseURL: ${JSON.stringify(o.baseURL)},
 ${server}
   browser: {
+    // Engine to capture with: "chromium", "firefox" or "webkit". Each has its own baseline;
+    // \`npx motionpr run --browser all\` captures with all three.
+    name: "chromium",
     viewport: { width: 1440, height: 900 },
     // Run every scenario in several sizes:
     // viewports: [
@@ -147,7 +150,8 @@ jobs:
     steps:
       - uses: ${A.checkout}
 ${install}
-      - name: Install Chromium for MotionPR
+      # Installs the engine in browser.name; list engines to install more (e.g. chromium firefox).
+      - name: Install the browser for MotionPR
         run: ${npx} motionpr install --with-deps
       - name: Run MotionPR
         run: ${npx} motionpr run --ci

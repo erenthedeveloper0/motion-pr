@@ -1,7 +1,7 @@
 import { mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { resolveConfig, type CaptureBundle } from "@motionpr/core";
+import { BROWSER_LABELS, MotionprError, resolveConfig, type CaptureBundle } from "@motionpr/core";
 import { launchBrowser, runCapture } from "@motionpr/capture";
 import { compareCaptures, exitCodeFor } from "@motionpr/comparison";
 import { writeReport } from "../api.ts";
@@ -12,11 +12,13 @@ import { printComparison } from "../output/format.ts";
 import { openInBrowser } from "../runtime/open.ts";
 import { abortSignal, onCleanup } from "../runtime/signals.ts";
 import {
+  assertBrowsersInstalled,
   banner,
   captureProgress,
   cwdOf,
   makeTerminal,
   printJson,
+  selectBrowsers,
   type GlobalOptions,
 } from "./shared.ts";
 
@@ -24,6 +26,8 @@ export interface DemoOptions extends GlobalOptions {
   output?: string;
   open?: boolean;
   scenario?: string[];
+  /** `--browser`: the engine to run the demo in (default Chromium). */
+  browser?: string[];
 }
 
 /**
@@ -33,17 +37,27 @@ export interface DemoOptions extends GlobalOptions {
 export async function demoCommand(options: DemoOptions): Promise<number> {
   const t = makeTerminal(options);
   banner(t, "demo");
+  selectBrowsers(options.browser, "chromium"); // usage errors before anything else
   const out = options.output
     ? resolve(cwdOf(options), options.output)
     : join(tmpdir(), "motionpr-demo");
   await rm(out, { recursive: true, force: true });
   await mkdir(out, { recursive: true });
 
+  const browsers = selectBrowsers(options.browser, "chromium");
+  if (browsers.length > 1)
+    throw new MotionprError("CONFIG_INVALID", "The demo runs in one browser at a time.", {
+      hint: "Pass one --browser: chromium, firefox or webkit.",
+    });
+  const browserName = browsers[0]!;
   const server = await serveDemo(await demoAppDir());
   onCleanup(() => server.close());
-  t.step(`Serving the demo app at ${t.tech(server.url)} (baseline and candidate variants)`);
+  t.step(
+    `Serving the demo app at ${t.tech(server.url)} (baseline and candidate variants), capturing with ${BROWSER_LABELS[browserName]}`,
+  );
   const baseConfig = resolveConfig(demoConfig(`${server.url}/baseline/`));
-  const browser = await launchBrowser(baseConfig);
+  assertBrowsersInstalled([browserName], baseConfig);
+  const browser = await launchBrowser(baseConfig, { browserName });
   onCleanup(() => browser.close());
   const captures: Record<"baseline" | "candidate", { dir: string; bundle: CaptureBundle }> =
     {} as never;
@@ -81,7 +95,7 @@ export async function demoCommand(options: DemoOptions): Promise<number> {
     candidate: captures.candidate,
     baseline: captures.baseline,
     comparison: { dir: comparisonDir, result },
-    project: "MotionPR demo · Halcyon Studio",
+    project: `MotionPR demo · Halcyon Studio${browserName === "chromium" ? "" : ` · ${BROWSER_LABELS[browserName]}`}`,
     notes: [
       "Demonstration: both captures come from the bundled demo app; the candidate variant contains intentional motion changes.",
     ],

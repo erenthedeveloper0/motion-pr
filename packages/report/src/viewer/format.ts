@@ -52,3 +52,14 @@ export function relativeDate(iso: string): string {
     minute: "2-digit",
   });
 }
+
+const ENGINE_LABELS: Record<string, string> = {
+  chromium: "Chromium",
+  firefox: "Firefox",
+  webkit: "WebKit",
+};
+
+/** Display name of the browser engine a capture was taken with. */
+export function engineLabel(name: string): string {
+  return ENGINE_LABELS[name.toLowerCase()] ?? name;
+}

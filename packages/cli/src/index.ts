@@ -27,6 +27,10 @@ export {
   COMPARISON_SCHEMA_VERSION,
   SEVERITY_RULES,
   SUPPORTED_ENGINE_RANGES,
+  BROWSER_NAMES,
+  parseBrowserSelection,
+  browserPaths,
+  resolveBaselineDir,
 } from "@motionpr/core";
 export type {
   MotionprConfig,
@@ -79,12 +83,22 @@ export type {
   ScrollComparison,
   ScrollMetrics,
   TimelineComparison,
+  BrowserName,
+  BrowserCapabilities,
+  BrowserPaths,
 } from "@motionpr/core";
-export { compareCaptures, exitCodeFor, type CompareOptions } from "@motionpr/comparison";
+export {
+  compareCaptures,
+  exitCodeFor,
+  ENGINE_DEPENDENT_CHANGES,
+  type CompareOptions,
+} from "@motionpr/comparison";
 export {
   runCapture,
   startWebServers,
   installBrowsers,
+  launchBrowser,
+  isBrowserInstalled,
   type CaptureOptions,
   type CaptureOutcome,
   type CaptureEvent,
@@ -95,6 +109,7 @@ export {
   captureProject,
   compareDirs,
   writeReport,
+  startProjectServers,
   type CaptureProjectOptions,
   type ProjectCapture,
   type CompareDirsOptions,

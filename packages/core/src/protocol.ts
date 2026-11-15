@@ -426,6 +426,28 @@ export interface MotionprAgentApi {
   adapterStatus(): RawAdapterStatus[];
   /** Internal bookkeeping sizes (memory-bound checks and debugging). */
   stats(): { tracked: number; nativeScrollSamples: number; adapters: number; window: number };
+  /**
+   * What this engine supports and how it schedules work: Web Animations features, timer
+   * resolution and the frame interval (measured over a dozen frames).
+   */
+  capabilities(): Promise<RawCapabilities>;
+}
+
+/** Runtime capabilities measured in the page (stored as `environment.capabilities`). */
+export interface RawCapabilities {
+  documentGetAnimations: boolean;
+  elementAnimate: boolean;
+  cssTransitionInterface: boolean;
+  cssAnimationInterface: boolean;
+  transitionRunEvent: boolean;
+  pseudoElementEffects: boolean;
+  scrollTimeline: boolean;
+  viewTimeline: boolean;
+  timerResolutionMs: number | null;
+  frameIntervalMs: number | null;
+  devicePixelRatio: number | null;
+  prefersReducedMotion: boolean | null;
+  userAgent: string;
 }
 
 export interface SmoothScrollRequest {

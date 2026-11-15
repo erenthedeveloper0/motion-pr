@@ -4,12 +4,13 @@
  *   <out>/baseline, <out>/candidate, <out>/comparison   raw capture & comparison output
  *   <out>/report-data/report-data.json + assets/         data for the docs demo and viewer dev
  *
- * Usage: pnpm demo:capture [--out <dir>]   (default: apps/docs/public/demo)
- * Requires: pnpm --filter @motionpr/demo-app build, Chromium (npx motionpr install).
+ * Usage: pnpm demo:capture [--out <dir>] [--html <dir>] [--browser chromium|firefox|webkit]
+ *   (default: apps/docs/public/demo, Chromium)
+ * Requires: pnpm --filter @motionpr/demo-app build, the browser (npx motionpr install <name>).
  */
 import { mkdir, rm, writeFile, cp } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { resolveConfig } from "@motionpr/core";
+import { isBrowserName, resolveConfig } from "@motionpr/core";
 import { launchBrowser, runCapture } from "@motionpr/capture";
 import { compareCaptures } from "@motionpr/comparison";
 import { readFile } from "node:fs/promises";
@@ -22,12 +23,18 @@ const outArg = args.indexOf("--out");
 const publicDir = resolve(outArg >= 0 ? args[outArg + 1]! : "apps/docs/public/demo");
 const htmlArg = args.indexOf("--html");
 const htmlDir = htmlArg >= 0 ? resolve(args[htmlArg + 1]!) : null;
-const work = resolve(".tmp/demo-capture");
+const browserArg = args.indexOf("--browser");
+const browserName = browserArg >= 0 ? args[browserArg + 1]! : "chromium";
+if (!isBrowserName(browserName)) throw new Error(`--browser must be chromium, firefox or webkit`);
+const work = resolve(`.tmp/demo-capture${browserName === "chromium" ? "" : `-${browserName}`}`);
 await rm(work, { recursive: true, force: true });
 await mkdir(work, { recursive: true });
 
 const server = await serveDemo(resolve("fixtures/demo-app/dist"));
-const browser = await launchBrowser(resolveConfig(demoConfig(`${server.url}/baseline/`)));
+const browser = await launchBrowser(resolveConfig(demoConfig(`${server.url}/baseline/`)), {
+  browserName,
+});
+console.log(`capturing with ${browserName} ${browser.version()}`);
 const captures: Record<
   string,
   { dir: string; bundle: Awaited<ReturnType<typeof runCapture>>["bundle"] }
@@ -77,7 +84,13 @@ const data = await writeReportAssets({
   ],
 });
 await writeFile(join(publicDir, "report-data.json"), JSON.stringify(data));
-await cp(work, join(resolve(".tmp"), "demo-last"), { recursive: true });
+await cp(
+  work,
+  join(resolve(".tmp"), browserName === "chromium" ? "demo-last" : `demo-last-${browserName}`),
+  {
+    recursive: true,
+  },
+);
 if (htmlDir) {
   const report = await generateReport({
     outputDir: htmlDir,

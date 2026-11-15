@@ -1,4 +1,9 @@
-export { compareCaptures, exitCodeFor, type CompareOptions } from "./compare.ts";
+export {
+  compareCaptures,
+  exitCodeFor,
+  ENGINE_DEPENDENT_CHANGES,
+  type CompareOptions,
+} from "./compare.ts";
 export { compareMatchedAnimation, easingChange } from "./diff-animation.ts";
 export { matchAnimations, type AnimationMatch, type MatchResult } from "./match.ts";
 export {

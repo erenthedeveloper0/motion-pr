@@ -25,6 +25,7 @@ import type {
   PendingState,
   PlayStateValue,
   RawAnimation,
+  RawCapabilities,
   RawDiagnostic,
   RawKeyframe,
   RawSample,
@@ -44,6 +45,8 @@ interface Tracked {
   anim: Animation;
   window: number;
   discoveredAt: number;
+  /** Already finished when first seen (e.g. `animate(...).finish()`): it never moved on screen. */
+  finishedOnDiscovery: boolean;
   /** First known (resolved) start time on the document timeline. */
   start: number | null;
   canceledAt: number | null;
@@ -64,6 +67,8 @@ interface ReplayEntry {
   native: boolean;
   /** Absolute start (performance clock) of local time zero. */
   startAbs: number | null;
+  /** Window-relative start of local time zero (what seeking is computed from). */
+  startWindow: number | null;
   rate: number;
   clone: Animation | null;
   target: Element | null;
@@ -152,7 +157,8 @@ export function installAgent(win: Window & typeof globalThis): void {
   // Discovery
   // ------------------------------------------------------------------------------------------
 
-  function track(anim: Animation): void {
+  /** `created`: the animation was just made with `animate()` (not re-discovered by a poll). */
+  function track(anim: Animation, created = false): void {
     if (replaying || clones.has(anim)) return;
     const existing = tracked.get(anim);
     if (existing) {
@@ -165,12 +171,25 @@ export function installAgent(win: Window & typeof globalThis): void {
       anim,
       window: windowIndex,
       discoveredAt: now(),
+      finishedOnDiscovery: false,
       start: typeof anim.startTime === "number" ? anim.startTime : null,
       canceledAt: null,
       finished: false,
     };
     tracked.set(anim, entry);
     lastDiscoveryAt = entry.discoveredAt;
+    // `finish()` called in the same task as `animate()` (a common reduced-motion fallback) jumps
+    // to the end before any frame shows it; its back-dated start time must not be mistaken for
+    // an animation that ran before the interaction. Checked once the creating task is done.
+    // (Polls re-discover finished fill-forwards animations of earlier windows; those are not
+    // creations and keep their real start.)
+    if (created)
+      queueMicrotask(() => {
+        if (anim.playState === "finished" && !entry.finished) {
+          entry.finishedOnDiscovery = true;
+          entry.finished = true;
+        }
+      });
     anim.addEventListener("finish", () => {
       entry.finished = true;
     });
@@ -194,7 +213,7 @@ export function installAgent(win: Window & typeof globalThis): void {
     ...args: Parameters<Element["animate"]>
   ) {
     const anim = nativeAnimate.apply(this, args);
-    track(anim);
+    track(anim, true);
     return anim;
   };
   const nativePlay = win.Animation.prototype.play;
@@ -208,6 +227,7 @@ export function installAgent(win: Window & typeof globalThis): void {
       entry.start = typeof this.startTime === "number" ? this.startTime : null;
       entry.canceledAt = null;
       entry.finished = false;
+      entry.finishedOnDiscovery = false;
       entry.discoveredAt = now();
       lastDiscoveryAt = entry.discoveredAt;
     } else {
@@ -309,8 +329,11 @@ export function installAgent(win: Window & typeof globalThis): void {
         if (META_KEYS.has(key) || value === undefined || value === null) continue;
         values[kebab(key)] = String(value);
       }
+      // Firefox stores offsets in single precision (0.4 reads back as 0.4000000059604645).
       return {
-        offset: typeof kf.computedOffset === "number" ? kf.computedOffset : (kf.offset ?? 0),
+        offset: round6(
+          typeof kf.computedOffset === "number" ? kf.computedOffset : (kf.offset ?? 0),
+        ),
         easing: String(kf.easing ?? "linear"),
         composite: String(kf.composite ?? "auto"),
         values,
@@ -393,6 +416,12 @@ export function installAgent(win: Window & typeof globalThis): void {
     if (start === null) samplable = false;
     if (entry.canceledAt !== null)
       notes.push("Canceled before completion; replay stops at the cancel time.");
+    if (entry.finishedOnDiscovery) {
+      samplable = false;
+      notes.push(
+        "Finished as soon as it was created (finish() or a seek to its end): no motion was shown, so only its timing is recorded.",
+      );
+    }
     if (!target.isConnected) {
       notes.push("Element left the document before capture; frames and samples cannot show it.");
     }
@@ -410,7 +439,7 @@ export function installAgent(win: Window & typeof globalThis): void {
       progressTrace: [],
       name,
       element: identifyElement(target, effect.pseudoElement, config),
-      startTime: start,
+      startTime: entry.finishedOnDiscovery ? null : start,
       timing: rawTiming,
       keyframes,
       properties: [...props].sort(),
@@ -422,6 +451,7 @@ export function installAgent(win: Window & typeof globalThis): void {
         ...(effect.pseudoElement ? { pseudoElement: effect.pseudoElement } : {}),
         composite: effect.composite,
         ...(entry.canceledAt !== null ? { canceled: true } : {}),
+        ...(entry.finishedOnDiscovery ? { finishedOnCreation: true } : {}),
         ...(claim?.meta ?? {}),
       },
       notes,
@@ -872,6 +902,7 @@ export function installAgent(win: Window & typeof globalThis): void {
         record,
         native: true,
         startAbs: record.startTime === null ? null : record.startTime + collected.origin.time,
+        startWindow: record.startTime,
         rate: entry.anim.playbackRate || 1,
         clone,
         target,
@@ -885,6 +916,7 @@ export function installAgent(win: Window & typeof globalThis): void {
         record,
         native: false,
         startAbs: record.startTime === null ? null : record.startTime + collected.origin.time,
+        startWindow: record.startTime,
         rate: record.timing.playbackRate || 1,
         clone: null,
         target: null,
@@ -931,14 +963,17 @@ export function installAgent(win: Window & typeof globalThis): void {
     const r = replay!;
     const abs = r.origin + windowTime;
     for (const e of r.entries) {
-      if (!e.clone || e.startAbs === null) continue;
+      if (!e.clone || e.startWindow === null) continue;
       const effect = e.clone.effect as KeyframeEffect;
       if (e.canceledAt !== null && abs >= e.canceledAt) {
         effect.target = null;
         continue;
       }
       if (effect.target === null && e.target) effect.target = e.target;
-      e.clone.currentTime = (abs - e.startAbs) * e.rate;
+      // Computed from window-relative times and rounded to 1 µs: subtracting two absolute clock
+      // readings leaves float error that lands just below step() boundaries, and Firefox
+      // resolves such times to the previous step (so the same build could sample differently).
+      e.clone.currentTime = round3((windowTime - e.startWindow) * e.rate);
     }
     for (const adapter of adapters) {
       try {
@@ -1258,6 +1293,13 @@ export function installAgent(win: Window & typeof globalThis): void {
         }
         return states;
       };
+      /**
+       * Position of each scroller when the current still streak began. Stillness is judged by
+       * the drift since then, not by per-frame steps: Firefox and WebKit report fractional
+       * scroll positions, so the tail of an ease-out moves well under `threshold` per frame for
+       * many frames (Chromium rounds `scrollY` to whole pixels, which hid this).
+       */
+      const anchors = new Map<string, number>();
       const check = () => {
         samples++;
         const t = now();
@@ -1266,13 +1308,23 @@ export function installAgent(win: Window & typeof globalThis): void {
         for (const [key, state] of states) {
           const prev = last.get(key);
           const delta = prev ? Math.abs(state.animatedScroll - prev.animatedScroll) : 0;
+          if (!anchors.has(key)) anchors.set(key, state.animatedScroll);
+          const drift = Math.abs(state.animatedScroll - anchors.get(key)!);
           const gap = Math.abs(state.targetScroll - state.animatedScroll);
           // A smooth-scroll engine still easing out moves less than `threshold` per frame but is
           // not done; it counts as moving while it reports scrolling *and* actually moves.
           const easing = state.isScrolling === "smooth" && delta > 0.001;
           // A stopped engine (lenis.stop()) does not move, whatever its target says.
-          if (!state.isStopped && (delta > options.threshold || gap > options.threshold || easing))
-            moving.push(`${key} Δ${round3(delta)}px, ${round3(gap)}px from target`);
+          if (
+            !state.isStopped &&
+            (delta > options.threshold ||
+              drift > options.threshold ||
+              gap > options.threshold ||
+              easing)
+          )
+            moving.push(
+              `${key} Δ${round3(delta)}px (${round3(drift)}px drift), ${round3(gap)}px from target`,
+            );
           if (prev)
             claimsScrolling.set(
               key,
@@ -1291,6 +1343,7 @@ export function installAgent(win: Window & typeof globalThis): void {
         } else {
           stableCount = 0;
           stableSince = null;
+          for (const [key, state] of states) anchors.set(key, state.animatedScroll);
         }
         const elapsed = t - started;
         if (
@@ -1411,7 +1464,63 @@ export function installAgent(win: Window & typeof globalThis): void {
     }),
     waitForSettle,
     windowIndex: () => windowIndex,
+    capabilities,
   };
+
+  /**
+   * Measures what this engine offers MotionPR. Firefox and WebKit coarsen `performance.now()`
+   * (privacy protections), and headless engines may render below 60 Hz; both shape how precise
+   * live observations (start times, scroll samples) can be, so captures record them.
+   */
+  async function capabilities(): Promise<RawCapabilities> {
+    const w = win as unknown as Record<string, unknown>;
+    let resolution = Number.POSITIVE_INFINITY;
+    let last = perf.now();
+    const until = last + 4;
+    for (let i = 0; i < 200_000; i++) {
+      const t = perf.now();
+      if (t !== last) {
+        resolution = Math.min(resolution, t - last);
+        last = t;
+      }
+      if (t > until) break;
+    }
+    const intervals: number[] = [];
+    await new Promise<void>((resolve) => {
+      let prev: number | null = null;
+      let frames = 0;
+      const timeout = setTimeout(resolve, 1500);
+      const tick = (t: number) => {
+        if (prev !== null) intervals.push(t - prev);
+        prev = t;
+        if (++frames >= 13) {
+          clearTimeout(timeout);
+          resolve();
+        } else win.requestAnimationFrame(tick);
+      };
+      win.requestAnimationFrame(tick);
+    });
+    intervals.sort((a, b) => a - b);
+    const median = intervals.length ? intervals[Math.floor(intervals.length / 2)]! : null;
+    const keyframeProto = win.KeyframeEffect?.prototype as object | undefined;
+    return {
+      documentGetAnimations: typeof doc.getAnimations === "function",
+      elementAnimate: typeof nativeAnimate === "function",
+      cssTransitionInterface: typeof w.CSSTransition === "function",
+      cssAnimationInterface: typeof w.CSSAnimation === "function",
+      transitionRunEvent: "ontransitionrun" in win || "ontransitionrun" in doc.documentElement,
+      pseudoElementEffects: Boolean(keyframeProto && "pseudoElement" in keyframeProto),
+      scrollTimeline: typeof w.ScrollTimeline === "function",
+      viewTimeline: typeof w.ViewTimeline === "function",
+      timerResolutionMs: Number.isFinite(resolution) ? round6(resolution) : null,
+      frameIntervalMs: median === null ? null : round3(median),
+      devicePixelRatio: typeof win.devicePixelRatio === "number" ? win.devicePixelRatio : null,
+      prefersReducedMotion: win.matchMedia
+        ? win.matchMedia("(prefers-reduced-motion: reduce)").matches
+        : null,
+      userAgent: win.navigator.userAgent,
+    };
+  }
 
   Object.defineProperty(win, "__MOTIONPR_AGENT__", {
     value: api,

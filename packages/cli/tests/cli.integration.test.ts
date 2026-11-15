@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { DEFAULT_ENGINE_RUN, TEST_BROWSER } from "../../capture/tests/helpers/browser.ts";
 
 const BIN = fileURLToPath(new URL("../dist/bin.js", import.meta.url));
 const ROOT = fileURLToPath(new URL("../../..", import.meta.url));
@@ -19,6 +20,7 @@ interface Result {
   stderr: string;
 }
 
+/** Runs the CLI with the engine under test (MOTIONPR_TEST_BROWSER) as its default browser. */
 function cli(args: string[], cwd: string, env: Record<string, string> = {}): Promise<Result> {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [BIN, ...args], {
@@ -29,6 +31,7 @@ function cli(args: string[], cwd: string, env: Record<string, string> = {}): Pro
         CI: "",
         GITHUB_ACTIONS: "",
         GITHUB_STEP_SUMMARY: "",
+        MOTIONPR_BROWSER: TEST_BROWSER,
         ...env,
       },
       stdio: ["ignore", "pipe", "pipe"],
@@ -85,7 +88,7 @@ afterAll(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
-describe("motionpr CLI", () => {
+describe(`motionpr CLI (${TEST_BROWSER})`, () => {
   it("prints its version and rejects unknown commands with exit 2", async () => {
     const v = await cli(["--version"], dir);
     expect(v.code).toBe(0);
@@ -121,7 +124,9 @@ describe("motionpr CLI", () => {
     expect(r.code).toBe(0);
     expect(report.ok).toBe(true);
     expect(report.checks.find((c) => c.name === "Config")!.status).toBe("ok");
-    expect(report.checks.find((c) => c.name === "Browser launch")!.status).toBe("ok");
+    const label = { chromium: "Chromium", firefox: "Firefox", webkit: "WebKit" }[TEST_BROWSER];
+    expect(report.checks.find((c) => c.name === `${label} launch`)!.status).toBe("ok");
+    expect(report.checks.find((c) => c.name === `${label} binary`)!.status).toBe("ok");
   });
 
   it("runs the full journey: no baseline → accept → unchanged → regression", async () => {
@@ -134,20 +139,28 @@ describe("motionpr CLI", () => {
 
     const first = await cli(["run"], dir, env);
     expect(first.code, first.stderr).toBe(0);
-    expect(first.stderr).toContain("No approved baseline yet");
+    expect(first.stderr).toMatch(/No approved (Chromium|Firefox|WebKit) baseline yet/);
+    expect(existsSync(join(dir, `.motionpr/report/${TEST_BROWSER}/index.html`))).toBe(true);
     expect(existsSync(join(dir, ".motionpr/report/index.html"))).toBe(true);
+    expect(existsSync(join(dir, `.motionpr/captures/${TEST_BROWSER}/LATEST`))).toBe(true);
 
     const ci = await cli(["run", "--ci"], dir, env);
     expect(ci.code).toBe(2);
 
     expect((await cli(["baseline", "accept"], dir)).code).toBe(0);
-    expect(existsSync(join(dir, ".motionpr/baseline/capture.json"))).toBe(true);
+    expect(existsSync(join(dir, `.motionpr/baseline/${TEST_BROWSER}/capture.json`))).toBe(true);
+    const baseline = JSON.parse(
+      await readFile(join(dir, `.motionpr/baseline/${TEST_BROWSER}/capture.json`), "utf8"),
+    ) as { environment: { browser: { name: string; version: string } } };
+    expect(baseline.environment.browser.name).toBe(TEST_BROWSER);
 
     const same = await cli(["run", "--json"], dir, env);
     expect(same.code, same.stderr).toBe(0);
     const sameResult = JSON.parse(same.stdout) as {
+      browser: string;
       summary: { status: string; counts: { critical: number; warning: number } };
     };
+    expect(sameResult.browser).toBe(TEST_BROWSER);
     expect(sameResult.summary.status).toBe("passed");
     expect(sameResult.summary.counts.critical + sameResult.summary.counts.warning).toBe(0);
 
@@ -174,7 +187,7 @@ describe("motionpr CLI", () => {
   it("never replaces a baseline non-interactively without --yes", async () => {
     const r = await cli(["baseline", "accept"], dir);
     expect(r.code).toBe(2);
-    expect(r.stderr).toContain("Refusing to replace the approved baseline");
+    expect(r.stderr).toContain(`Refusing to replace the approved ${TEST_BROWSER} baseline`);
     const yes = await cli(["baseline", "accept", "--yes"], dir);
     expect(yes.code).toBe(0);
   });
@@ -288,7 +301,7 @@ export default defineConfig({
         expect(html, marker).toContain(marker);
       }
       const capture = JSON.parse(
-        await readFile(join(project, ".motionpr/baseline/capture.json"), "utf8"),
+        await readFile(join(project, `.motionpr/baseline/${TEST_BROWSER}/capture.json`), "utf8"),
       ) as { scenarios: { adapters: { id: string; status: string }[] }[] };
       for (const scenario of capture.scenarios)
         expect(scenario.adapters.map((a) => `${a.id}:${a.status}`).sort()).toEqual([
@@ -302,3 +315,289 @@ export default defineConfig({
     }
   }, 180_000);
 });
+
+/** A project whose page and server live in a temporary directory (see PAGE and SERVER). */
+async function pageProject(prefix: string, steps: unknown[] = DEFAULT_STEPS) {
+  const project = await mkdtemp(join(tmpdir(), prefix));
+  const projectPort = 45000 + Math.floor(Math.random() * 3000);
+  await writeFile(join(project, "package.json"), JSON.stringify({ name: prefix, type: "module" }));
+  await writeFile(join(project, "server.mjs"), SERVER);
+  await writeFile(join(project, "index.html"), PAGE(300));
+  await mkdir(join(project, "node_modules/@erenthedeveloper0"), { recursive: true });
+  const { symlink } = await import("node:fs/promises");
+  await symlink(
+    join(ROOT, "packages/cli"),
+    join(project, "node_modules/@erenthedeveloper0/motionpr"),
+    "dir",
+  );
+  const url = `http://127.0.0.1:${projectPort}`;
+  await writeFile(
+    join(project, "motionpr.config.mjs"),
+    `import { defineConfig } from "@erenthedeveloper0/motionpr";
+export default defineConfig({
+  baseURL: ${JSON.stringify(url)},
+  webServer: { command: "node server.mjs", url: ${JSON.stringify(url)}, env: { PORT: "${projectPort}" } },
+  browser: { viewport: { width: 800, height: 500 } },
+  capture: { waitForNetworkIdle: false },
+  scenarios: [{ id: "panel", steps: ${JSON.stringify(steps)} }],
+});
+`,
+  );
+  return project;
+}
+const DEFAULT_STEPS: unknown[] = [
+  { type: "click", selector: "[data-testid=toggle]" },
+  { type: "capture", label: "open" },
+];
+
+describe(`browser selection, installation and failures (${TEST_BROWSER})`, () => {
+  let project: string;
+  beforeAll(async () => {
+    project = await pageProject("motionpr-select-");
+  });
+  afterAll(async () => {
+    await rm(project, { recursive: true, force: true });
+  });
+
+  it("rejects unknown browser names with exit 2 before doing anything", async () => {
+    for (const args of [
+      ["run", "--browser", "safari"],
+      ["capture", "--browser", "chromium,edge"],
+      ["compare", "--browser", "ie"],
+      ["baseline", "accept", "--browser", "netscape"],
+      ["install", "opera"],
+      ["compare", "--against", "opera"],
+    ]) {
+      const r = await cli(args, project);
+      expect(r.code, args.join(" ")).toBe(2);
+      expect(r.stderr, args.join(" ")).toMatch(/Unknown browser "(safari|edge|ie|netscape|opera)"/);
+    }
+    const env = await cli(["run"], project, { MOTIONPR_BROWSER: "lynx" });
+    expect(env.code).toBe(2);
+    expect(env.stderr).toContain('Unknown browser "lynx"');
+    expect(existsSync(join(project, ".motionpr/captures"))).toBe(false);
+  });
+
+  it("fails with an install hint when the browser is missing, and never substitutes another", async () => {
+    const empty = await mkdtemp(join(tmpdir(), "motionpr-no-browsers-"));
+    try {
+      const r = await cli(["run", "--browser", TEST_BROWSER], project, {
+        PLAYWRIGHT_BROWSERS_PATH: empty,
+      });
+      expect(r.code).toBe(2);
+      expect(r.stderr).toContain(`npx motionpr install ${TEST_BROWSER}`);
+      expect(r.stderr).toContain("never substitutes another browser");
+      const json = await cli(
+        ["capture", "--json", "--browser", "chromium,firefox,webkit"],
+        project,
+        {
+          PLAYWRIGHT_BROWSERS_PATH: empty,
+        },
+      );
+      expect(json.code).toBe(2);
+      const error = JSON.parse(json.stdout) as { error: { code: string; hint: string } };
+      expect(error.error.code).toBe("BROWSER_NOT_INSTALLED");
+      expect(error.error.hint).toContain("npx motionpr install chromium firefox webkit");
+      expect(existsSync(join(project, ".motionpr/captures"))).toBe(false);
+      const doctor = await cli(["doctor", "--json"], project, { PLAYWRIGHT_BROWSERS_PATH: empty });
+      expect(doctor.code).toBe(2);
+      const checks = (JSON.parse(doctor.stdout) as { checks: { name: string; status: string }[] })
+        .checks;
+      const label = { chromium: "Chromium", firefox: "Firefox", webkit: "WebKit" }[TEST_BROWSER];
+      expect(checks.find((c) => c.name === `${label} binary`)!.status).toBe("fail");
+      expect(checks.find((c) => c.name === `${label} launch`)!.status).toBe("fail");
+    } finally {
+      await rm(empty, { recursive: true, force: true });
+    }
+  });
+
+  it("install takes engine names or --all and checks options against them", async () => {
+    const named = await cli(["install", "firefox", "webkit", "--dry-run"], project);
+    expect(named.code, named.stderr).toBe(0);
+    expect(named.stdout).toMatch(/Firefox [\d.]+ \(playwright firefox/);
+    expect(named.stdout).toMatch(/WebKit [\d.]+ \(playwright webkit/);
+    expect(named.stdout).not.toContain("playwright chromium");
+    const all = await cli(["install", "--all", "--dry-run"], project);
+    expect(all.code).toBe(0);
+    for (const engine of ["chromium", "firefox", "webkit"])
+      expect(all.stdout).toContain(`playwright ${engine}`);
+    // Without names: the engine the run would use (MOTIONPR_BROWSER here).
+    const fallback = await cli(["install", "--dry-run"], project);
+    expect(fallback.stdout).toContain(`playwright ${TEST_BROWSER}`);
+    const shell = await cli(["install", "firefox", "--only-shell", "--dry-run"], project);
+    expect(shell.code).toBe(2);
+    expect(shell.stderr).toContain("--only-shell only applies to Chromium");
+  });
+
+  it("exits 2 when a scenario fails during capture", async () => {
+    const broken = await pageProject("motionpr-broken-", [
+      { type: "click", selector: "[data-testid=missing]", timeout: 300 },
+      { type: "capture", label: "never" },
+    ]);
+    try {
+      const r = await cli(["capture"], broken);
+      expect(r.code).toBe(2);
+      expect(r.stderr).toContain("1 scenario failed during capture");
+    } finally {
+      await rm(broken, { recursive: true, force: true });
+    }
+  });
+});
+
+describe.runIf(DEFAULT_ENGINE_RUN)(
+  "several browsers in one project (Chromium, Firefox, WebKit)",
+  () => {
+    let project: string;
+    beforeAll(async () => {
+      project = await pageProject("motionpr-multi-");
+    });
+    afterAll(async () => {
+      await rm(project, { recursive: true, force: true });
+    });
+
+    interface MultiRun {
+      kind: string;
+      exitCode: number;
+      reportIndex: string;
+      browsers: {
+        browser: string;
+        status: string;
+        exitCode: number;
+        capture: { version: string } | null;
+        differences: { severity: string; title: string }[];
+      }[];
+    }
+
+    it("keeps baselines, captures and reports apart per engine", async () => {
+      const first = await cli(["run", "--browser", "all", "--json"], project);
+      expect(first.code, first.stderr).toBe(0);
+      const initial = JSON.parse(first.stdout) as MultiRun;
+      expect(initial.kind).toBe("motionpr-run");
+      expect(initial.browsers.map((b) => `${b.browser}:${b.status}`)).toEqual([
+        "chromium:no-baseline",
+        "firefox:no-baseline",
+        "webkit:no-baseline",
+      ]);
+      expect(await readFile(initial.reportIndex, "utf8")).toMatch(
+        /Chromium[\s\S]*Firefox[\s\S]*WebKit/,
+      );
+      for (const engine of ["chromium", "firefox", "webkit"]) {
+        expect(existsSync(join(project, `.motionpr/report/${engine}/index.html`))).toBe(true);
+        expect(existsSync(join(project, `.motionpr/captures/${engine}/LATEST`))).toBe(true);
+      }
+
+      const accepted = await cli(["baseline", "accept", "--browser", "all"], project);
+      expect(accepted.code, accepted.stderr).toBe(0);
+      for (const engine of ["chromium", "firefox", "webkit"]) {
+        const bundle = JSON.parse(
+          await readFile(join(project, `.motionpr/baseline/${engine}/capture.json`), "utf8"),
+        ) as { environment: { browser: { name: string } } };
+        expect(bundle.environment.browser.name).toBe(engine);
+      }
+
+      const same = await cli(["run", "--browser", "all", "--json"], project);
+      expect(same.code, same.stderr).toBe(0);
+      const unchanged = JSON.parse(same.stdout) as MultiRun;
+      expect(unchanged.browsers.map((b) => `${b.browser}:${b.status}`)).toEqual([
+        "chromium:passed",
+        "firefox:passed",
+        "webkit:passed",
+      ]);
+      for (const b of unchanged.browsers)
+        expect(
+          b.differences.filter((d) => d.severity !== "info").map((d) => d.title),
+          b.browser,
+        ).toEqual([]);
+
+      // A regression, approved for Firefox only: the other engines still compare against theirs.
+      await writeFile(join(project, "index.html"), PAGE(650));
+      const firefox = await cli(["run", "--browser", "firefox"], project);
+      expect(firefox.code).toBe(1);
+      expect(firefox.stderr).toContain("Duration 300ms → 650ms");
+      const chromiumBefore = await readFile(
+        join(project, ".motionpr/baseline/chromium/capture.json"),
+        "utf8",
+      );
+      expect(
+        (await cli(["baseline", "accept", "--browser", "firefox", "--yes"], project)).code,
+      ).toBe(0);
+      expect(
+        await readFile(join(project, ".motionpr/baseline/chromium/capture.json"), "utf8"),
+      ).toBe(chromiumBefore);
+      const mixed = await cli(["run", "--browser", "chromium,firefox,webkit", "--json"], project);
+      expect(mixed.code).toBe(1);
+      const result = JSON.parse(mixed.stdout) as MultiRun;
+      expect(result.exitCode).toBe(1);
+      expect(result.browsers.map((b) => `${b.browser}:${b.status}`)).toEqual([
+        "chromium:failed",
+        "firefox:passed",
+        "webkit:failed",
+      ]);
+    }, 300_000);
+
+    it("refuses to compare different engines unless asked, and marks cross-browser results", async () => {
+      const refused = await cli(
+        [
+          "compare",
+          "--json",
+          "--browser",
+          "webkit",
+          "--baseline",
+          ".motionpr/baseline/chromium",
+          "--no-report",
+        ],
+        project,
+      );
+      expect(refused.code).toBe(2);
+      expect((JSON.parse(refused.stdout) as { error: { code: string } }).error.code).toBe(
+        "BROWSER_MISMATCH",
+      );
+
+      const cross = await cli(
+        ["compare", "--json", "--browser", "webkit", "--against", "chromium"],
+        project,
+      );
+      expect([0, 1]).toContain(cross.code);
+      const result = JSON.parse(cross.stdout) as {
+        crossBrowser: boolean;
+        baseline: { browserName: string };
+        candidate: { browserName: string };
+        diagnostics: { code: string }[];
+        differences: { category: string; severity: string }[];
+        report: string;
+      };
+      expect(result.crossBrowser).toBe(true);
+      expect(result.baseline.browserName).toBe("chromium");
+      expect(result.candidate.browserName).toBe("webkit");
+      expect(result.diagnostics.map((d) => d.code)).toContain("CROSS_BROWSER_COMPARISON");
+      expect(
+        result.differences
+          .filter((d) => d.category === "visual")
+          .every((d) => d.severity === "uncertain"),
+      ).toBe(true);
+      expect(result.report).toContain("chromium-vs-webkit");
+    }, 120_000);
+
+    it("reads a 0.1 single-browser baseline and migrates it on request", async () => {
+      const base = join(project, ".motionpr/baseline");
+      const { rename } = await import("node:fs/promises");
+      await rename(join(base, "chromium/capture.json"), join(base, "capture.json"));
+      await rename(join(base, "chromium/assets"), join(base, "assets"));
+      await rm(join(base, "chromium"), { recursive: true });
+      const status = await cli(["baseline", "status", "--json"], project);
+      const statusJson = JSON.parse(status.stdout) as {
+        baselines: Record<string, { legacyLayout: boolean } | null>;
+      };
+      expect(statusJson.baselines.chromium!.legacyLayout).toBe(true);
+      expect(statusJson.baselines.firefox!.legacyLayout).toBe(false);
+      const run = await cli(["run", "--browser", "chromium"], project);
+      expect(run.code).toBe(1); // the 650 ms change, against the migrated-to-be baseline
+      expect(run.stderr).toContain("baseline migrate");
+      const migrated = await cli(["baseline", "migrate"], project);
+      expect(migrated.code).toBe(0);
+      expect(existsSync(join(base, "chromium/capture.json"))).toBe(true);
+      expect(existsSync(join(base, "capture.json"))).toBe(false);
+      expect((await cli(["baseline", "migrate"], project)).stderr).toContain("Nothing to migrate");
+    }, 120_000);
+  },
+);

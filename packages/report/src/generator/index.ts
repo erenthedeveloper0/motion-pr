@@ -137,3 +137,11 @@ export async function generateReport(options: GenerateReportOptions): Promise<Ge
   ]);
   return { indexPath, assets: assets.size, bytes: (await stat(indexPath)).size };
 }
+
+export {
+  REPORT_SUMMARY_FILE,
+  readBrowserReportSummaries,
+  writeBrowserIndex,
+  writeBrowserReportSummary,
+  type BrowserReportSummary,
+} from "./browser-index.ts";

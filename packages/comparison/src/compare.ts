@@ -3,6 +3,9 @@ import { join } from "node:path";
 import {
   COMPARISON_SCHEMA_VERSION,
   MOTIONPR_VERSION,
+  MotionprError,
+  browserLabel,
+  captureBrowser,
   contentId,
   maxSeverity,
   severityRank,
@@ -11,6 +14,7 @@ import {
   type AnimationRecord,
   type CaptureBundle,
   type Change,
+  type ChangeKind,
   type Checkpoint,
   type CheckpointComparison,
   type ComparisonConfig,
@@ -37,6 +41,48 @@ export interface CompareOptions {
   config: ComparisonConfig;
   /** Directory for comparison output (comparison.json + assets/ with diff images). */
   outputDir?: string;
+  /**
+   * Compare captures from different engines (e.g. a Chromium baseline with a Firefox candidate).
+   * Off by default: such a comparison throws `BROWSER_MISMATCH`. When on, differences that come
+   * from how engines lay out, render and schedule motion are reported as `uncertain`.
+   */
+  allowCrossBrowser?: boolean;
+}
+
+/**
+ * Change kinds whose values depend on the engine as much as on the app: geometry (layout and
+ * fonts), observed start offsets and scroll motion (frame scheduling), and keyframe value
+ * serialization. In a cross-browser comparison they are `uncertain`; declared timing, easing,
+ * iterations, direction, fill and added or removed motion stay definite.
+ */
+export const ENGINE_DEPENDENT_CHANGES: ReadonlySet<ChangeKind> = new Set<ChangeKind>([
+  "start",
+  "trajectory",
+  "size",
+  "keyframes",
+  "scroll-start",
+  "scroll-end",
+  "scroll-target",
+  "scroll-duration",
+  "scroll-settle",
+  "scroll-curve",
+  "scroll-velocity",
+  "scroll-overshoot",
+  "scroll-lag",
+  "scroll-progress",
+]);
+
+const CROSS_BROWSER_NOTE = "captured with different browser engines";
+
+/** Downgrades engine-dependent changes to `uncertain`, unless the user set the rule's severity. */
+function crossEngineChanges(changes: Change[], config: ComparisonConfig): Severity | null {
+  for (const ch of changes) {
+    if (!ENGINE_DEPENDENT_CHANGES.has(ch.kind) || ch.severity === "uncertain") continue;
+    if (config.severity[ch.rule as keyof ComparisonConfig["severity"]]) continue;
+    ch.severity = "uncertain";
+    ch.message = `${ch.message} (${CROSS_BROWSER_NOTE})`;
+  }
+  return maxSeverity(changes.map((c) => c.severity));
 }
 
 const CATEGORY: Record<Change["kind"], DifferenceCategory> = {
@@ -144,6 +190,7 @@ async function compareCheckpoint(
     diffs: DifferenceList;
     assets: ComparisonResult["assets"];
     scale: number;
+    crossBrowser: boolean;
   },
 ): Promise<CheckpointComparison> {
   const { config } = ctx.options;
@@ -167,6 +214,8 @@ async function compareCheckpoint(
         cmp.severity = maxSeverity([cmp.severity, change.severity]);
       }
     }
+    if (ctx.crossBrowser && cmp.changes.length)
+      cmp.severity = crossEngineChanges(cmp.changes, config);
     animations.push(cmp);
     for (const ch of cmp.changes) {
       ctx.diffs.add({
@@ -266,8 +315,16 @@ async function compareCheckpoint(
     ctx.assets[id] = { file, width: asset?.width ?? 0, height: asset?.height ?? 0 };
     visual.diffAsset = id;
   }
+  // Engines rasterize text, borders and anti-aliasing differently: across engines a pixel
+  // difference says nothing definite about the app.
+  const visualSeverity =
+    visual.status !== "changed"
+      ? null
+      : ctx.crossBrowser && !config.severity.visual
+        ? "uncertain"
+        : applyOverride("visual", "warning", config);
   if (visual.status === "changed") {
-    const severity = applyOverride("visual", "warning", config);
+    const severity = visualSeverity;
     if (severity) {
       ctx.diffs.add({
         severity,
@@ -276,7 +333,9 @@ async function compareCheckpoint(
         checkpoint: b.label,
         animationKey: null,
         title: `Settled frame differs by ${(visual.mismatchRatio * 100).toFixed(2)}% of pixels`,
-        detail: `${visual.mismatchPixels.toLocaleString("en-US")} of ${visual.totalPixels.toLocaleString("en-US")} pixels differ (threshold ${(config.visual.maxDiffRatio * 100).toFixed(2)}%). Font rendering, browser versions and OS can contribute to pixel differences.`,
+        detail: ctx.crossBrowser
+          ? `${visual.mismatchPixels.toLocaleString("en-US")} of ${visual.totalPixels.toLocaleString("en-US")} pixels differ between two browser engines. Engines render text, borders and anti-aliasing differently, so this is reported as uncertain; compare each engine against its own baseline to find regressions.`
+          : `${visual.mismatchPixels.toLocaleString("en-US")} of ${visual.totalPixels.toLocaleString("en-US")} pixels differ (threshold ${(config.visual.maxDiffRatio * 100).toFixed(2)}%). Font rendering, browser versions and OS can contribute to pixel differences.`,
         measurement: "measured",
         before: 0,
         after: visual.mismatchRatio,
@@ -345,6 +404,7 @@ async function compareCheckpoint(
         });
       continue;
     }
+    if (ctx.crossBrowser && sc.changes.length) sc.severity = crossEngineChanges(sc.changes, config);
     for (const ch of sc.changes) {
       ctx.diffs.add({
         severity: ch.severity,
@@ -421,9 +481,11 @@ async function compareCheckpoint(
       config,
       config.timing.startToleranceMs,
     );
-    const severity = computed
-      ? applyOverride("start", capSeverity(computed, "warning"), config)
-      : null;
+    const severity = !computed
+      ? null
+      : ctx.crossBrowser && !config.severity.start
+        ? "uncertain"
+        : applyOverride("start", capSeverity(computed, "warning"), config);
     if (severity) {
       ctx.diffs.add({
         severity,
@@ -447,7 +509,7 @@ async function compareCheckpoint(
     ...stagger.map((s) => s.severity),
     ...scroll.map((s) => s.severity),
     ...timelines.map((t) => t.severity),
-    visual.status === "changed" ? applyOverride("visual", "warning", config) : null,
+    visualSeverity,
   ];
   const severity = maxSeverity(severities);
   const changed =
@@ -476,7 +538,16 @@ function environmentDiagnostics(b: CaptureBundle, c: CaptureBundle): Diagnostic[
   const out: Diagnostic[] = [];
   const be = b.environment;
   const ce = c.environment;
-  if (be.browser.version !== ce.browser.version) {
+  const bName = captureBrowser(b);
+  const cName = captureBrowser(c);
+  if (bName !== cName) {
+    out.push({
+      level: "warning",
+      code: "CROSS_BROWSER_COMPARISON",
+      message: `Cross-browser comparison: the baseline was captured with ${browserLabel(bName)} ${be.browser.version}, the candidate with ${browserLabel(cName)} ${ce.browser.version}.`,
+      hint: "Engines lay out, render and schedule motion differently: pixel, geometry, start-offset and scroll differences are reported as uncertain. Declared timing and easing are compared as usual.",
+    });
+  } else if (be.browser.version !== ce.browser.version) {
     out.push({
       level: "warning",
       code: "BROWSER_VERSION_DIFFERS",
@@ -490,6 +561,16 @@ function environmentDiagnostics(b: CaptureBundle, c: CaptureBundle): Diagnostic[
       code: "PLATFORM_DIFFERS",
       message: `Captures come from different platforms (${be.platform} vs ${ce.platform}).`,
       hint: "Fonts render differently across operating systems. Capture the baseline where CI runs.",
+    });
+  }
+  const scale = (bundle: CaptureBundle) =>
+    [...new Set(bundle.scenarios.map((s) => s.viewport.deviceScaleFactor))].sort().join(",");
+  if (scale(b) && scale(c) && scale(b) !== scale(c)) {
+    out.push({
+      level: "warning",
+      code: "DEVICE_SCALE_FACTOR_DIFFERS",
+      message: `Device scale factors differ (${scale(b)} vs ${scale(c)}); screenshots of different sizes are not compared pixel by pixel.`,
+      hint: "Keep browser.deviceScaleFactor (and each viewport's) the same for baseline and candidate.",
     });
   }
   if (b.configHash !== c.configHash) {
@@ -514,6 +595,16 @@ export async function compareCaptures(options: CompareOptions): Promise<Comparis
   const { config } = options;
   const b = options.baseline.bundle;
   const c = options.candidate.bundle;
+  const crossBrowser = captureBrowser(b) !== captureBrowser(c);
+  if (crossBrowser && !options.allowCrossBrowser) {
+    throw new MotionprError(
+      "BROWSER_MISMATCH",
+      `The baseline was captured with ${browserLabel(captureBrowser(b))}, the candidate with ${browserLabel(captureBrowser(c))}.`,
+      {
+        hint: `Each browser has its own baseline: compare against the ${captureBrowser(c)} baseline (motionpr baseline accept --browser ${captureBrowser(c)} creates one). To compare engines on purpose, pass --cross-browser (API: allowCrossBrowser: true).`,
+      },
+    );
+  }
   const diffs = new DifferenceList();
   const cache = new PngCache();
   const assets: ComparisonResult["assets"] = {};
@@ -598,6 +689,7 @@ export async function compareCaptures(options: CompareOptions): Promise<Comparis
       diffs,
       assets,
       structural,
+      crossBrowser,
     });
     const severity = maxSeverity(checkpoints.map((cp) => cp.severity));
     const changed = checkpoints.some((cp) => cp.status !== "unchanged");
@@ -649,6 +741,7 @@ export async function compareCaptures(options: CompareOptions): Promise<Comparis
     createdAt: bundle.createdAt,
     motionprVersion: bundle.motionprVersion,
     browser: `${bundle.environment.browser.name} ${bundle.environment.browser.version}`,
+    browserName: captureBrowser(bundle),
     platform: `${bundle.environment.platform}-${bundle.environment.arch}`,
     configHash: bundle.configHash,
   });
@@ -662,6 +755,7 @@ export async function compareCaptures(options: CompareOptions): Promise<Comparis
     createdAt: new Date().toISOString(),
     baseline: ref(b),
     candidate: ref(c),
+    crossBrowser,
     failOn: config.failOn,
     failOnUncertain: config.failOnUncertain,
     summary: {
@@ -700,6 +794,7 @@ async function compareScenarioCheckpoints(
     cache: PngCache;
     diffs: DifferenceList;
     assets: ComparisonResult["assets"];
+    crossBrowser: boolean;
     structural: (
       key: string,
       rule: "checkpoint-added" | "checkpoint-removed",

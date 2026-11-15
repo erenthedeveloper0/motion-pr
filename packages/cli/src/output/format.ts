@@ -1,4 +1,11 @@
-import type { CaptureBundle, ComparisonResult, Difference, Severity } from "@motionpr/core";
+import {
+  browserLabel,
+  captureBrowser,
+  type CaptureBundle,
+  type ComparisonResult,
+  type Difference,
+  type Severity,
+} from "@motionpr/core";
 import type { Terminal } from "./terminal.ts";
 
 const SEVERITY_ORDER: Severity[] = ["critical", "warning", "uncertain", "info"];
@@ -36,9 +43,15 @@ export function printComparison(
   options: { reportPath?: string; maxPerScenario?: number } = {},
 ): void {
   const max = options.maxPerScenario ?? 4;
+  const engine = (ref: ComparisonResult["baseline"]) =>
+    `${browserLabel(ref.browserName)} ${ref.browser.slice(ref.browser.indexOf(" ") + 1)}`;
   t.write(
-    `  ${t.c.dim("Baseline")} ${result.baseline.id}  ${t.c.dim(t.symbols.arrow)}  ${t.c.dim("Current")} ${result.candidate.id}`,
+    `  ${t.c.dim("Baseline")} ${result.baseline.id} ${t.c.dim(`(${engine(result.baseline)})`)}  ${t.c.dim(t.symbols.arrow)}  ${t.c.dim("Current")} ${result.candidate.id} ${t.c.dim(`(${engine(result.candidate)})`)}`,
   );
+  if (result.crossBrowser)
+    t.write(
+      `  ${t.c.magenta("Cross-browser comparison:")} ${t.c.dim("pixel, geometry, start-offset and scroll differences are uncertain.")}`,
+    );
   t.write();
   const byScenario = new Map<string, Difference[]>();
   for (const d of result.differences)
@@ -93,6 +106,9 @@ export function printCaptureSummary(t: Terminal, bundle: CaptureBundle, dir: str
     `  ${t.c.bold("Captured")}  ${passed}/${bundle.scenarios.length} scenarios · ${checkpoints} checkpoints · ${animations} animations · ${Object.keys(bundle.assets).length} unique frames`,
   );
   t.write(`  ${t.c.bold("Capture")}   ${t.tech(dir)} ${t.c.dim(`(${bundle.id})`)}`);
+  t.write(
+    `  ${t.c.bold("Browser")}   ${browserLabel(captureBrowser(bundle))} ${bundle.environment.browser.version}${t.c.dim(` · Playwright ${bundle.environment.playwright} · ${bundle.environment.platform}-${bundle.environment.arch}`)}`,
+  );
   if (warnings.length) {
     t.write();
     const seen = new Set<string>();

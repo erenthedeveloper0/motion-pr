@@ -67,4 +67,25 @@ describe("regressions", () => {
     expect(result.removed).toHaveLength(1);
     expect(result.added).toHaveLength(1);
   });
+
+  it("does not report where a cancelled animation stopped as a regression (was: frames and samples depended on when a timer cancelled it)", () => {
+    // The same build, cancelled 120 ms in by the app: under load the cancel ran later, so the
+    // replayed path ends further along. Only declared timing is definite for such a record.
+    const b = anim({ translateX: [0, 36], completeness: "partial" });
+    const c = anim({ translateX: [0, 60], completeness: "partial" });
+    b.meta = { ...b.meta, canceled: true };
+    c.meta = { ...c.meta, canceled: true };
+    const cmp = pair(b, c);
+    const path = cmp.changes.filter((x) => x.kind === "trajectory");
+    expect(path.length).toBeGreaterThan(0);
+    expect(path.every((x) => x.severity === "uncertain")).toBe(true);
+    expect(path[0]!.message).toContain("cancelled mid-way");
+    expect(cmp.severity).toBe("uncertain");
+    // A real timing change on a cancelled animation is still definite.
+    const slower = anim({ duration: 800, translateX: [0, 36], completeness: "partial" });
+    slower.meta = { ...slower.meta, canceled: true };
+    expect(pair(b, slower).changes.find((x) => x.kind === "duration")!.severity).not.toBe(
+      "uncertain",
+    );
+  });
 });

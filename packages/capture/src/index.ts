@@ -1,8 +1,15 @@
 export { AGENT_SOURCE } from "./agent/agent-bundle.generated.ts";
 export {
+  browserNameOf,
+  browserType,
+  expectedBrowserPath,
   expectedChromiumPath,
   installBrowsers,
+  isBrowserInstalled,
+  isMissingDependencies,
+  isMissingExecutable,
   launchBrowser,
+  launchOptionsFor,
   playwrightVersion,
   type InstallOptions,
 } from "./browser.ts";

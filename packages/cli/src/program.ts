@@ -8,7 +8,11 @@ import {
   MOTIONPR_INSTALL_SPEC,
   MOTIONPR_REPOSITORY,
 } from "@motionpr/core";
-import { baselineAcceptCommand, baselineStatusCommand } from "./commands/baseline.ts";
+import {
+  baselineAcceptCommand,
+  baselineMigrateCommand,
+  baselineStatusCommand,
+} from "./commands/baseline.ts";
 import { captureCommand } from "./commands/capture.ts";
 import { compareCommand } from "./commands/compare.ts";
 import { demoCommand } from "./commands/demo.ts";
@@ -22,7 +26,10 @@ import { installSignalHandlers, runCleanups } from "./runtime/signals.ts";
 
 const collect = (value: string, previous: string[] = []) => [...previous, value];
 
-type Handler<O> = (options: O) => Promise<number>;
+type Handler<O> = (options: O, args: string[]) => Promise<number>;
+
+const BROWSER_HELP =
+  "browser engine: chromium, firefox, webkit, or all (repeatable; comma lists work; default: config browser.name or MOTIONPR_BROWSER)";
 
 /** Prints an error the way MotionPR reports problems: message, details, actionable hint. */
 export function reportError(error: unknown, options: GlobalOptions): void {
@@ -78,6 +85,9 @@ function action<O extends GlobalOptions>(handler: Handler<O>) {
   return async (...args: unknown[]) => {
     const command = args[args.length - 1] as Command;
     const options = command.optsWithGlobals<O>();
+    const positional = (args.slice(0, -2).flat() as unknown[]).filter(
+      (a): a is string => typeof a === "string",
+    );
     installSignalHandlers(() => {
       makeTerminal(options).writeAlways(
         "\n  Interrupted: cleaning up (press Ctrl+C again to force quit)…",
@@ -85,7 +95,7 @@ function action<O extends GlobalOptions>(handler: Handler<O>) {
     });
     let code: number;
     try {
-      code = await handler(options);
+      code = await handler(options, positional);
     } catch (error) {
       reportError(error, options);
       code = 2;
@@ -126,6 +136,12 @@ Quick start:
   $ npx motionpr run
   $ npx motionpr baseline accept
 
+Browsers:
+  Chromium (default), Firefox and WebKit, each with its own baseline, captures and report.
+  $ npx motionpr install firefox webkit
+  $ npx motionpr run --browser firefox
+  $ npx motionpr run --browser all
+
 Install: npm install -D ${MOTIONPR_INSTALL_SPEC}
 Docs:    ${MOTIONPR_DOCS_URL}`,
     );
@@ -144,12 +160,16 @@ Docs:    ${MOTIONPR_DOCS_URL}`,
 
   program
     .command("install")
-    .description("download the Chromium build MotionPR uses")
+    .argument("[browsers...]", "chromium, firefox, webkit (default: config browser.name)")
+    .description(
+      "download the browser builds MotionPR uses (Playwright's Chromium, Firefox, WebKit)",
+    )
+    .option("--all", "install Chromium, Firefox and WebKit")
     .option("--with-deps", "also install system dependencies (Linux, needs root)")
-    .option("--only-shell", "install only the headless shell (smaller; no --headed)")
+    .option("--only-shell", "Chromium: install only the headless shell (smaller; no --headed)")
     .option("--force", "reinstall even if present")
     .option("--dry-run", "print what would be installed")
-    .action(action(installCommand));
+    .action(action((options, names) => installCommand(names, options)));
 
   const captureOptions = (cmd: Command) =>
     cmd
@@ -160,11 +180,7 @@ Docs:    ${MOTIONPR_DOCS_URL}`,
       )
       .option("--viewport <name>", "only run these viewports (repeatable)", collect)
       .option("--project <name>", "alias of --viewport", collect)
-      .addOption(
-        new Option("--browser <name>", "browser to capture with")
-          .choices(["chromium"])
-          .default("chromium"),
-      )
+      .option("--browser <name>", BROWSER_HELP, collect)
       .option("--headed", "show the browser window")
       .option("--debug", "headed, with verbose capture details")
       .option("--no-web-server", "do not start configured web servers");
@@ -192,6 +208,12 @@ Docs:    ${MOTIONPR_DOCS_URL}`,
     .addOption(
       new Option("-f, --format <format>", "summary format").choices(["text", "json", "markdown"]),
     )
+    .option("--browser <name>", BROWSER_HELP, collect)
+    .option(
+      "--against <browser>",
+      "compare with another browser's baseline (cross-browser; engine differences are uncertain)",
+    )
+    .option("--cross-browser", "allow --baseline and --current captures from different browsers")
     .option("--no-report", "skip HTML report generation")
     .option("--open", "open the report afterwards")
     .action(action(compareCommand));
@@ -206,21 +228,28 @@ Docs:    ${MOTIONPR_DOCS_URL}`,
       .option("--no-summary", "do not write $GITHUB_STEP_SUMMARY"),
   ).action(action(runCommand));
 
-  const baseline = program.command("baseline").description("manage the approved baseline");
+  const baseline = program
+    .command("baseline")
+    .description("manage the approved baselines (one per browser)");
   baseline
     .command("accept")
-    .description("approve a capture (default: the latest) as the new baseline")
+    .description("approve a capture (default: the latest) as its browser's new baseline")
     .option(
       "--from <capture>",
       "capture to approve: 'latest', an id, or a directory (e.g. a CI artifact)",
     )
+    .option("--browser <name>", BROWSER_HELP, collect)
     .option("-y, --yes", "confirm replacing an existing baseline")
     .option("--allow-failed", "approve even if some scenarios failed")
     .action(action(baselineAcceptCommand));
   baseline
     .command("status")
-    .description("show the current baseline")
+    .description("show the baseline of every browser")
     .action(action(baselineStatusCommand));
+  baseline
+    .command("migrate")
+    .description("move a 0.1 baseline (baseline/capture.json) into baseline/<browser>/")
+    .action(action(baselineMigrateCommand));
 
   program
     .command("report")
@@ -228,11 +257,13 @@ Docs:    ${MOTIONPR_DOCS_URL}`,
     .option("--open", "open in the browser (default when interactive)")
     .option("--no-open", "only print the path")
     .option("--regenerate", "rebuild the report from the latest capture and comparison")
+    .option("--browser <name>", "open this browser's report (default: the index of all)", collect)
     .action(action(reportCommand));
 
   program
     .command("doctor")
-    .description("check Node, Chromium, config, permissions and common issues")
+    .description("check Node, browsers, config, permissions and common issues")
+    .option("--browser <name>", "browsers to launch-check (default: config browser.name)", collect)
     .option("--no-launch", "skip the browser launch check")
     .action(action(doctorCommand));
 
@@ -241,6 +272,7 @@ Docs:    ${MOTIONPR_DOCS_URL}`,
     .description("capture the bundled demo app in two versions and open a real report")
     .option("-o, --output <dir>", "where to write the demo output (default: system temp dir)")
     .option("-s, --scenario <id>", "only run matching demo scenarios", collect)
+    .option("--browser <name>", "chromium (default), firefox or webkit", collect)
     .option("--open", "open the report (default when interactive)")
     .option("--no-open", "do not open the report")
     .action(action(demoCommand));

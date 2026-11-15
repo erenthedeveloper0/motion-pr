@@ -8,6 +8,7 @@ import type { Browser } from "playwright-core";
 import { resolveConfig, type CaptureBundle, type MotionprConfig } from "@motionpr/core";
 import { launchBrowser, runCapture } from "@motionpr/capture";
 import { serveDirectory, type StaticServer } from "../../../capture/tests/helpers/static-server.ts";
+import { TEST_BROWSER } from "../../../capture/tests/helpers/browser.ts";
 
 const require = createRequire(import.meta.url);
 
@@ -38,6 +39,9 @@ export async function startHarness(): Promise<Harness> {
   const server = await serveDirectory(root);
   const browser = await launchBrowser(
     resolveConfig({ baseURL: server.url, scenarios: [{ id: "x" }] }),
+    {
+      browserName: TEST_BROWSER,
+    },
   );
   let n = 0;
   return {

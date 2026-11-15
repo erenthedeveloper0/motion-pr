@@ -14,6 +14,7 @@ import {
 } from "@motionpr/core";
 import { launchBrowser, runCapture } from "../src/index.ts";
 import { serveDirectory, type StaticServer } from "./helpers/static-server.ts";
+import { TEST_BROWSER } from "./helpers/browser.ts";
 
 const fixtures = fileURLToPath(new URL("./fixtures", import.meta.url));
 let server: StaticServer;
@@ -23,7 +24,9 @@ let workDir: string;
 beforeAll(async () => {
   server = await serveDirectory(fixtures);
   workDir = await mkdtemp(join(tmpdir(), "motionpr-capture-"));
-  browser = await launchBrowser(resolveConfig({ baseURL: server.url, scenarios: [{ id: "x" }] }));
+  browser = await launchBrowser(resolveConfig({ baseURL: server.url, scenarios: [{ id: "x" }] }), {
+    browserName: TEST_BROWSER,
+  });
 });
 
 afterAll(async () => {

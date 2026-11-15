@@ -27,8 +27,9 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The Chromium build that matches the bundled Playwright, plus its system libraries.
-      - run: pnpm exec playwright install --with-deps chromium
+      # The browser builds that match the bundled Playwright, plus their system libraries.
+      # Chromium runs everything below; the multi-browser CLI tests also need Firefox and WebKit.
+      - run: pnpm exec playwright install --with-deps chromium firefox webkit
       # Agent bundle, report viewer, demo app and CLI; the integration and e2e suites use dist/.
       - run: pnpm build
       - run: pnpm typecheck
@@ -38,7 +39,8 @@ jobs:
       # Unit tests, including the documentation checks (exports, steps, links, config examples,
       # and that no workflow can publish to npm).
       - run: pnpm test
-      # Real Chromium: capture engine, GSAP / Anime.js / Lenis adapters, the CLI end to end.
+      # Real Chromium: capture engine, GSAP / Anime.js / Lenis adapters, the CLI end to end, and
+      # runs that capture with Chromium, Firefox and WebKit in one project.
       - run: pnpm test:integration
       # The demo app captured for real (every intended change found, nothing else), the report
       # viewer, and the website served like GitHub Pages serves it.
@@ -50,6 +52,41 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-report
+          path: playwright-report
+          retention-days: 7
+          if-no-files-found: ignore
+
+  engines:
+    # The same browser suites in the other engines: capture engine, engine edge cases, the three
+    # adapters, the CLI, and the demo app's expected differences (captured for real). Chromium is
+    # covered by the job above.
+    name: engine ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
+    env:
+      MOTIONPR_TEST_BROWSER: ${{ matrix.browser }}
+      MOTIONPR_E2E_BROWSERS: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+      - run: pnpm build
+      - run: pnpm test:integration
+      - run: pnpm exec playwright test e2e/demo-expectations.spec.ts
+      - name: Upload Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report-${{ matrix.browser }}
           path: playwright-report
           retention-days: 7
           if-no-files-found: ignore

@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import { arch, platform } from "node:os";
+import { arch, platform, release } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import type { Browser, BrowserContext, Locator, Page } from "playwright-core";
@@ -34,9 +34,12 @@ import {
   type Viewport,
   versionSatisfies,
   MOTIONPR_PACKAGE,
+  BROWSER_LABELS,
+  type BrowserCapabilities,
+  type BrowserName,
 } from "@motionpr/core";
 import { AGENT_SOURCE } from "./agent/agent-bundle.generated.ts";
-import { launchBrowser, playwrightVersion } from "./browser.ts";
+import { browserNameOf, launchBrowser, launchOptionsFor, playwrightVersion } from "./browser.ts";
 import {
   correlateMotion,
   normalizeAnimations,
@@ -103,7 +106,7 @@ export const INPUT_MASK_SELECTOR = [
 ].join(", ");
 
 export type CaptureEvent =
-  | { type: "browser"; version: string }
+  | { type: "browser"; name: BrowserName; version: string }
   | { type: "scenario:start"; key: string; name: string; index: number; total: number }
   | { type: "step"; key: string; index: number; description: string }
   | { type: "checkpoint"; key: string; label: string; animations: number; frames: number }
@@ -133,7 +136,12 @@ export interface CaptureOptions {
   onEvent?: (event: CaptureEvent) => void;
   /** Override the capture id (default: generated). */
   id?: string;
-  /** Reuse an existing browser instead of launching one. */
+  /**
+   * Engine to capture with (default: `config.browser.name`). Never substituted: a missing or
+   * broken engine is an error.
+   */
+  browserName?: BrowserName;
+  /** Reuse an existing browser instead of launching one (its engine is used). */
   browser?: Browser;
 }
 
@@ -319,14 +327,27 @@ export async function runCapture(options: CaptureOptions): Promise<CaptureOutcom
     }
   }
 
+  const requested = options.browserName ?? config.browser.name;
+  if (options.browser && browserNameOf(options.browser) !== requested && options.browserName) {
+    throw new MotionprError(
+      "BROWSER_MISMATCH",
+      `Asked to capture with ${BROWSER_LABELS[requested]}, but the browser passed in is ${BROWSER_LABELS[browserNameOf(options.browser)]}.`,
+    );
+  }
   const browser =
     options.browser ??
-    (await launchBrowser(
-      config,
-      options.headless === undefined ? {} : { headless: options.headless },
-    ));
-  onEvent({ type: "browser", version: browser.version() });
+    (await launchBrowser(config, {
+      browserName: requested,
+      ...(options.headless === undefined ? {} : { headless: options.headless }),
+    }));
+  const browserName = browserNameOf(browser);
+  const headless = options.headless ?? config.browser.headless;
+  const channel = options.browser
+    ? null
+    : (launchOptionsFor(config, browserName, { headless }).channel ?? null);
+  onEvent({ type: "browser", name: browserName, version: browser.version() });
   const results: ScenarioResult[] = new Array(jobs.length);
+  const runtime: RuntimeInfo = { capabilities: null, userAgent: null };
   try {
     let next = 0;
     const worker = async () => {
@@ -337,6 +358,8 @@ export async function runCapture(options: CaptureOptions): Promise<CaptureOutcom
           ...options,
           assets,
           onEvent,
+          runtime,
+          browserName,
         });
       }
     };
@@ -346,6 +369,7 @@ export async function runCapture(options: CaptureOptions): Promise<CaptureOutcom
   } finally {
     if (!options.browser) await browser.close().catch(() => undefined);
   }
+  bundleDiagnostics.push(...runtimeDiagnostics(browserName, runtime.capabilities));
 
   const bundle: CaptureBundle = {
     schemaVersion: CAPTURE_SCHEMA_VERSION,
@@ -359,15 +383,19 @@ export async function runCapture(options: CaptureOptions): Promise<CaptureOutcom
     },
     environment: {
       browser: {
-        name: "chromium",
+        name: browserName,
         version: browser.version(),
-        headless: options.headless ?? config.browser.headless,
+        headless,
+        channel,
+        userAgent: runtime.userAgent,
       },
       platform: platform(),
       arch: arch(),
+      osRelease: release(),
       node: process.version,
       playwright: playwrightVersion(),
       ci: Boolean(process.env.CI),
+      capabilities: runtime.capabilities,
     },
     settings: {
       colorScheme: config.browser.colorScheme,
@@ -393,9 +421,66 @@ export async function runCapture(options: CaptureOptions): Promise<CaptureOutcom
   return { bundle, dir: outputDir };
 }
 
+interface RuntimeInfo {
+  capabilities: BrowserCapabilities | null;
+  userAgent: string | null;
+}
+
 interface ScenarioContext extends CaptureOptions {
   assets: AssetStore;
   onEvent: (event: CaptureEvent) => void;
+  /** Filled by the first scenario that reaches its page. */
+  runtime: RuntimeInfo;
+  browserName: BrowserName;
+}
+
+/**
+ * Notes on how precisely this engine could be observed. They describe the environment, not the
+ * app: they explain noise in live observations (start offsets, scroll samples) so that it is not
+ * mistaken for a regression.
+ */
+export function runtimeDiagnostics(
+  browser: BrowserName,
+  capabilities: BrowserCapabilities | null,
+): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  if (!capabilities) return out;
+  const label = BROWSER_LABELS[browser];
+  if (capabilities.timerResolutionMs !== null && capabilities.timerResolutionMs >= 0.5) {
+    out.push({
+      level: "info",
+      code: "COARSE_TIMERS",
+      message: `${label} reports time in ${capabilities.timerResolutionMs} ms steps; observed start offsets and scroll timings are quantized to that resolution.`,
+    });
+  }
+  // Headless WebKit renders at 30 fps by design; below 20 fps the machine is likely throttled.
+  const interval = capabilities.frameIntervalMs;
+  if (interval !== null && interval > 20) {
+    out.push({
+      level: interval > 50 ? "warning" : "info",
+      code: "LOW_FRAME_RATE",
+      message: `${label} rendered a frame every ${interval} ms (${Math.round(1000 / interval)} fps) while capturing.`,
+      hint: "Live observations (start times, scroll samples) are as coarse as the frame interval; replayed samples and frames are unaffected.",
+    });
+  }
+  const missing = (
+    [
+      ["documentGetAnimations", "document.getAnimations()"],
+      ["elementAnimate", "Element.animate()"],
+      ["cssTransitionInterface", "CSSTransition"],
+      ["cssAnimationInterface", "CSSAnimation"],
+    ] as const
+  )
+    .filter(([key]) => !capabilities[key])
+    .map(([, name]) => name);
+  if (missing.length) {
+    out.push({
+      level: "error",
+      code: "BROWSER_API_MISSING",
+      message: `${label} lacks ${missing.join(", ")}; native animations cannot be captured completely.`,
+    });
+  }
+  return out;
 }
 
 type Agent = NonNullable<Window["__MOTIONPR_AGENT__"]>;
@@ -558,6 +643,15 @@ async function runScenario(
 
     const scenarioStartUrl = scenarioUrl(config, scenario);
     await navigate(scenarioStartUrl);
+    if (!ctx.runtime.capabilities) {
+      try {
+        const { userAgent, ...caps } = await agent("capabilities");
+        ctx.runtime.capabilities ??= caps;
+        ctx.runtime.userAgent ??= userAgent;
+      } catch {
+        // a page that navigates away immediately; the next scenario measures it
+      }
+    }
 
     const refreshAdapters = async () => {
       try {

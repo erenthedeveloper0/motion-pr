@@ -408,6 +408,32 @@ export const assetSchema = z.object({
 });
 export type Asset = z.infer<typeof assetSchema>;
 
+/** Runtime capabilities of the capturing browser (see `capabilities()` in the agent). */
+export const browserCapabilitiesSchema = z.object({
+  /** `document.getAnimations()`: discovery of running CSS and Web Animations. */
+  documentGetAnimations: z.boolean(),
+  /** `Element.prototype.animate()`: Web Animations, and the replay clones MotionPR seeks. */
+  elementAnimate: z.boolean(),
+  /** `CSSTransition` / `CSSAnimation` interfaces: tells CSS motion apart from WAAPI. */
+  cssTransitionInterface: z.boolean(),
+  cssAnimationInterface: z.boolean(),
+  /** `transitionrun` events: transitions are seen even when they end before the next frame. */
+  transitionRunEvent: z.boolean(),
+  /** `KeyframeEffect.pseudoElement`: animations of `::before` / `::after` are identified. */
+  pseudoElementEffects: z.boolean(),
+  /** CSS scroll-driven timelines (recorded as metadata only). */
+  scrollTimeline: z.boolean(),
+  viewTimeline: z.boolean(),
+  /** Smallest observed step of `performance.now()` in ms (Firefox and WebKit coarsen timers). */
+  timerResolutionMs: z.number().nullable(),
+  /** Median `requestAnimationFrame` interval in ms while capturing (≈16.7 at 60 Hz). */
+  frameIntervalMs: z.number().nullable(),
+  devicePixelRatio: z.number().nullable(),
+  /** What the page sees for `prefers-reduced-motion: reduce` (the emulated setting). */
+  prefersReducedMotion: z.boolean().nullable(),
+});
+export type BrowserCapabilities = z.infer<typeof browserCapabilitiesSchema>;
+
 export const captureSettingsSchema = z.object({
   colorScheme: z.string(),
   locale: z.string(),
@@ -435,12 +461,29 @@ export const captureBundleSchema = z.object({
     git: z.object({ commit: z.string().optional(), branch: z.string().optional() }).optional(),
   }),
   environment: z.object({
-    browser: z.object({ name: z.string(), version: z.string(), headless: z.boolean() }),
+    browser: z.object({
+      /** Engine: `chromium`, `firefox` or `webkit` (as Playwright reports it at runtime). */
+      name: z.string(),
+      /** Version the launched browser reports (never taken from the configuration). */
+      version: z.string(),
+      headless: z.boolean(),
+      /** Installed channel used instead of Playwright's build (`chrome`, `moz-firefox`, …). */
+      channel: z.string().nullable().default(null),
+      /** `navigator.userAgent` of the captured pages. */
+      userAgent: z.string().nullable().default(null),
+    }),
     platform: z.string(),
     arch: z.string(),
+    /** Operating system release (`os.release()`), e.g. a Darwin or Linux kernel version. */
+    osRelease: z.string().nullable().default(null),
     node: z.string(),
     playwright: z.string(),
     ci: z.boolean(),
+    /**
+     * What the browser supports and how it schedules work, measured in the first captured page:
+     * the Web Animations features MotionPR relies on, timer resolution and frame interval.
+     */
+    capabilities: browserCapabilitiesSchema.nullable().default(null),
   }),
   settings: captureSettingsSchema,
   /** Hash of the capture-relevant configuration; differing hashes are reported as a diagnostic. */

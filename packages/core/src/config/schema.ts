@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BROWSER_NAMES } from "../browsers.ts";
 
 const selector = z.string().min(1, "selector must not be empty");
 const httpUrl = z.url({ protocol: /^https?$/, error: "must be an http(s) URL" });
@@ -406,13 +407,26 @@ export const configSchema = z.object({
     .prefault({}),
   browser: z
     .object({
-      /** Only Chromium is supported in this release. */
-      name: z.literal("chromium").default("chromium"),
-      /** Use an installed browser channel such as `chrome` instead of Playwright's Chromium. */
-      channel: z.string().optional(),
+      /**
+       * Engine to capture with: `chromium`, `firefox` or `webkit` (Playwright's builds). The CLI's
+       * `--browser` (or MOTIONPR_BROWSER) picks another engine, or several, for one run.
+       */
+      name: z.enum(BROWSER_NAMES).default("chromium"),
+      /**
+       * An installed browser channel instead of Playwright's build: a Chromium channel (`chrome`,
+       * `msedge`, …) is used whenever Chromium runs, a Firefox channel (`moz-firefox`, …) whenever
+       * Firefox runs. WebKit has no channels.
+       */
+      channel: z.string().min(1).optional(),
+      /** Browser binary for the engine named in `name` (other engines use Playwright's builds). */
       executablePath: z.string().optional(),
       headless: z.boolean().default(true),
+      /** Command-line flags for the engine named in `name` (flags are engine specific). */
       args: z.array(z.string()).default([]),
+      /** Firefox preferences (`about:config`), applied whenever Firefox runs. */
+      firefoxUserPrefs: z
+        .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+        .optional(),
       /** Default viewport when `viewports` is not set. */
       viewport: z
         .object({

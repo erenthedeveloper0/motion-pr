@@ -552,7 +552,20 @@ export function compareMatchedAnimation(
   if (easing.change) drafts.push(easing.change);
   drafts.push(...propertySetChanges(b, c));
   drafts.push(...keyframeValueChanges(b, c, config));
-  drafts.push(...sampledChanges(b, c, config));
+  // An animation the app cancelled mid-way (on a timer, an event) stops wherever it was when the
+  // cancel ran, and that moment depends on scheduling: its sampled path and end values are not
+  // definite evidence of a change. Declared timing and easing still are.
+  const canceled = b.meta.canceled === true || c.meta.canceled === true;
+  for (const draft of sampledChanges(b, c, config))
+    drafts.push(
+      canceled && draft.severity !== "uncertain"
+        ? {
+            ...draft,
+            severity: "uncertain",
+            message: `${draft.message} (cancelled mid-way: where it stopped depends on when the cancel ran)`,
+          }
+        : draft,
+    );
   if (b.completeness.status !== c.completeness.status) {
     drafts.push({
       kind: "completeness",

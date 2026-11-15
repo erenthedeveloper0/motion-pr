@@ -4,29 +4,47 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import {
   AGENT_GLOBAL,
-  CAPTURE_FILE,
+  BROWSER_LABELS,
+  BROWSER_NAMES,
   SUPPORTED_ENGINE_RANGES,
   MOTIONPR_VERSION,
+  baselineBrowsers,
   isMotionprError,
-  pathExists,
+  legacyBaseline,
+  resolveConfig,
   scenarioUrl,
   versionSatisfies,
   webServers,
   MOTIONPR_PACKAGE,
+  type BrowserCapabilities,
+  type BrowserName,
+  type ResolvedConfig,
 } from "@motionpr/core";
 import {
   AGENT_SOURCE,
-  expectedChromiumPath,
+  expectedBrowserPath,
+  isBrowserInstalled,
+  isMissingDependencies,
   isUrlReady,
   launchBrowser,
+  launchOptionsFor,
   playwrightVersion,
 } from "@motionpr/capture";
 import { loadConfig, type LoadedConfig } from "../config/load.ts";
 import { isCI } from "../output/terminal.ts";
-import { banner, cwdOf, makeTerminal, printJson, type GlobalOptions } from "./shared.ts";
+import {
+  banner,
+  cwdOf,
+  makeTerminal,
+  printJson,
+  selectBrowsers,
+  type GlobalOptions,
+} from "./shared.ts";
 
 export interface DoctorOptions extends GlobalOptions {
   launch?: boolean;
+  /** `--browser`: engines to launch-check (default: the config's `browser.name`). */
+  browser?: string[];
 }
 
 interface Check {
@@ -59,6 +77,7 @@ function nodeCheck(): Check {
 export async function doctorCommand(options: DoctorOptions): Promise<number> {
   const t = makeTerminal(options);
   banner(t, "doctor");
+  selectBrowsers(options.browser, "chromium"); // usage errors before anything else
   const checks: Check[] = [];
   checks.push(nodeCheck());
   checks.push({ name: "MotionPR", status: "ok", detail: MOTIONPR_VERSION });
@@ -66,15 +85,6 @@ export async function doctorCommand(options: DoctorOptions): Promise<number> {
     name: "Playwright",
     status: "ok",
     detail: `playwright-core ${playwrightVersion()}`,
-  });
-
-  const chromiumPath = expectedChromiumPath();
-  const installed = existsSync(chromiumPath);
-  checks.push({
-    name: "Chromium binary",
-    status: installed ? "ok" : "fail",
-    detail: installed ? chromiumPath : `not found at ${chromiumPath}`,
-    ...(installed ? {} : { fix: "npx motionpr install" }),
   });
 
   let loaded: LoadedConfig | null = null;
@@ -109,43 +119,39 @@ export async function doctorCommand(options: DoctorOptions): Promise<number> {
     });
   }
 
-  if (options.launch !== false && installed) {
-    try {
-      const browser = await launchBrowser(
-        loaded?.config ??
-          (await import("@motionpr/core")).resolveConfig({
-            baseURL: "http://localhost",
-            scenarios: [{ id: "doctor" }],
-          }),
-      );
-      const version = browser.version();
-      const page = await browser.newPage();
-      const ok = await page.evaluate(
-        () =>
-          typeof document.getAnimations === "function" &&
-          typeof Element.prototype.animate === "function",
-      );
-      await browser.close();
-      checks.push({
-        name: "Browser launch",
-        status: ok ? "ok" : "fail",
-        detail: `Chromium ${version}${ok ? ", Web Animations API available" : ", Web Animations API missing"}`,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const missingLibs = /shared librar|libnss|libatk|libgbm|error while loading/i.test(message);
-      checks.push({
-        name: "Browser launch",
-        status: "fail",
-        detail: message.split("\n")[0]!,
-        fix: missingLibs
-          ? "Missing system libraries: npx motionpr install --with-deps"
-          : isMotionprError(error)
-            ? (error.hint ?? "npx motionpr install")
-            : "npx motionpr install",
-      });
+  const config =
+    loaded?.config ?? resolveConfig({ baseURL: "http://localhost", scenarios: [{ id: "doctor" }] });
+  const selected = selectBrowsers(options.browser, config.browser.name);
+  // Every engine's build: required when selected, optional otherwise.
+  for (const name of BROWSER_NAMES) {
+    const custom = launchOptionsFor(config, name);
+    const path = custom.executablePath ?? expectedBrowserPath(name);
+    const installed = custom.executablePath
+      ? existsSync(custom.executablePath)
+      : custom.channel
+        ? true
+        : isBrowserInstalled(name, { headless: config.browser.headless });
+    const wanted = selected.includes(name);
+    checks.push({
+      name: `${BROWSER_LABELS[name]} binary`,
+      status: installed ? "ok" : wanted ? "fail" : "info",
+      detail: custom.channel
+        ? `channel "${custom.channel}" (checked when launched)`
+        : installed
+          ? path
+          : `not installed${wanted ? ` (expected at ${path})` : " (optional)"}`,
+      ...(installed ? {} : { fix: `npx motionpr install ${name}` }),
+    });
+  }
+  const launchable: BrowserName[] = [];
+  if (options.launch !== false) {
+    for (const name of selected) {
+      const check = await launchCheck(config, name);
+      checks.push(check);
+      if (check.status !== "fail") launchable.push(name);
     }
   }
+  const installed = launchable.length > 0;
 
   if (loaded) {
     const { paths, config } = loaded;
@@ -164,12 +170,20 @@ export async function doctorCommand(options: DoctorOptions): Promise<number> {
         fix: "Fix permissions or set output.directory in the config.",
       });
     }
-    const hasBaseline = await pathExists(join(paths.baseline, CAPTURE_FILE));
+    const withBaseline = await baselineBrowsers(paths);
+    const legacy = await legacyBaseline(paths);
+    const missingFor = selected.filter((b) => !withBaseline.includes(b));
     checks.push({
-      name: "Baseline",
-      status: hasBaseline ? "ok" : "info",
-      detail: hasBaseline ? paths.baseline : "none yet",
-      ...(hasBaseline ? {} : { fix: "npx motionpr run, then npx motionpr baseline accept" }),
+      name: "Baselines",
+      status: missingFor.length ? "info" : "ok",
+      detail: withBaseline.length
+        ? `${withBaseline.map((b) => BROWSER_LABELS[b]).join(", ")} in ${paths.baseline}${legacy ? " (0.1 layout: npx motionpr baseline migrate)" : ""}${missingFor.length ? `; none yet for ${missingFor.map((b) => BROWSER_LABELS[b]).join(", ")}` : ""}`
+        : "none yet",
+      ...(missingFor.length
+        ? {
+            fix: `npx motionpr run${missingFor.length === 1 && missingFor[0] === config.browser.name ? "" : ` --browser ${missingFor.join(",")}`}, then npx motionpr baseline accept${missingFor.length === 1 && missingFor[0] === config.browser.name ? "" : ` --browser ${missingFor.join(",")}`}`,
+          }
+        : {}),
     });
     for (const server of webServers(config)) {
       const up = await isUrlReady(server.url);
@@ -190,7 +204,9 @@ export async function doctorCommand(options: DoctorOptions): Promise<number> {
         ...(up ? {} : { fix: "Start your app, or configure webServer so MotionPR starts it." }),
       });
     }
-    checks.push(...(await adapterChecks(loaded, options.launch !== false && installed)));
+    checks.push(
+      ...(await adapterChecks(loaded, options.launch !== false && installed, launchable[0])),
+    );
   }
   checks.push({
     name: "Environment",
@@ -292,8 +308,68 @@ interface PageAdapter {
   diagnostics: { level: string; code: string; message: string }[];
 }
 
+/**
+ * Launches one engine, opens a blank page with the agent and measures what MotionPR needs: the
+ * Web Animations API, transition events, timer resolution and frame rate.
+ */
+async function launchCheck(config: ResolvedConfig, name: BrowserName): Promise<Check> {
+  const label = BROWSER_LABELS[name];
+  try {
+    const browser = await launchBrowser(config, { browserName: name });
+    try {
+      const version = browser.version();
+      const context = await browser.newContext();
+      await context.addInitScript({ content: AGENT_SOURCE });
+      const page = await context.newPage();
+      await page.goto("about:blank");
+      const caps = (await page.evaluate(`(async () => {
+        const agent = window.${AGENT_GLOBAL};
+        return agent ? agent.capabilities() : null;
+      })()`)) as (BrowserCapabilities & { userAgent: string }) | null;
+      if (!caps)
+        return {
+          name: `${label} launch`,
+          status: "fail",
+          detail: `${label} ${version} started, but the MotionPR agent did not load`,
+          fix: "Reinstall MotionPR; if it persists, report it with this output.",
+        };
+      const missing = [
+        caps.documentGetAnimations ? null : "document.getAnimations()",
+        caps.elementAnimate ? null : "Element.animate()",
+        caps.cssTransitionInterface ? null : "CSSTransition",
+        caps.cssAnimationInterface ? null : "CSSAnimation",
+      ].filter(Boolean);
+      const fps = caps.frameIntervalMs ? Math.round(1000 / caps.frameIntervalMs) : null;
+      return {
+        name: `${label} launch`,
+        status: missing.length ? "fail" : "ok",
+        detail: missing.length
+          ? `${label} ${version}: missing ${missing.join(", ")}`
+          : `${label} ${version}, Web Animations API available; timers ${caps.timerResolutionMs ?? "?"} ms${fps ? `, ${fps} fps` : ""}`,
+      };
+    } finally {
+      await browser.close().catch(() => undefined);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      name: `${label} launch`,
+      status: "fail",
+      detail: message.split("\n")[0]!,
+      fix: isMissingDependencies(error)
+        ? `Missing system libraries: npx motionpr install ${name} --with-deps`
+        : isMotionprError(error)
+          ? (error.hint ?? `npx motionpr install ${name}`)
+          : `npx motionpr install ${name}`,
+    };
+  }
+}
+
 /** Opens the first scenario with the agent installed and reports which adapters registered. */
-async function probeAdapters(loaded: LoadedConfig): Promise<PageAdapter[] | string> {
+async function probeAdapters(
+  loaded: LoadedConfig,
+  browserName: BrowserName | undefined,
+): Promise<PageAdapter[] | string> {
   const { config } = loaded;
   const scenario = config.scenarios.find((s) => !s.skip);
   if (!scenario) return "no runnable scenario";
@@ -305,7 +381,7 @@ async function probeAdapters(loaded: LoadedConfig): Promise<PageAdapter[] | stri
   }
   if (!(await isUrlReady(url)))
     return `${url} is not responding (start the app to check registration)`;
-  const browser = await launchBrowser(config);
+  const browser = await launchBrowser(config, browserName ? { browserName } : {});
   try {
     const context = await browser.newContext({ serviceWorkers: "block" });
     await context.addInitScript({ content: AGENT_SOURCE });
@@ -328,11 +404,17 @@ async function probeAdapters(loaded: LoadedConfig): Promise<PageAdapter[] | stri
  * the adapter actually registered in the app. An installed package alone is never reported as
  * working: registration is only confirmed by opening the page.
  */
-async function adapterChecks(loaded: LoadedConfig, launch: boolean): Promise<Check[]> {
+async function adapterChecks(
+  loaded: LoadedConfig,
+  launch: boolean,
+  browserName: BrowserName | undefined,
+): Promise<Check[]> {
   const configured = loaded.config.adapters.map((a) => a.name);
   const ids = [...new Set([...configured])];
   if (!ids.length) return [];
-  const probe = launch ? await probeAdapters(loaded).catch((e: unknown) => String(e)) : null;
+  const probe = launch
+    ? await probeAdapters(loaded, browserName).catch((e: unknown) => String(e))
+    : null;
   const checks: Check[] = [];
   const registered = Array.isArray(probe) ? probe : [];
   for (const extra of registered) if (!ids.includes(extra.id)) ids.push(extra.id);

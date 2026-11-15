@@ -24,14 +24,26 @@ const round = (n: number, digits = 3) => {
   return Math.round(n * f) / f;
 };
 
+/**
+ * Shortest interval (ms) a velocity is derived over. Scroll engines move once per frame, and
+ * Firefox and WebKit report time in whole milliseconds, so two samples can be 1 ms apart with a
+ * whole frame's movement between them: their quotient is noise, not speed (WebKit showed
+ * "78 px/ms"). Each velocity spans at least three quarters of a 60 Hz frame.
+ */
+export const MIN_VELOCITY_INTERVAL_MS = 12;
+
 function velocities(samples: readonly ScrollSample[]): { t: number; v: number }[] {
   const out: { t: number; v: number }[] = [];
+  let j = 0;
   for (let i = 1; i < samples.length; i++) {
-    const dt = samples[i]!.time - samples[i - 1]!.time;
-    if (dt <= 0) continue;
+    const t = samples[i]!.time;
+    // The latest earlier sample at least MIN_VELOCITY_INTERVAL_MS before this one.
+    while (j + 1 < i && t - samples[j + 1]!.time >= MIN_VELOCITY_INTERVAL_MS) j++;
+    const dt = t - samples[j]!.time;
+    if (dt < MIN_VELOCITY_INTERVAL_MS) continue;
     out.push({
-      t: (samples[i]!.time + samples[i - 1]!.time) / 2,
-      v: (samples[i]!.animatedScroll - samples[i - 1]!.animatedScroll) / dt,
+      t: (t + samples[j]!.time) / 2,
+      v: (samples[i]!.animatedScroll - samples[j]!.animatedScroll) / dt,
     });
   }
   return out;

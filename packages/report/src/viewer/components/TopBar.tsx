@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { comparisonMarkdown, captureMarkdown } from "@motionpr/core/markdown";
-import { relativeDate, shortId } from "../format.ts";
+import { engineLabel, relativeDate, shortId } from "../format.ts";
 import { useViewer } from "../state.tsx";
 import { Icon } from "./icons.tsx";
 import { Mark } from "./Mark.tsx";
@@ -160,11 +160,17 @@ export function TopBar({
           {model.project}
         </span>
         <span className="hidden items-center gap-2 font-mono text-2xs whitespace-nowrap text-g-400 xl:flex">
+          <span className="text-g-300" data-testid="engine">
+            {d.baseline &&
+            d.baseline.environment.browser.name !== d.candidate.environment.browser.name
+              ? `${engineLabel(d.baseline.environment.browser.name)} → ${engineLabel(d.candidate.environment.browser.name)}`
+              : engineLabel(d.candidate.environment.browser.name)}
+          </span>
           {d.baseline && (
             <>
               <span
                 className="flex items-center gap-1.5"
-                title={`Baseline captured ${relativeDate(d.baseline.createdAt)} · ${d.baseline.environment.platform} · Chromium ${d.baseline.environment.browser.version}`}
+                title={`Baseline captured ${relativeDate(d.baseline.createdAt)} · ${d.baseline.environment.platform} · ${engineLabel(d.baseline.environment.browser.name)} ${d.baseline.environment.browser.version}`}
               >
                 <span className="size-1.5 rounded-full bg-base" />
                 {shortId(d.baseline.id)}
@@ -174,7 +180,7 @@ export function TopBar({
           )}
           <span
             className="flex items-center gap-1.5"
-            title={`Captured ${relativeDate(d.candidate.createdAt)} · ${d.candidate.environment.platform} · Chromium ${d.candidate.environment.browser.version}`}
+            title={`Captured ${relativeDate(d.candidate.createdAt)} · ${d.candidate.environment.platform} · ${engineLabel(d.candidate.environment.browser.name)} ${d.candidate.environment.browser.version}`}
           >
             <span className="size-1.5 rounded-full bg-cand" />
             {shortId(d.candidate.id)}

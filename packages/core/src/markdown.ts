@@ -1,3 +1,4 @@
+import { browserLabel, captureBrowser } from "./browsers.ts";
 import type { CaptureBundle } from "./schema/capture.ts";
 import type { ComparisonResult, Severity } from "./schema/comparison.ts";
 
@@ -26,8 +27,11 @@ export function comparisonMarkdown(
   const s = result.summary;
   const failed = s.status === "failed";
   const lines: string[] = [];
+  const engines = result.crossBrowser
+    ? `${browserLabel(result.baseline.browserName)} → ${browserLabel(result.candidate.browserName)} (cross-browser)`
+    : browserLabel(result.candidate.browserName);
   lines.push(
-    `## MotionPR · ${failed ? "motion regression detected" : s.highestSeverity ? "motion changes within thresholds" : "no motion changes"}`,
+    `## MotionPR · ${mdEscape(engines)} · ${failed ? "motion regression detected" : s.highestSeverity ? "motion changes within thresholds" : "no motion changes"}`,
   );
   lines.push("");
   lines.push("| Result | Critical | Warning | Uncertain | Info |");
@@ -69,7 +73,7 @@ export function comparisonMarkdown(
 
 export function captureMarkdown(bundle: CaptureBundle, note: string): string {
   const lines = [
-    `## MotionPR · capture only`,
+    `## MotionPR · ${mdEscape(browserLabel(captureBrowser(bundle)))} · capture only`,
     "",
     note,
     "",

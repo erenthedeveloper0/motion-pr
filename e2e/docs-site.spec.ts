@@ -201,6 +201,8 @@ test("pages stay within the viewport on a phone", async ({ browser }) => {
     "docs/",
     "docs/configuration/comparison/",
     "docs/features/easing-analysis/",
+    "docs/browsers/support/",
+    "docs/browsers/cross-browser-testing/",
     "demo/",
     "playground/",
   ];

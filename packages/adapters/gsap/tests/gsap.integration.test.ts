@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { resolveConfig, type AnimationRecord, type CaptureBundle } from "@motionpr/core";
 import { AGENT_SOURCE, launchBrowser, runCapture } from "@motionpr/capture";
 import { serveDirectory, type StaticServer } from "../../../capture/tests/helpers/static-server.ts";
+import { TEST_BROWSER } from "../../../capture/tests/helpers/browser.ts";
 
 const require = createRequire(import.meta.url);
 let root: string;
@@ -32,7 +33,9 @@ beforeAll(async () => {
   });
   await writeFile(join(root, "adapter.js"), adapter.outputFiles[0]!.text);
   server = await serveDirectory(root);
-  browser = await launchBrowser(resolveConfig({ baseURL: server.url, scenarios: [{ id: "x" }] }));
+  browser = await launchBrowser(resolveConfig({ baseURL: server.url, scenarios: [{ id: "x" }] }), {
+    browserName: TEST_BROWSER,
+  });
 });
 
 afterAll(async () => {

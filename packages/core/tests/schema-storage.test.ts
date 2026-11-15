@@ -31,12 +31,20 @@ export function emptyBundle(id = "20261113-120000-abcd"): CaptureBundle {
     createdAt: "2026-11-13T12:00:00.000Z",
     project: { name: "test" },
     environment: {
-      browser: { name: "chromium", version: "158.0", headless: true },
+      browser: {
+        name: "chromium",
+        version: "158.0",
+        headless: true,
+        channel: null,
+        userAgent: null,
+      },
       platform: "darwin",
       arch: "arm64",
       node: "v24.0.0",
       playwright: "1.65.0",
       ci: false,
+      osRelease: null,
+      capabilities: null,
     },
     settings: {
       colorScheme: "light",
