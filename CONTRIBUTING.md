@@ -17,7 +17,7 @@ git clone https://github.com/erenthedeveloper0/motionpr.git
 cd motionpr
 corepack enable
 pnpm install
-npx playwright-core install chromium
+pnpm exec playwright install chromium firefox webkit   # add --with-deps on Linux
 pnpm build                # agent bundle, report viewer, demo app, CLI
 ```
 
@@ -35,21 +35,23 @@ pnpm typecheck
 pnpm lint && pnpm format:check
 pnpm version:check
 pnpm test                       # unit tests, no browser
-pnpm test:integration           # real Chromium: capture engine, adapters, CLI
+pnpm test:integration           # real Chromium: capture engine, adapters, CLI, multi-engine runs
+MOTIONPR_TEST_BROWSER=firefox pnpm test:integration   # the same suites in Firefox (or webkit)
 pnpm test:e2e                   # demo app captured for real; report viewer and website driven like a user
+MOTIONPR_E2E_BROWSERS=all pnpm exec playwright test e2e/demo-expectations.spec.ts   # the demo in every engine
 pnpm pack:check --install       # what ships to npm, installed into a clean project
 ```
 
-| Command                           | What it runs                                                        |
-| --------------------------------- | ------------------------------------------------------------------- |
-| `pnpm typecheck`                  | `tsc` for every package (regenerates the agent bundle first)        |
-| `pnpm lint` / `pnpm format:check` | ESLint / Prettier                                                   |
-| `pnpm test`                       | Unit tests, including the documentation checks                      |
-| `pnpm test:integration`           | Real-Chromium tests: capture engine, adapters, CLI                  |
-| `pnpm test:e2e`                   | Captures the demo app; drives the report viewer and the website     |
-| `pnpm pack:check`                 | Packs the public package and verifies its contents and entry points |
-| `pnpm bench`                      | Performance measurements of comparison and report building          |
-| `pnpm dev:docs`                   | Builds and serves the website on `http://localhost:4321/motionpr/`  |
+| Command                           | What it runs                                                                                                                                                                   |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm typecheck`                  | `tsc` for every package (regenerates the agent bundle first)                                                                                                                   |
+| `pnpm lint` / `pnpm format:check` | ESLint / Prettier                                                                                                                                                              |
+| `pnpm test`                       | Unit tests, including the documentation checks                                                                                                                                 |
+| `pnpm test:integration`           | Real-browser tests: capture engine, adapters, CLI. `MOTIONPR_TEST_BROWSER` picks the engine (default `chromium`); the default run also starts all three engines in one project |
+| `pnpm test:e2e`                   | Captures the demo app; drives the report viewer and the website                                                                                                                |
+| `pnpm pack:check`                 | Packs the public package and verifies its contents and entry points                                                                                                            |
+| `pnpm bench`                      | Performance measurements of comparison and report building                                                                                                                     |
+| `pnpm dev:docs`                   | Builds and serves the website on `http://localhost:4321/motionpr/`                                                                                                             |
 
 ## The conventions
 

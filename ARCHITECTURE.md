@@ -5,7 +5,7 @@ map; the details are in [docs/advanced/architecture.md](docs/advanced/architectu
 schema sources.
 
 ```text
-            your app in Chromium                         Node.js
+   your app in Chromium, Firefox or WebKit              Node.js
  ┌─────────────────────────────────────────┐   ┌──────────────────────────────────────┐
  │  agent (injected before page scripts)    │   │  runner (@motionpr/capture)           │
  │   ├ native: getAnimations, animate()     │◀──│   scenarios → steps → checkpoints     │
@@ -32,7 +32,7 @@ schema sources.
 | Package                                  | Role                                                                                                                                 | Published                               |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
 | `packages/core`                          | Schemas (capture and comparison v2) and migrations, config schema and resolution, easing math, the adapter protocol, storage, errors | bundled                                 |
-| `packages/capture`                       | The Playwright runner and the in-page agent                                                                                          | bundled                                 |
+| `packages/capture`                       | The Playwright runner (one runner for Chromium, Firefox and WebKit) and the in-page agent                                            | bundled                                 |
 | `packages/comparison`                    | Matching, animation/stagger/timeline/scroll comparison, severity rules, pixel diff                                                   | bundled                                 |
 | `packages/report`                        | The report viewer (React, one HTML file) and its generator                                                                           | bundled                                 |
 | `packages/adapters/{gsap,animejs,lenis}` | Browser-side engine adapters                                                                                                         | bundled as entry points                 |
@@ -52,10 +52,15 @@ schema sources.
 5. **Uncertainty is not a regression.** Weak matches and incomplete data are `uncertain`.
 6. **Old captures keep reading.** Schema changes come with migrations.
 7. **Captures are untrusted input.** They are validated, and reports never execute their data.
+8. **One baseline per browser engine.** Captures, baselines, comparisons and reports are stored
+   per engine; comparing two engines is explicit, and engine-dependent differences are then
+   `uncertain`. A requested engine is never replaced by another.
 
 ## Where to start reading
 
 - The agent: `packages/capture/src/agent/main.ts`
+- Launching an engine: `packages/capture/src/browser.ts`; per-engine storage:
+  `browserPaths()` in `packages/core/src/storage.ts`
 - The adapter contract: `packages/core/src/protocol.ts`
 - The data model: `packages/core/src/schema/capture.ts` and `comparison.ts`
 - The comparison of one pair of animations: `packages/comparison/src/diff-animation.ts`

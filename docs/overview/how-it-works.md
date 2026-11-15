@@ -12,8 +12,9 @@ they connect.
 
 ## 1. Capture
 
-MotionPR starts your web server (or reuses one), opens each scenario in a fresh Chromium context
-and injects its **agent** before any of your scripts run. The agent discovers native animations
+MotionPR starts your web server (or reuses one), opens each scenario in a fresh browser context
+(Chromium by default, or Firefox or WebKit) and injects its **agent** before any of your scripts
+run. The agent discovers native animations
 (`document.getAnimations()` every frame, plus a patched `Element.prototype.animate`) and receives
 records from engine **adapters** for GSAP, Anime.js and Lenis.
 

@@ -16,12 +16,14 @@ git commit -m "Add MotionPR baseline"
 ```
 
 ```text
-◐ motionpr 0.1.0-alpha.1  ·  baseline accept
+◐ motionpr 0.2.0-alpha  ·  baseline accept
 
+  Browser        Chromium
   New baseline   20261113-215354-f7d6 · 1 scenarios · 1 checkpoints · 1 animations · darwin · Chromium 158.0.8127.18
   Replaces       (no baseline yet)
+  Location       .motionpr/baseline/chromium
 
-  ✔ Baseline set to 20261113-215354-f7d6
+  ✔ Chromium baseline set to 20261113-215354-f7d6
 ```
 
 MotionPR never replaces a baseline silently. When one exists, `baseline accept` shows both and asks
@@ -48,7 +50,7 @@ npx motionpr run
 ```
 
 ```text
-◐ motionpr 0.1.0-alpha.1  ·  run
+◐ motionpr 0.2.0-alpha  ·  run
 
   → 1 scenario from motionpr.config.mjs
   → Starting web server: npm run dev
@@ -56,7 +58,7 @@ npx motionpr run
   → [1/1] menu-open@default
   ✔ menu-open@default  1 checkpoint · 1 animation · 2.0s
 
-  Baseline 20261113-215354-f7d6  →  Current 20261113-215403-2778
+  Baseline 20261113-215354-f7d6 (Chromium 158.0.8127.18)  →  Current 20261113-215403-2778 (Chromium 158.0.8127.18)
 
   ✖ menu-open@default  1 critical · 1 warning · 1 info
       ✖ menu-open: css-transition “transform” on menu: Duration 300ms → 600ms (+300ms, +100%)
@@ -66,7 +68,7 @@ npx motionpr run
   1 matched · 1 changed · 0 added · 0 removed · 0 unchanged
 
   Result  FAILED  fail on: critical  1 critical · 1 warning · 1 info
-  Report  .motionpr/report/index.html
+  Report  .motionpr/report/chromium/index.html
 ```
 
 The command exits with code **1**. Three things were measured:

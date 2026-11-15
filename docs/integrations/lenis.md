@@ -10,7 +10,10 @@ motion** — where the page actually was, frame by frame — rather than pretend
 animation duration or easing. Scroll records are compared with scroll-specific metrics.
 
 **Status:** supported. Tested against Lenis **1.3.27**; versions outside `>=1.1.0 <2.0.0` are
-reported as _untested_.
+reported as _untested_. The adapter's browser tests and the demo app's Lenis + ScrollTrigger
+scenario pass in Chromium, Firefox and WebKit. Firefox reports fractional scroll positions; scroll
+settling and velocities are measured so that the same scroll reads the same in every engine
+([Browser support](../browsers/support.md#how-the-engines-differ)).
 
 |         |                                                                                                                            |
 | ------- | -------------------------------------------------------------------------------------------------------------------------- |

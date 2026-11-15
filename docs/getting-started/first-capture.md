@@ -66,7 +66,7 @@ npx motionpr run
 This is the real output of the example above:
 
 ```text
-◐ motionpr 0.1.0-alpha.1  ·  run
+◐ motionpr 0.2.0-alpha  ·  run
 
   → 1 scenario from motionpr.config.mjs
   → Starting web server: npm run dev
@@ -75,11 +75,12 @@ This is the real output of the example above:
   ✔ menu-open@default  1 checkpoint · 1 animation · 1.5s
 
   Captured  1/1 scenarios · 1 checkpoints · 1 animations · 9 unique frames
-  Capture   .motionpr/captures/20261113-215354-f7d6 (20261113-215354-f7d6)
+  Capture   .motionpr/captures/chromium/20261113-215354-f7d6 (20261113-215354-f7d6)
+  Browser   Chromium 158.0.8127.18 · Playwright 1.65.0 · darwin-arm64
 
-  ▲ No approved baseline yet, so there is nothing to compare against.
-    Review the report, then approve this capture as the baseline and commit .motionpr/baseline.
-  Report  .motionpr/report/index.html
+  ▲ No approved Chromium baseline yet, so there is nothing to compare against.
+    Baselines are per browser. Review the report, then approve this capture and commit .motionpr/baseline/chromium.
+  Report  .motionpr/report/chromium/index.html
 
   Next
   $ npx motionpr report --open
@@ -89,11 +90,14 @@ This is the real output of the example above:
 `@default` is the viewport: without `browser.viewports`, every scenario runs once at 1440 × 900.
 On the first run there is nothing to compare against, so `run` exits `0` locally. In CI it exits
 `2` instead, unless you pass `--allow-missing-baseline` (see [CI exit codes](../ci/exit-codes.md)).
+The capture was taken with Chromium, the default engine; `npx motionpr run --browser firefox`
+(or `webkit`, or `all`) captures with another engine, which keeps its own baseline
+([Cross-browser testing](../browsers/cross-browser-testing.md)).
 
 ## What was recorded
 
 ```text
-.motionpr/captures/20261113-215354-f7d6/
+.motionpr/captures/chromium/20261113-215354-f7d6/
 ├── capture.json     scenarios → checkpoints → animations (timing, easing, samples)
 └── assets/          9 PNG frames, named by content hash
 ```

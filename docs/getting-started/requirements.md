@@ -5,13 +5,13 @@ description: Node.js, operating systems, disk space and the app you want to test
 
 # Requirements
 
-| Requirement      | Version                         | Notes                                                                     |
-| ---------------- | ------------------------------- | ------------------------------------------------------------------------- |
-| Node.js          | 22.12 or newer                  | `motionpr doctor` checks it. Development and CI of this repository use 24 |
-| Operating system | macOS, Linux, Windows           | Linux machines need system libraries once: `motionpr install --with-deps` |
-| Browser          | Chromium from Playwright 1.65   | Downloaded by `motionpr install` (about 150 MB), or an installed Chrome   |
-| Disk space       | about 300 MB                    | Mostly Chromium. Captures add a few MB each (PNG frames, deduplicated)    |
-| Your app         | anything that runs in a browser | MotionPR drives a real page over HTTP(S); it can start your dev server    |
+| Requirement      | Version                                          | Notes                                                                                                                         |
+| ---------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| Node.js          | 22.12 or newer                                   | `motionpr doctor` checks it. Development and CI of this repository use 24                                                     |
+| Operating system | macOS, Linux, Windows                            | Linux machines need system libraries once: `motionpr install --with-deps`                                                     |
+| Browser          | Chromium, Firefox or WebKit from Playwright 1.65 | Downloaded by `motionpr install`; Chromium is the default                                                                     |
+| Disk space       | 300–600 MB per engine                            | Measured on macOS arm64: Chromium 580 MB (with its headless shell), Firefox 300 MB, WebKit 320 MB. Captures add a few MB each |
+| Your app         | anything that runs in a browser                  | MotionPR drives a real page over HTTP(S); it can start your dev server                                                        |
 
 MotionPR runs entirely on your machine or CI runner. It has no account, no backend and no
 telemetry.
@@ -33,8 +33,9 @@ reported as _untested_ by `motionpr doctor` and in captures, and MotionPR still 
 
 ## What has been tested where
 
-This release was verified on macOS (arm64) with Node.js 24 and Chromium from Playwright 1.65.
-The repository's CI runs the same suites on Linux. Windows paths are handled in code but no CI job
-runs on Windows yet. See the [support matrix](../advanced/support-matrix.md).
+This release was verified on macOS (arm64) with Node.js 24 and Playwright 1.65's Chromium,
+Firefox and WebKit. The repository's CI runs the same browser suites on Linux, once per engine.
+Windows paths are handled in code but no CI job runs on Windows yet. See the
+[support matrix](../advanced/support-matrix.md) and [Browser support](../browsers/support.md).
 
 Next: [Installation](installation.md).

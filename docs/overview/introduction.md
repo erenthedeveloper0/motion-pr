@@ -7,7 +7,8 @@ description: MotionPR records how your interface moves, compares it with an appr
 
 **Your code changed. See how your interface moves.**
 
-MotionPR is an animation regression testing tool. It drives your app in Chromium, records every
+MotionPR is an animation regression testing tool. It drives your app in Chromium, Firefox or
+WebKit, records every
 animation and scroll as data, compares that recording with an approved baseline, and writes an
 offline report in which both versions play side by side on one clock.
 
@@ -48,9 +49,10 @@ measured. See [Motion comparison](../features/motion-comparison.md).
 
 ## Status
 
-MotionPR is in **alpha** (`0.1.0-alpha.1`). It is published on npm's `alpha` dist-tag for
+MotionPR is in **alpha** (`0.2.0-alpha`). It is published on npm's `alpha` dist-tag for
 feedback. The capture format can still change between minor versions, and older captures are
-migrated when they are read. Chromium is the only browser. The full list is in
+migrated when they are read. It captures with Chromium, Firefox and WebKit, each against its own
+baseline ([Browser support](../browsers/support.md)). The full list of limitations is in
 [Limitations](../advanced/limitations.md).
 
 ## Where to go next

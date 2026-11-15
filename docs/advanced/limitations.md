@@ -5,15 +5,27 @@ description: What this alpha does not do, and where each limitation is documente
 
 # Limitations
 
-MotionPR is in alpha (`0.1.0-alpha.1`). Everything below is a known limitation of this release, not
+MotionPR is in alpha (`0.2.0-alpha`). Everything below is a known limitation of this release, not
 a hidden one.
 
 ## Browsers and platforms
 
-- **Chromium only.** Firefox and WebKit are not supported yet (`browser.name` accepts only
-  `chromium`).
+- **Playwright's builds only.** Chromium, Firefox and WebKit are tested in the builds that match
+  the bundled Playwright (1.65). Installed browsers (`browser.channel`, `executablePath`) work
+  but are not covered by tests. WebKit is Playwright's WebKit, not Safari.
+- **Engines run one after another** in a multi-browser run (`--browser all`), not in parallel;
+  use a CI matrix for parallel engines.
+- **Cross-browser comparisons are investigative.** Pixel, geometry, start-offset and scroll
+  differences between two engines are always `uncertain`; each engine is compared with its own
+  baseline to find regressions.
+- **Live observations are as precise as the engine allows.** Firefox and WebKit report time in
+  1 ms steps, and headless WebKit renders at 30 fps on macOS, so start offsets and scroll samples
+  are coarser there. See [Browser support](../browsers/support.md#how-the-engines-differ).
+- **Timer-driven interruptions are environmental.** When an app cancels or reverses motion from a
+  `setTimeout`, where the animation stood at that moment depends on scheduling. Sampled path and
+  end-value differences of cancelled animations are `uncertain`.
 - **Verified on macOS and Linux CI.** Windows paths are handled in code, but no CI job runs on
-  Windows.
+  Windows, for any engine.
 - **Pixels depend on the platform.** Visual comparison is a warning by default for this reason;
   capture baselines where CI runs ([Baseline management](../ci/baseline-management.md)).
 

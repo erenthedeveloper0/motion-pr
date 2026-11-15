@@ -21,6 +21,24 @@ apps/docs              this website
 Only `packages/cli` is published. It bundles the private workspace packages (`@motionpr/*`) and
 keeps third-party dependencies external.
 
+## Browsers
+
+One capture pipeline serves all three engines. `launchBrowser()` (`packages/capture/src/browser.ts`)
+picks Playwright's `chromium`, `firefox` or `webkit` browser type and the launch settings that
+belong to that engine; there is no per-engine runner and no engine-specific agent. The agent
+relies only on the Web Animations API and DOM features all three engines implement
+(`document.getAnimations()`, `Element.animate()`, `KeyframeEffect`, `CSSTransition`,
+`CSSAnimation`, `transitionrun`), and measures what the engine offers
+(`environment.capabilities`) in the first captured page. Where engines differ (timer
+resolution, frame rate, fractional scroll positions, float precision of keyframe offsets), the
+agent normalizes or records the difference instead of branching on the engine; see
+[Browser support](../browsers/support.md#how-the-engines-differ).
+
+Storage is per engine (`browserPaths()` in `@motionpr/core`): baselines, captures, comparisons
+and reports live in `<dir>/<browser>/`, and `compareCaptures()` refuses captures of two engines
+unless `allowCrossBrowser` is set, in which case `ENGINE_DEPENDENT_CHANGES` are graded
+`uncertain`.
+
 ## The capture pipeline
 
 1. **Agent.** Before any page script runs, Playwright injects MotionPR's agent
@@ -36,14 +54,18 @@ keeps third-party dependencies external.
 3. **Windows.** Each checkpoint closes a window that opened at the previous checkpoint. The
    window origin is the first motion after the first interaction: the earliest animation start
    or the first frame of scroll movement. Motion that began before the interaction belongs to
-   the previous state and is excluded (with a diagnostic).
+   the previous state and is excluded (with a diagnostic). An animation created after the
+   interaction but finished at once (`animate(…).finish()`) keeps its timing without a start.
 4. **Settling.** A checkpoint waits until no finite animation runs, no smooth scroll is
-   advancing, and nothing new started for `capture.settleTime`.
+   advancing, and nothing new started for `capture.settleTime`. Scroll counts as still when its
+   drift over the still period stays below the threshold, not each frame's step (Firefox scrolls
+   by fractions of a pixel).
 5. **Replay.** Native animations are replayed by cloning them (`target.animate(keyframes,
 timing)`) and seeking the paused clones, so the originals never re-dispatch
    `transitionend`/`animationend`/`finish`. Adapters render their engines at exact times with
-   callbacks muted (GSAP `totalTime(t, true)`, Anime.js `seek(t, true)`). Everything else is
-   frozen. Samples (computed styles, transforms, geometry) and filmstrip frames are taken at
+   callbacks muted (GSAP `totalTime(t, true)`, Anime.js `seek(t, true)`). Clones are seeked in
+   window-relative time rounded to 1 µs, so a sample at a `steps()` boundary is the same in every
+   run and every engine. Everything else is frozen. Samples (computed styles, transforms, geometry) and filmstrip frames are taken at
    deterministic times, then all state is restored.
 6. **Scroll** is never replayed. Scroll motion is observed live (Lenis events, native positions
    each frame) and stored as `ScrollMotionRecord`s. Scroll-linked animations (CSS scroll

@@ -9,17 +9,17 @@ description: The motionpr command, its global options, output modes and exit cod
 npx motionpr <command> [options]
 ```
 
-| Command                   | What it does                                                        |
-| ------------------------- | ------------------------------------------------------------------- |
-| [`init`](init.md)         | Create `motionpr.config.ts` with a guided setup                     |
-| [`install`](install.md)   | Download the Chromium build MotionPR uses                           |
-| [`capture`](capture.md)   | Capture the configured scenarios                                    |
-| [`compare`](compare.md)   | Compare two captures and generate the report                        |
-| [`run`](run.md)           | Capture, compare with the baseline, report: the everyday command    |
-| [`baseline`](baseline.md) | Approve a capture as the baseline (`accept`), or show it (`status`) |
-| [`report`](report.md)     | Open the most recent report, regenerating it if needed              |
-| [`doctor`](doctor.md)     | Check Node.js, Chromium, the config, permissions and adapters       |
-| [`demo`](demo.md)         | Capture the bundled demo app in two versions and open a real report |
+| Command                   | What it does                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| [`init`](init.md)         | Create `motionpr.config.ts` with a guided setup                                                              |
+| [`install`](install.md)   | Download Chromium, Firefox or WebKit for MotionPR                                                            |
+| [`capture`](capture.md)   | Capture the configured scenarios                                                                             |
+| [`compare`](compare.md)   | Compare two captures and generate the report                                                                 |
+| [`run`](run.md)           | Capture, compare with the baseline, report: the everyday command                                             |
+| [`baseline`](baseline.md) | Approve a capture as its engine's baseline (`accept`), show them (`status`), move a 0.1 baseline (`migrate`) |
+| [`report`](report.md)     | Open the most recent report, regenerating it if needed                                                       |
+| [`doctor`](doctor.md)     | Check Node.js, the browsers, the config, permissions and adapters                                            |
+| [`demo`](demo.md)         | Capture the bundled demo app in two versions and open a real report                                          |
 
 ## Global options
 
@@ -33,8 +33,13 @@ npx motionpr <command> [options]
 | `--verbose`           | Print diagnostics and debug details (and error causes)                                        |
 | `--no-color`          | Disable colours (also `NO_COLOR=1`; `FORCE_COLOR=1` forces them)                              |
 | `--ci`                | Non-interactive CI mode (also detected from `CI`, `GITHUB_ACTIONS`, `GITLAB_CI`, `BUILDKITE`) |
-| `-v, --version`       | Print the version                                                                             |
-| `-h, --help`          | Help for any command                                                                          |
+
+`capture`, `compare`, `run`, `baseline accept`, `report`, `doctor` and `demo` also take
+`--browser <name>`: `chromium`, `firefox`, `webkit`, `all`, or a comma list (repeatable). Without
+it, the engine is `MOTIONPR_BROWSER` or the config's `browser.name`. See
+[Cross-browser testing](../browsers/cross-browser-testing.md).
+| `-v, --version` | Print the version |
+| `-h, --help` | Help for any command |
 
 MotionPR never prompts in CI or when stdin or stderr is not a terminal. Where it would ask, it
 takes the safe answer and says which flag confirms the action: `baseline accept` refuses to
@@ -56,13 +61,16 @@ See [CI exit codes](../ci/exit-codes.md) for how `run` decides between them.
 
 With `--json`, a command prints exactly one JSON document to stdout:
 
-| Command                | Shape                                                                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `run`, `compare`       | The [`ComparisonResult`](../advanced/capture-serialization.md#comparison-result) plus `report` (and `capture` for `run`) |
-| `run` without baseline | `{ status: "no-baseline", capture, report }`                                                                             |
-| `capture`              | `{ id, dir, scenarios: [{ key, status, checkpoints, error }] }`                                                          |
-| `doctor`               | `{ ok, checks: [{ name, status, detail, fix }] }`                                                                        |
-| errors                 | `{ error: { code, message, hint, issues } }`                                                                             |
+| Command                        | Shape                                                                                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `run`, `compare`               | The [`ComparisonResult`](../advanced/capture-serialization.md#comparison-result) plus `report` (and `browser`, `capture` for `run`)        |
+| `run` without baseline         | `{ status: "no-baseline", browser, capture, report }`                                                                                      |
+| `run` with several engines     | `{ kind: "motionpr-run", exitCode, reportIndex, browsers: [{ browser, status, exitCode, capture, report, summary, differences, error }] }` |
+| `compare` with several engines | `{ kind: "motionpr-comparisons", comparisons: [ComparisonResult + report] }`                                                               |
+| `capture`                      | `{ id, dir, browser, scenarios: [{ key, status, checkpoints, error }] }`; several engines: `{ captures: [ … ] }`                           |
+| `baseline status`              | `{ baseline, baselines: { chromium, firefox, webkit } }`                                                                                   |
+| `doctor`                       | `{ ok, checks: [{ name, status, detail, fix }] }`                                                                                          |
+| errors                         | `{ error: { code, message, hint, issues } }`                                                                                               |
 
 ```bash
 npx motionpr run --json > motionpr.json; echo "exit $?"

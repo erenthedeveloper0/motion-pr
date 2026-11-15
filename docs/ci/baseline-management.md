@@ -36,12 +36,16 @@ capture:
 ```
 
 Then download the `motionpr-capture` artifact from the run, unzip it, and approve the capture
-directory it contains (the one with `capture.json`):
+directory it contains (the one with `capture.json`, under its engine's folder):
 
 ```bash
-npx motionpr baseline accept --from ./motionpr-capture/20261113-215403-2778 --yes
+npx motionpr baseline accept --from ./motionpr-capture/chromium/20261113-215403-2778 --yes
 git add .motionpr/baseline && git commit -m "Update motion baseline from CI"
 ```
+
+The capture's engine decides which baseline it becomes, so approving a Firefox capture from CI
+updates `.motionpr/baseline/firefox/` and nothing else. With a matrix of engines, approve each
+engine's capture from its own artifact.
 
 The comparison warns (`PLATFORM_DIFFERS`, `BROWSER_VERSION_DIFFERS`) whenever baseline and
 candidate come from different platforms or browser builds, so a mismatch never goes unnoticed.
@@ -57,7 +61,8 @@ To keep baselines small:
 - use `capture.frames.format: "jpeg"` (smaller; frame divergence then needs PNG and is skipped);
 - disable frames where timing data is enough: `{ type: "capture", label: "x", frames: false }`.
 
-Consider Git LFS for `.motionpr/baseline/assets/` in repositories with many scenarios.
+Consider Git LFS for `.motionpr/baseline/*/assets/` in repositories with many scenarios. Each
+engine adds its own baseline; capture only the engines your users need.
 
 ## Several baselines
 

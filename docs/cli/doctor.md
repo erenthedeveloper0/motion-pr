@@ -1,6 +1,6 @@
 ---
 title: motionpr doctor
-description: Check Node.js, Chromium, the config, output permissions, the baseline, web servers and adapters.
+description: Check Node.js, every browser engine, the config, output permissions, the baselines, web servers and adapters.
 ---
 
 # `motionpr doctor`
@@ -10,13 +10,33 @@ npx motionpr doctor [options]
 ```
 
 Checks, in order: the Node.js version (22.12 or newer), the MotionPR and Playwright versions, the
-Chromium binary and an actual browser launch, the config, output-directory permissions, the
-baseline, the configured web servers or `baseURL`, and each configured adapter. Every problem is
-printed with a fix. Exits `2` when a check fails.
+config, the binary of each engine, an actual launch of the selected engines, output-directory
+permissions, which engines have a baseline, the configured web servers or `baseURL`, and each
+configured adapter. Every problem is printed with a fix. Exits `2` when a check fails.
 
-| Option        | Description                   |
-| ------------- | ----------------------------- |
-| `--no-launch` | Skip the browser launch check |
+| Option             | Description                                                            |
+| ------------------ | ---------------------------------------------------------------------- |
+| `--browser <name>` | Engines to launch: one, a list, or `all` (default: the configured one) |
+| `--no-launch`      | Skip the browser launch checks                                         |
+
+A selected engine that is not installed fails; the others are listed as optional. Each launch
+opens a page with MotionPR's agent and reports the Web Animations support, timer resolution and
+frame rate MotionPR will see. Real output on macOS:
+
+```text
+  ✔ Chromium binary   ~/Library/Caches/ms-playwright/chromium-1254/…/Google Chrome for Testing
+  ✔ Firefox binary    ~/Library/Caches/ms-playwright/firefox-1572/firefox/Nightly.app/Contents/MacOS/firefox
+  ✔ WebKit binary     ~/Library/Caches/ms-playwright/webkit-2388/pw_run.sh
+  ✔ Chromium launch   Chromium 158.0.8127.18, Web Animations API available; timers 0.1 ms, 60 fps
+  ✔ Firefox launch    Firefox 159.0, Web Animations API available; timers 1 ms, 60 fps
+  ✔ WebKit launch     WebKit 27.2, Web Animations API available; timers 1 ms, 30 fps
+  ✔ Output directory  .motionpr (writable)
+  ● Baselines         Chromium in .motionpr/baseline; none yet for Firefox, WebKit
+    npx motionpr run --browser firefox,webkit, then npx motionpr baseline accept --browser firefox,webkit
+```
+
+On Linux, a launch that fails for missing system libraries suggests
+`npx motionpr install <browser> --with-deps`.
 
 ## Adapters
 
@@ -39,9 +59,14 @@ is something to do. `ok` is `false` when any check failed. Shortened real output
   "ok": true,
   "checks": [
     { "name": "Node.js", "status": "ok", "detail": "v24.21.0" },
-    { "name": "MotionPR", "status": "ok", "detail": "0.1.0-alpha.1" },
+    { "name": "MotionPR", "status": "ok", "detail": "0.2.0-alpha" },
     { "name": "Playwright", "status": "ok", "detail": "playwright-core 1.65.0" },
     { "name": "Config", "status": "ok", "detail": "motionpr.config.mjs (1 scenario)" },
+    {
+      "name": "Chromium launch",
+      "status": "ok",
+      "detail": "Chromium 158.0.8127.18, Web Animations API available; timers 0.1 ms, 60 fps"
+    },
     {
       "name": "Web server",
       "status": "info",

@@ -11,12 +11,14 @@ npx motionpr demo [options]
 
 Captures the bundled demonstration app (Halcyon Studio, a fictional design studio) twice — the
 baseline variant and a candidate with deliberate motion changes — compares them and opens the
-report. It needs Chromium (`npx motionpr install`) but no project and no config.
+report. It needs a browser (`npx motionpr install`, Chromium by default) but no project and no
+config.
 
 | Option                 | Description                                                         |
 | ---------------------- | ------------------------------------------------------------------- |
 | `-o, --output <dir>`   | Where to write the demo output (default: the system temp directory) |
 | `-s, --scenario <id>`  | Only some demo scenarios; repeatable                                |
+| `--browser <name>`     | `chromium` (default), `firefox` or `webkit`                         |
 | `--open` / `--no-open` | Open the report (default: when interactive)                         |
 
 ## The changes it contains
@@ -36,14 +38,18 @@ report. It needs Chromium (`npx motionpr install`) but no project and no config.
 | lenis-journal  | Lenis + GSAP      | Lenis `lerp` 0.1 → 0.06; ScrollTrigger parallax starts at "top 70%" |
 
 Every one of these is found, and nothing else is reported: the repository's end-to-end suite
-(`e2e/demo-expectations.spec.ts`) checks both. The result is 55 differences: 1 critical, 35
-warnings, 18 info and 1 uncertain. The comparison fails on purpose (an animation was removed,
+(`e2e/demo-expectations.spec.ts`) checks both, in Chromium, Firefox and WebKit. The result is 55
+differences in Chromium and Firefox: 1 critical, 35 warnings, 18 info and 1 uncertain. WebKit finds
+the same critical and warning differences and adds one to three informational notes that vary
+between runs: at its 30 fps, trigger latency and the Lenis scroll's curve shape are measured more
+coarsely. The comparison fails on purpose (an animation was removed,
 which is critical by default); `demo` itself exits `0`, and with `--json` it prints the `exitCode`
 that `run` would have returned (`1`).
 
 ```bash
 npx @erenthedeveloper0/motionpr@alpha demo                 # without installing anything
 npx motionpr demo -s navigation -s gsap-intro --no-open     # two scenarios, print the path
+npx motionpr demo --browser firefox                        # the same demo in Firefox
 ```
 
 The same report is published on the website: [demo report](https://erenthedeveloper0.github.io/motionpr/report/).

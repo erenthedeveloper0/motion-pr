@@ -5,14 +5,18 @@ description: Download, open and share the report a CI run produced.
 
 # Report artifacts
 
-`motionpr run` writes the report to `.motionpr/report/`:
+`motionpr run` writes one report per engine to `.motionpr/report/`:
 
 ```text
 .motionpr/report/
-├── index.html         the viewer with both captures and the comparison embedded
-├── comparison.json    the comparison result
-└── assets/            frames, screenshots and diff images
+├── index.html         every engine's report, with its result and counts
+└── chromium/          (and firefox/, webkit/ for the engines you ran)
+    ├── index.html     the viewer with both captures and the comparison embedded
+    ├── summary.json   the result the index lists
+    └── assets/        frames, screenshots and diff images
 ```
+
+The comparison itself (`comparison.json`) is in `.motionpr/comparison/<browser>/`.
 
 The generated workflow uploads that directory as the `motionpr-report` artifact on every run,
 including failed ones, and keeps it for 14 days.
@@ -21,10 +25,11 @@ including failed ones, and keeps it for 14 days.
 
 1. Open the workflow run in the **Actions** tab.
 2. Download **motionpr-report** under _Artifacts_ and unzip it.
-3. Open `index.html` in a browser.
+3. Open `index.html` in a browser, and pick an engine.
 
 The report is self-contained: it loads nothing from the network and works from `file://`. Keep
-`assets/` next to `index.html`.
+each engine's `assets/` next to its `index.html`. With a matrix of engines, each job uploads its
+own artifact (e.g. `motionpr-report-firefox`).
 
 ## What to look at
 

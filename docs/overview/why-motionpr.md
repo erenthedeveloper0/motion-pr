@@ -41,7 +41,7 @@ change how every screen feels without changing a single assertion in your test s
 
 MotionPR earns its place in projects where motion is designed: product sites, creative
 development, design systems with motion tokens, component libraries, and apps that use GSAP,
-Anime.js or Lenis heavily. It adds a Chromium run per scenario, so a handful of well-chosen
+Anime.js or Lenis heavily. It adds a browser run per scenario and engine, so a handful of well-chosen
 interactions (the menu, the dialog, the hero intro, the main scroll) usually covers what matters.
 
 ## When it is not
@@ -50,4 +50,5 @@ interactions (the menu, the dialog, the hero intro, the main scroll) usually cov
 - Motion is drawn on a `<canvas>` or in WebGL by your own loop. MotionPR only sees animations the
   browser or a supported engine exposes (see [Limitations](../advanced/limitations.md)), unless you
   write an [adapter](../advanced/custom-adapters.md).
-- You need Firefox or Safari behaviour. This release captures with Chromium only.
+- You need Safari itself, or a browser other than Playwright's Chromium, Firefox and WebKit
+  builds. WebKit is the engine behind Safari, not Safari (see [WebKit](../browsers/webkit.md)).

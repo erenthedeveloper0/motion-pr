@@ -14,7 +14,7 @@ reads their timing, keyframes and easing directly.
 | Install | nothing                                                                            |
 | Config  | nothing                                                                            |
 | Records | `type: "css-transition"` or `"css-animation"`, `source: "native"`, `driver: "css"` |
-| Status  | Verified in Chromium (capture engine browser tests and the demo app)               |
+| Status  | Verified in Chromium, Firefox and WebKit (capture engine browser tests, demo app)  |
 
 <!-- motionpr:engine-demo engine="css" -->
 

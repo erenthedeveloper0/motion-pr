@@ -58,5 +58,24 @@ To keep visual comparison useful:
    clocks and carousels, `visual.ignoreRegions` for fixed areas.
 3. Raise `visual.maxDiffRatio` a little, or turn the rule off: `comparison.severity: { visual: "off" }`.
 
+## Per engine
+
+Screenshots are compared within one engine: each engine has its own baseline, so a Firefox frame
+is compared with a Firefox frame. Within one engine, rendering is deterministic: MotionPR's tests
+capture the same build twice in Chromium, Firefox and WebKit and require byte-identical filmstrip
+frames and an `identical` settled screenshot. The default thresholds are the same for every
+engine for that reason; a threshold loose enough to hide engine differences would also hide real
+regressions.
+
+Screenshots are taken at the viewport's `deviceScaleFactor`, so a screenshot's size is the
+viewport times that factor. When two captures use different factors, their screenshots are
+`not-comparable` (the sizes differ) and the comparison adds `DEVICE_SCALE_FACTOR_DIFFERS`; they
+are never rescaled to look comparable.
+
+Between two engines (`compare --against`, `--cross-browser`), a changed settled screenshot is
+reported as `uncertain` with the engines named, never as a warning: engines rasterize text,
+borders and anti-aliasing differently, and the diff image is for investigating, not for failing
+a build. See [Cross-browser testing](../browsers/cross-browser-testing.md#comparing-two-engines).
+
 Inputs, textareas, selects and contenteditable regions are masked in every screenshot and frame by
 default (`privacy.maskInputs`). See [Privacy](../configuration/privacy.md).

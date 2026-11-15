@@ -48,15 +48,24 @@ Validates a raw config object and applies defaults. Returns a `ResolvedConfig`. 
 ### `captureProject(loaded, options?)`
 
 The `motionpr capture` behaviour: starts `webServer`s, runs all scenarios, writes the capture to
-`.motionpr/captures/<id>`, marks it latest and prunes old captures. Returns a `ProjectCapture`
-(`{ bundle, dir }`). `CaptureProjectOptions`: `scenarios`, `viewports`, `headless`, `debug`,
-`outputDir`, `webServer`, `signal`, `onEvent`, `serverLogger`, `onServers`.
+`.motionpr/captures/<browser>/<id>`, marks it that engine's latest and prunes old captures.
+Returns a `ProjectCapture` (`{ bundle, dir }`). `CaptureProjectOptions`: `browserName`,
+`scenarios`, `viewports`, `headless`, `debug`, `outputDir`, `webServer`, `signal`, `onEvent`,
+`serverLogger`, `onServers`.
+
+### `startProjectServers(loaded, options?)`
+
+Starts the configured web servers once (for several captures, e.g. one per engine) and returns
+`{ stop() }`, or `null` when none are configured or `enabled` is `false`. Pass
+`webServer: false` to `captureProject` while they run.
 
 ### `runCapture(options)`
 
 Lower level: captures with an already resolved config into `outputDir` without managing servers.
-`CaptureOptions`: `config`, `rootDir`, `outputDir`, `scenarios`, `viewports`, `headless`, `debug`,
-`signal`, `onEvent`, `id`, `browser` (reuse a Playwright `Browser`). Returns a `CaptureOutcome`.
+`CaptureOptions`: `config`, `rootDir`, `outputDir`, `browserName` (`chromium`, `firefox` or
+`webkit`; default `config.browser.name`), `scenarios`, `viewports`, `headless`, `debug`,
+`signal`, `onEvent`, `id`, `browser` (reuse a Playwright `Browser`; its engine is used, and a
+different `browserName` throws `BROWSER_MISMATCH`). Returns a `CaptureOutcome`.
 `onEvent` receives `CaptureEvent`s (`scenario:start`, `step`, `checkpoint`, `scenario:end`,
 `diagnostic`, `browser`, `debug`).
 
@@ -80,6 +89,11 @@ const result = await compareCaptures({
 `compareDirs` (`CompareDirsOptions`) reads both capture directories; `compareCaptures`
 (`CompareOptions`) takes loaded bundles. Both return a `ComparisonResult` and write
 `comparison.json` plus diff images when `outputDir` is set.
+
+Captures of two engines throw `BROWSER_MISMATCH` unless you pass `allowCrossBrowser: true`. The
+result then has `crossBrowser: true`, and changes of the kinds in `ENGINE_DEPENDENT_CHANGES`
+(`start`, `trajectory`, `size`, `keyframes` and the scroll kinds), visual changes and trigger
+latency are graded `uncertain`, unless `comparison.severity` sets their rule explicitly.
 
 ### `exitCodeFor(result)`
 
@@ -107,7 +121,43 @@ Starts `webServer` entries and waits for readiness; returns `{ urls, stop() }`.
 
 ### `installBrowsers(options?)`
 
-Runs the Chromium installation (`{ withDeps, onlyShell, force, dryRun }`); resolves to the exit code.
+Runs Playwright's installer for the given engines (`{ browsers, withDeps, onlyShell, force,
+dryRun }`; `browsers` defaults to `["chromium"]`); resolves to the exit code.
+
+### `launchBrowser(config, options?)` / `isBrowserInstalled(name, options?)`
+
+`launchBrowser` starts one engine (`{ browserName, headless }`, default `config.browser.name`)
+with the launch settings that belong to it, and throws `BROWSER_NOT_INSTALLED`,
+`BROWSER_DEPENDENCIES_MISSING` or `BROWSER_LAUNCH_FAILED` with an actionable hint; it never
+starts another engine instead. `isBrowserInstalled` tells whether Playwright's build of an
+engine is downloaded (for headless Chromium, the headless shell counts).
+
+## Browsers and storage
+
+| Export                                   | Description                                                                               |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `BROWSER_NAMES`                          | `["chromium", "firefox", "webkit"]`                                                       |
+| `BrowserName`                            | `"chromium" \| "firefox" \| "webkit"`                                                     |
+| `parseBrowserSelection(value, fallback)` | `--browser` values (names, comma lists, `all`) → `BrowserName[]`; throws on unknown names |
+| `browserPaths(paths, browser)`           | `BrowserPaths`: an engine's `baseline`, `captures`, `comparison` and `report` directories |
+| `resolveBaselineDir(paths, browser)`     | The engine's approved baseline (`{ dir, legacy }`), also in the 0.1 layout, or `null`     |
+| `BrowserCapabilities`                    | The type of `environment.capabilities`                                                    |
+| `ENGINE_DEPENDENT_CHANGES`               | Change kinds graded `uncertain` in a cross-browser comparison                             |
+
+```ts
+import {
+  browserPaths,
+  loadConfig,
+  parseBrowserSelection,
+  captureProject,
+} from "@erenthedeveloper0/motionpr";
+
+const loaded = await loadConfig();
+for (const browserName of parseBrowserSelection("all", loaded.config.browser.name)) {
+  const { dir } = await captureProject(loaded, { browserName });
+  console.log(browserName, dir, browserPaths(loaded.paths, browserName).baseline);
+}
+```
 
 ## Reading data
 
@@ -155,7 +205,8 @@ Window-relative interval of an `AnimationRecord` (`start`, `windowStart`, `windo
 
 Configuration: `MotionprConfig` (input), `ResolvedConfig` (with defaults), `ConfigContext`,
 `ConfigFactory`, `ScenarioConfig`, `Step`, `StepType`, `WebServerConfig`, `ViewportConfig`,
-`ComparisonConfig`, `SeverityRule`, `SeverityOverride`, `IgnoreRegion`.
+`ComparisonConfig`, `SeverityRule`, `SeverityOverride`, `IgnoreRegion`, `BrowserName`,
+`BrowserPaths`, `BrowserCapabilities`.
 
 Capture data: `CaptureBundle`, `ScenarioResult`, `Checkpoint`, `AnimationRecord`, `FrameSample`,
 `FilmstripFrame`, `ElementIdentity`, `EasingDescriptor`, `Timing`, `PropertyTrack`, `Diagnostic`.

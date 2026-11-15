@@ -13,7 +13,9 @@ and screenshots, `assets/<sha256 prefix>.png`). The JSON is validated with the s
 
 ```text
 CaptureBundle
-├─ environment, settings, configHash
+├─ environment                browser { name, version, headless, channel, userAgent }, platform,
+│                              arch, osRelease, node, playwright, ci, capabilities
+├─ settings, configHash
 ├─ assets: { "<id>.png": { file: "assets/<id>.png", width, height, bytes } }
 └─ scenarios[]: ScenarioResult
    ├─ adapters[]: AdapterStatus        (id, engineVersion, supportedRange, versionStatus, status, capabilities, diagnostics)
@@ -37,7 +39,9 @@ every field has a comment.
 
 ```text
 ComparisonResult
-├─ baseline, candidate        capture refs: id, createdAt, motionprVersion, browser, platform, configHash
+├─ baseline, candidate        capture refs: id, createdAt, motionprVersion, browser, browserName,
+│                              platform, configHash
+├─ crossBrowser               true when baseline and candidate come from different engines
 ├─ failOn, failOnUncertain
 ├─ summary                    status (passed | failed), highestSeverity, counts per severity,
 │                             scenario and animation counts
@@ -69,6 +73,12 @@ Readers accept older versions and migrate them in memory (`CAPTURE_MIGRATIONS`,
 `progressTrace` to animations, `timelines`, `scrollMotion` and `correlations` to checkpoints and
 `adapters` to scenarios; v1 files contain no such data, so the new collections start empty.
 Files newer than the installed MotionPR are rejected with an actionable error.
+
+MotionPR 0.2 added fields without changing the schema version, each with a default when it is
+missing: `environment.browser.channel` and `userAgent` (`null`), `environment.osRelease` and
+`environment.capabilities` (`null`), and in comparisons `browserName` (`"chromium"`, the only
+engine before 0.2) and `crossBrowser` (`false`). Captures and comparisons from 0.1 read
+unchanged; 0.1 ignores the new fields when it reads 0.2 files.
 
 ## Untrusted input
 

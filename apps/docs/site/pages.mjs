@@ -148,7 +148,7 @@ export function landingBody({ up, version, summary, engines }) {
       (text, i) =>
         `<span class="hero__line hero__line--${i + 1}"><span class="hero__words" data-hero="line">${escapeHtml(text)}</span></span>`,
     ).join("")}</h1>
-    <p class="hero__lede" data-hero="lede">MotionPR drives your app in Chromium, records every animation and scroll as data, compares it with an approved baseline, and opens a report where both versions play on one clock.</p>
+    <p class="hero__lede" data-hero="lede">MotionPR drives your app in Chromium, Firefox and WebKit, records every animation and scroll as data, compares it with an approved baseline, and opens a report where both versions play on one clock.</p>
     <div class="hero__actions" data-hero="actions">
       <a class="button" href="${up}docs/getting-started/installation/">Get started ${ICONS.arrow}</a>
       <a class="button button--ghost" href="${up}demo/">Open the interactive demo</a>
@@ -202,7 +202,7 @@ export function landingBody({ up, version, summary, engines }) {
   <div class="workflow__body">
     <div class="workflow__stage" aria-hidden="true"><div class="workflow__frame panel" data-workflow-stage></div></div>
     <ol class="workflow__steps">
-      <li class="workflow__step" data-step="capture"><p class="label">Step 1 · Capture</p><h3>Real input, in a real browser.</h3><p>MotionPR opens each scenario in Chromium, injects its agent before your scripts run, and drives the page with clicks, hovers, key presses and wheel events. Every CSS transition, CSS animation and Web Animation is discovered as it starts; GSAP, Anime.js and Lenis report through adapters.</p></li>
+      <li class="workflow__step" data-step="capture"><p class="label">Step 1 · Capture</p><h3>Real input, in a real browser.</h3><p>MotionPR opens each scenario in Chromium, Firefox or WebKit, injects its agent before your scripts run, and drives the page with clicks, hovers, key presses and wheel events. Every CSS transition, CSS animation and Web Animation is discovered as it starts; GSAP, Anime.js and Lenis report through adapters.</p></li>
       <li class="workflow__step" data-step="analyze"><p class="label">Step 2 · Analyze</p><h3>Replayed at exact times, not recorded.</h3><p>When motion settles, the window is replayed deterministically: native animations through paused clones, engines with callbacks muted. Computed styles, geometry and frames are sampled at chosen times, so the same build gives the same data on every run.</p></li>
       <li class="workflow__step" data-step="compare"><p class="label">Step 3 · Compare</p><h3>Matched by identity. Compared as curves.</h3><p>Records are paired across versions by element identity, type and name. Durations, delays, easing curves (65 samples each), staggers, trajectories, timelines, scroll metrics and settled pixels are compared, and every difference is graded by a named rule.</p></li>
       <li class="workflow__step" data-step="inspect"><p class="label">Step 4 · Inspect</p><h3>Both versions, one clock.</h3><p>The offline report plays baseline (blue) and candidate (peach) side by side, with each animation's delay, duration and easing on a shared timeline, and the largest deviation marked on the curve.</p></li>
@@ -269,7 +269,7 @@ export function landingBody({ up, version, summary, engines }) {
     </div>
     <figure class="terminal panel" data-component="terminal" aria-label="motionpr run output">
       <figcaption class="terminal__bar"><span class="label">npx motionpr run · real output, shortened</span></figcaption>
-<pre class="terminal__body"><code><span class="t-dim">◐ motionpr 0.1.0-alpha.1  ·  run</span>
+<pre class="terminal__body"><code><span class="t-dim">◐ motionpr 0.2.0-alpha  ·  run</span>
 
   <span class="t-dim">→</span> 1 scenario from motionpr.config.mjs
   <span class="t-dim">→</span> Web server ready at http://localhost:4173 (263 ms)

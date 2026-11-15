@@ -9,9 +9,11 @@ description: Open the report, find the change, and read it frame by frame.
 npx motionpr report --open
 ```
 
-The report is `.motionpr/report/index.html`: one self-contained HTML file plus an `assets/` folder
-of frames. It opens from disk (`file://`), needs no server and makes no network requests, so the
-same file works when you download it from a CI run.
+Each engine's report is `.motionpr/report/<browser>/index.html` (`report/chromium/` for the
+default engine): one self-contained HTML file plus an `assets/` folder of frames. It opens from
+disk (`file://`), needs no server and makes no network requests, so the same file works when you
+download it from a CI run. `.motionpr/report/index.html` lists every engine's report with its
+result; the report's top bar names the engine its captures were taken with.
 
 ![The MotionPR report for the demo app: scenario navigator, side-by-side stage, inspector and timeline](../images/report-overview.png)
 

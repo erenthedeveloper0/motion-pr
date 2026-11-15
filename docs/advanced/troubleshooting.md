@@ -11,28 +11,53 @@ Start with:
 npx motionpr doctor
 ```
 
-It checks Node.js, Chromium, the config, output-directory permissions, the baseline, your web
-server and every configured adapter, and prints a fix next to every problem.
+It checks Node.js, every browser engine, the config, output-directory permissions, the
+baselines, your web server and every configured adapter, and prints a fix next to every problem.
+`npx motionpr doctor --browser all` launches all three engines.
 
-## "Chromium for MotionPR is not installed"
+## "Chromium (or Firefox, or WebKit) for MotionPR is not installed"
 
 ```bash
-npx motionpr install
+npx motionpr install                 # the configured engine
+npx motionpr install firefox webkit  # the engines the message names
 ```
+
+MotionPR never runs another engine instead: nothing is captured until the requested engine is
+installed.
 
 Behind a proxy, set `HTTPS_PROXY`. To download from a mirror, set `PLAYWRIGHT_DOWNLOAD_HOST`. To
 install into a custom location (for example a CI cache), set `PLAYWRIGHT_BROWSERS_PATH`, both when
 installing and when running. To use an installed Chrome instead, set `browser.channel: "chrome"`
 or `browser.executablePath` (or the `MOTIONPR_BROWSER_PATH` environment variable).
 
-## Browser launch fails on Linux ("error while loading shared libraries")
+## Browser launch fails on Linux ("the system libraries it needs are missing")
 
 ```bash
-npx motionpr install --with-deps
+npx motionpr install --with-deps            # the configured engine
+npx motionpr install webkit --with-deps     # name the engine from the message
 ```
 
-This installs the system packages Chromium needs and requires root. In Docker, the official
-Playwright images (`mcr.microsoft.com/playwright`) already include them.
+This installs the system packages the engine needs and requires root. WebKit needs the most
+(GStreamer, libsoup, WOFF2 and others) and only Playwright's supported Ubuntu and Debian releases
+are covered. In Docker, the official Playwright images (`mcr.microsoft.com/playwright`) already
+include them for every engine.
+
+## "No approved firefox baseline" although a baseline exists
+
+Baselines are per engine. A Chromium baseline is never used for a Firefox run: approve the first
+Firefox capture with `npx motionpr baseline accept --browser firefox`. `npx motionpr baseline
+status` shows which engines have one.
+
+## "The baseline … was captured with Chromium, the candidate with Firefox"
+
+`compare` refuses captures from two engines (`BROWSER_MISMATCH`). Compare each engine with its own
+baseline, or add `--cross-browser` (or `--against <browser>`) to compare engines on purpose.
+
+## Firefox or WebKit start times look coarse
+
+Both report time in 1 ms steps, and headless WebKit on macOS renders at 30 fps. Captures note it
+(`COARSE_TIMERS`, `LOW_FRAME_RATE`); start offsets are compared with a two-frame tolerance. See
+[Browser support](../browsers/support.md#how-the-engines-differ).
 
 ## "Something is already serving http://localhost:3000"
 

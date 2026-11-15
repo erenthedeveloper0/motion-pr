@@ -52,7 +52,8 @@ In scope:
 - the published package shipping something it should not.
 
 Out of scope: your own `motionpr.config.ts` and scenarios, which are code you run on purpose;
-vulnerabilities in your application that MotionPR merely loads; Chromium itself.
+vulnerabilities in your application that MotionPR merely loads; the browsers themselves
+(Chromium, Firefox, WebKit).
 
 ## Design notes
 

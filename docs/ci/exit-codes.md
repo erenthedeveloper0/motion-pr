@@ -15,15 +15,21 @@ description: When motionpr exits 0, 1, 2, 130 or 143, and how to change it.
 
 ## How `run` decides
 
-| Situation                                             | Exit code                              |
-| ----------------------------------------------------- | -------------------------------------- |
-| No difference at or above `failOn`                    | `0`                                    |
-| A difference at or above `failOn`                     | `1`                                    |
-| `failOnUncertain: true` and an uncertain difference   | `1`                                    |
-| A scenario failed in the candidate                    | `1` (`scenario-failed` is critical)    |
-| No baseline, locally                                  | `0`, with a capture-only report        |
-| No baseline, in CI                                    | `2`, unless `--allow-missing-baseline` |
-| Invalid config, browser missing, server did not start | `2`                                    |
+| Situation                                             | Exit code                                                        |
+| ----------------------------------------------------- | ---------------------------------------------------------------- |
+| No difference at or above `failOn`                    | `0`                                                              |
+| A difference at or above `failOn`                     | `1`                                                              |
+| `failOnUncertain: true` and an uncertain difference   | `1`                                                              |
+| A scenario failed in the candidate                    | `1` (`scenario-failed` is critical)                              |
+| No baseline, locally                                  | `0`, with a capture-only report                                  |
+| No baseline, in CI                                    | `2`, unless `--allow-missing-baseline`                           |
+| Invalid config, browser missing, server did not start | `2`                                                              |
+| Unknown `--browser` name                              | `2`                                                              |
+| Baseline and candidate from different engines         | `2` (`BROWSER_MISMATCH`), unless `--against` / `--cross-browser` |
+
+With several engines (`--browser all`), the run's exit code combines theirs: `2` if any engine
+could not run (or, in CI, had no baseline), otherwise `1` if any engine exceeded `failOn`,
+otherwise `0`. An engine that fails to launch does not stop the others.
 
 `motionpr capture` exits `2` when any scenario failed. `motionpr baseline accept` exits `2` when
 it refuses to replace a baseline without `--yes`.

@@ -9,12 +9,12 @@ Animations created with `element.animate()` are recorded without setup. MotionPR
 `Element.prototype.animate` before your scripts run, so it sees each animation the moment it is
 created, and it also finds them through `document.getAnimations()`.
 
-|         |                                                                            |
-| ------- | -------------------------------------------------------------------------- |
-| Install | nothing                                                                    |
-| Config  | nothing                                                                    |
-| Records | `type: "web-animation"`, `source: "native"`, `driver: "waapi"`             |
-| Status  | Verified in Chromium, including `animate()` and reused `Animation` objects |
+|         |                                                                                |
+| ------- | ------------------------------------------------------------------------------ |
+| Install | nothing                                                                        |
+| Config  | nothing                                                                        |
+| Records | `type: "web-animation"`, `source: "native"`, `driver: "waapi"`                 |
+| Status  | Verified in Chromium, Firefox and WebKit, including reused `Animation` objects |
 
 <!-- motionpr:engine-demo engine="waapi" -->
 

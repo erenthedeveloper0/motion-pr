@@ -11,7 +11,9 @@ private objects. MotionPR therefore instruments Anime.js **explicitly, when anim
 created**, using public APIs only.
 
 **Status:** supported. Tested against Anime.js **4.5.0**; versions outside `>=4.0.0 <5.0.0` are
-reported as _untested_. Anime.js v3 (`anime({ targets, … })`) is **not** supported.
+reported as _untested_. Anime.js v3 (`anime({ targets, … })`) is **not** supported. The
+adapter's browser tests (timelines, staggers, custom eases, WAAPI animations recorded once) pass in
+Chromium, Firefox and WebKit.
 
 |         |                                                                                                                                                                                                        |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

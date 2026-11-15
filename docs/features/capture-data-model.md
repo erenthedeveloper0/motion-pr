@@ -23,6 +23,52 @@ CaptureBundle                    schemaVersion 2, motionprVersion, environment, 
       └─ screenshot              settled state, used for visual comparison
 ```
 
+## Environment
+
+Every capture records where it was taken, as the browser and the system report it at runtime
+(never copied from the configuration). This is the `environment` of a real Firefox capture of the
+demo app:
+
+```json
+{
+  "browser": {
+    "name": "firefox",
+    "version": "159.0",
+    "headless": true,
+    "channel": null,
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:159.0) Gecko/20100101 Firefox/159.0"
+  },
+  "platform": "darwin",
+  "arch": "arm64",
+  "osRelease": "25.5.0",
+  "node": "v24.21.0",
+  "playwright": "1.65.0",
+  "ci": false,
+  "capabilities": {
+    "documentGetAnimations": true,
+    "elementAnimate": true,
+    "cssTransitionInterface": true,
+    "cssAnimationInterface": true,
+    "transitionRunEvent": true,
+    "pseudoElementEffects": true,
+    "scrollTimeline": true,
+    "viewTimeline": true,
+    "timerResolutionMs": 1,
+    "frameIntervalMs": 16.66,
+    "devicePixelRatio": 1,
+    "prefersReducedMotion": false
+  }
+}
+```
+
+`capabilities` are measured in the first captured page: the Web Animations features MotionPR
+relies on, the smallest step of `performance.now()` and the median frame interval. They explain
+how precisely live observations could be made in that engine (see
+[Browser support](../browsers/support.md#how-the-engines-differ)); captures that lack a required
+feature get a `BROWSER_API_MISSING` error. `settings` holds the colour scheme, locale, time zone,
+reduced-motion setting and sampling options; each scenario holds its viewport and device scale
+factor. Captures written before 0.2 have `capabilities: null`.
+
 ## AnimationRecord
 
 One element animated over time. This is the record of the menu from

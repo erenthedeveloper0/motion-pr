@@ -13,7 +13,8 @@ from inside your page.
 reports versions outside `>=3.12.0 <4.0.0` as _untested_ (it still runs). ScrollTrigger-driven
 animations cannot be replayed (their progress follows scroll); MotionPR records their timing,
 observes their progress live and compares it against recorded scroll motion (see
-[Combining adapters](combining-adapters.md)).
+[Combining adapters](combining-adapters.md)). The adapter's browser tests and the demo app's GSAP
+and ScrollTrigger scenarios pass in Chromium, Firefox and WebKit.
 
 |         |                                                                                                           |
 | ------- | --------------------------------------------------------------------------------------------------------- |

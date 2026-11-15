@@ -49,6 +49,16 @@ export const NAV = [
     ],
   },
   {
+    title: "Browsers",
+    pages: [
+      ["browsers/support.md", "Browser support"],
+      ["browsers/cross-browser-testing.md", "Cross-browser testing"],
+      ["browsers/chromium.md", "Chromium"],
+      ["browsers/firefox.md", "Firefox"],
+      ["browsers/webkit.md", "WebKit"],
+    ],
+  },
+  {
     title: "CLI",
     pages: [
       ["cli/overview.md", "Overview"],
