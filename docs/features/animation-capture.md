@@ -32,8 +32,10 @@ list. They report through **adapters** in your page: [GSAP](../integrations/gsap
 
 Each `capture` step closes a window that opened at the previous checkpoint (or at page load).
 Its origin, `t = 0`, is the first motion after the first interaction in it: the earliest
-animation start, or the first frame of scroll movement. The time from the input event to that
-first motion is recorded as **latency** (the tutorial's menu: 11.2 ms).
+animation start, or the first frame of scroll movement. The time from the interaction that caused
+it (the last one before the motion, e.g. the click after a `scrollIntoView` and a
+`waitForAnimations`) to that first motion is recorded as **latency** (the tutorial's menu:
+11.2 ms), and that interaction is the checkpoint's `window.trigger`.
 
 - Animations that started **before** the interaction (a page-load spinner) belong to the previous
   state. They are excluded, and the checkpoint gets a `PRE_TRIGGER_ANIMATIONS` note saying how

@@ -27,15 +27,15 @@ description: Browsers, runtimes, engines and platforms MotionPR is tested with, 
 The browser suites run once per engine (`MOTIONPR_TEST_BROWSER=firefox pnpm test:integration`);
 CI runs Chromium in the main job and Firefox and WebKit in a matrix.
 
-| Suite                                                           | Chromium | Firefox | WebKit |
-| --------------------------------------------------------------- | -------: | ------: | -----: |
-| Capture engine                                                  |       14 |      14 |     14 |
-| Engine edge cases (transitions, animations, WAAPI, determinism) |       13 |      13 |     13 |
-| GSAP adapter                                                    |       10 |      10 |     10 |
-| Anime.js adapter                                                |       22 |      22 |     22 |
-| Lenis adapter                                                   |       15 |      15 |     15 |
-| CLI end to end                                                  |       15 |      12 |     12 |
-| Demo app: every intended change, nothing else (e2e)             |       15 |      15 |     15 |
+| Suite                                                                                  | Chromium | Firefox | WebKit |
+| -------------------------------------------------------------------------------------- | -------: | ------: | -----: |
+| Capture engine                                                                         |       14 |      14 |     14 |
+| Engine edge cases (transitions, animations, WAAPI, latency, scroll start, determinism) |       15 |      15 |     15 |
+| GSAP adapter                                                                           |       10 |      10 |     10 |
+| Anime.js adapter                                                                       |       22 |      22 |     22 |
+| Lenis adapter                                                                          |       15 |      15 |     15 |
+| CLI end to end                                                                         |       15 |      12 |     12 |
+| Demo app: every intended change, nothing else (e2e)                                    |       15 |      15 |     15 |
 
 The three CLI tests that only Chromium's run lists start all three engines in one project; they
 run once, in the main CI job, where every engine is installed.

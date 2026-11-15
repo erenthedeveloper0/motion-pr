@@ -98,7 +98,11 @@ export function scrollMetrics(record: ScrollMotionRecord, config: ComparisonConf
   const t1 = s[last]!.time;
   const duration = Math.max(0, t1 - t0);
   const moving = s.slice(first, last + 1);
-  const v = velocities(moving);
+  // Velocities come from samples observed while moving. The rest sample before the first move is
+  // re-stamped to the window origin, so how long the first move took is unknown: in headless
+  // WebKit (30 fps) a whole frame's jump can sit 1 ms after it, which read as a peak twice the
+  // real one and made the same build's peak velocity differ by 90% between runs.
+  const v = velocities(moving.slice(1));
   let peak = 0;
   let peakAt: number | null = null;
   for (const p of v) {

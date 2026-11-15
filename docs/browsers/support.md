@@ -96,8 +96,12 @@ are listed so that you can read captures from each engine correctly.
 
 Two problems these differences exposed were fixed for every engine: replay now seeks clones
 in window-relative time rounded to 1 µs (Firefox resolved times that landed a hair below a
-`steps()` boundary to the previous step), and scroll velocities are derived over at least 12 ms
-(two Lenis samples 1 ms apart on a 1 ms timer once read as "78 px/ms").
+`steps()` boundary to the previous step), and scroll velocities are derived between samples
+observed while moving, over at least 12 ms (two Lenis samples 1 ms apart on a 1 ms timer once
+read as "78 px/ms", and the first frame of a 30 fps WebKit scroll was timed from a re-stamped
+rest sample). The demo app's slower Lenis `lerp` now reads as a 30–36% lower peak in every
+engine. Trigger latency is measured from the interaction that caused the motion, and a scroll
+whose last still and first moved samples share a millisecond still starts from its rest position.
 
 ## Unsupported and untested
 

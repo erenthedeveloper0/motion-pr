@@ -5,8 +5,8 @@
  * fill-forwards originals leaking into replay.)
  */
 import { describe, expect, it } from "vitest";
-import { compareMatchedAnimation, matchAnimations } from "../src/index.ts";
-import { anim, config } from "./helpers.ts";
+import { compareCaptures, compareMatchedAnimation, matchAnimations } from "../src/index.ts";
+import { anim, bundle, checkpoint, config, scenario } from "./helpers.ts";
 
 const pair = (b: ReturnType<typeof anim>, c: ReturnType<typeof anim>) =>
   compareMatchedAnimation(
@@ -86,6 +86,38 @@ describe("regressions", () => {
     slower.meta = { ...slower.meta, canceled: true };
     expect(pair(b, slower).changes.find((x) => x.kind === "duration")!.severity).not.toBe(
       "uncertain",
+    );
+  });
+
+  it("compares trigger latency only when both captures measured it from the same interaction (was: a 0.1 baseline measured from an earlier step)", async () => {
+    const window = (step: number, type: "click" | "scroll", latency: number) => ({
+      origin: "trigger" as const,
+      trigger: { step, type, event: type },
+      latency,
+      end: 600,
+      capped: false,
+    });
+    const run = async (b: ReturnType<typeof window>, c: ReturnType<typeof window>) =>
+      compareCaptures({
+        baseline: {
+          dir: "/nonexistent",
+          bundle: bundle([scenario("s", [checkpoint("x", [anim()], { window: b })])]),
+        },
+        candidate: {
+          dir: "/nonexistent",
+          bundle: bundle([scenario("s", [checkpoint("x", [anim()], { window: c })])]),
+        },
+        config: config(),
+      });
+    // 0.1 measured "scrollIntoView, waitForAnimations, click" from the scroll (step 0); 0.2 from
+    // the click (step 2). Not comparable, so no "Motion begins … sooner" finding.
+    const upgraded = await run(window(0, "scroll", 190), window(2, "click", 12));
+    expect(upgraded.differences.filter((d) => /Motion begins/.test(d.title))).toEqual([]);
+    expect(upgraded.scenarios[0]!.checkpoints[0]!.latency).toBeNull();
+    // The same interaction still compares: a real 150 ms delay before the motion is reported.
+    const slower = await run(window(2, "click", 12), window(2, "click", 162));
+    expect(slower.differences.map((d) => `${d.severity}: ${d.title}`)).toContain(
+      "warning: Motion begins 150ms later after the interaction",
     );
   });
 });

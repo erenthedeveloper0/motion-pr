@@ -64,7 +64,8 @@ delay changes it explains.
 Scenarios and checkpoints that appear or disappear are differences too (`scenario-added`,
 `scenario-removed`, `checkpoint-added`, `checkpoint-removed`), and a scenario that failed in the
 candidate is critical (`scenario-failed`). The latency between the trigger and the first motion is
-compared within `timing.startToleranceMs`.
+compared within `timing.startToleranceMs`, when both captures name the same trigger (step and
+kind).
 
 ## Measurement labels
 

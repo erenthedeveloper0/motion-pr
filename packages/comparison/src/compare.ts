@@ -472,7 +472,13 @@ async function compareCheckpoint(
   }
 
   let latency: CheckpointComparison["latency"] = null;
-  if (b.window.latency !== null && c.window.latency !== null) {
+  // Latency is only comparable when both captures measured it from the same interaction (step
+  // and kind). Captures before 0.2 measured it from the window's first interaction, not the one
+  // that caused the motion, so a baseline from then may name another step.
+  const bt = b.window.trigger;
+  const ct = c.window.trigger;
+  const sameTrigger = !bt || !ct || (bt.step === ct.step && bt.type === ct.type);
+  if (b.window.latency !== null && c.window.latency !== null && sameTrigger) {
     const delta = Math.round((c.window.latency - b.window.latency) * 10) / 10;
     latency = { baseline: b.window.latency, candidate: c.window.latency, delta };
     const computed = timingSeverity(

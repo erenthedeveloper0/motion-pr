@@ -260,6 +260,101 @@ describe(`Web Animations (${TEST_BROWSER})`, () => {
   });
 });
 
+describe(`trigger latency (${TEST_BROWSER})`, () => {
+  it("is measured from the interaction that caused the motion, not the window's first step", async () => {
+    // Regression: "scroll, waitForAnimations, click" measured latency from the scroll, so it
+    // included the settle wait; on a loaded CI runner two runs of one build differed by 128 ms.
+    const config = resolveConfig({
+      baseURL: server.url,
+      browser: { viewport: { width: 800, height: 600 } },
+      capture: { samples: 4, waitForNetworkIdle: false, frames: { enabled: false } },
+      scenarios: [
+        {
+          id: "latency",
+          path: "/engines.html",
+          steps: [
+            { type: "scroll", y: 40 },
+            { type: "waitForAnimations" },
+            { type: "click", selector: "[data-testid=transitions]" },
+            { type: "capture", label: "after" },
+          ],
+        },
+      ],
+    });
+    const { bundle } = await runCapture({
+      config,
+      rootDir: workDir,
+      outputDir: join(workDir, `run-${++n}`),
+      browser,
+    });
+    const cp = bundle.scenarios[0]!.checkpoints[0]!;
+    expect(cp.window.trigger).toMatchObject({ step: 2, type: "click", event: "click" });
+    expect(cp.window.latency).not.toBeNull();
+    // About one frame between the click and the transitions' start (33 ms in headless WebKit).
+    expect(cp.window.latency!).toBeLessThan(100);
+    expect(cp.animations.some((a) => a.id === "test-id:multi::css-transition::transform")).toBe(
+      true,
+    );
+  });
+});
+
+describe(`scroll track start (${TEST_BROWSER})`, () => {
+  it("starts from the rest position when the last still and first moved samples share a timestamp", async () => {
+    // Regression: with 1 ms timers, Lenis in WebKit emitted a still event and the first moving
+    // one in the same millisecond; the moved one was kept as the "rest" sample, so the same
+    // build's scroll seemed to start a frame's distance (87 px) later.
+    const { AGENT_SOURCE } = await import("../src/index.ts");
+    const context = await browser.newContext();
+    await context.addInitScript({ content: AGENT_SOURCE });
+    const page = await context.newPage();
+    await page.goto(`${server.url}/engines.html`);
+    const first = await page.evaluate(() => {
+      const agent = window.__MOTIONPR_AGENT__!;
+      agent.openWindow();
+      const t0 = performance.now();
+      agent.beginStep(0, "scroll-motion");
+      const state = (y: number) => ({
+        actualScroll: y,
+        animatedScroll: y,
+        targetScroll: 400,
+        progress: y / 1000,
+        velocity: 0,
+        direction: 1,
+        isScrolling: "smooth" as const,
+        isStopped: false,
+        limit: 1000,
+      });
+      const samples = [
+        { t: t0 - 5, ...state(100) },
+        { t: t0 + 20, ...state(100) },
+        { t: t0 + 20, ...state(220) },
+        { t: t0 + 53, ...state(330) },
+        { t: t0 + 86, ...state(400) },
+      ];
+      agent.registerAdapter({
+        name: "scroll-test",
+        collect: () => [],
+        collectScroll: () => [
+          {
+            sessionId: "s1",
+            axis: "vertical",
+            wrapper: null,
+            config: {},
+            prefersReducedMotion: false,
+            samples,
+            events: samples.length,
+          },
+        ],
+      });
+      const track = agent.collect().scrollTracks.find((x) => x.sessionId === "s1")!;
+      return track.samples.slice(0, 2).map((x) => [x.time, x.animatedScroll]);
+    });
+    expect(first[0]).toEqual([0, 100]);
+    expect(first[1]![1]).toBe(220);
+    await context.close();
+  });
+});
+
 describe(`same-engine determinism (${TEST_BROWSER})`, () => {
   // The scenario's motion is started by the click alone. (An app that cancels or reverses motion
   // on a wall-clock timer behaves differently under load; see the cancelled-animation tests and

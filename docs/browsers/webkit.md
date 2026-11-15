@@ -70,7 +70,8 @@ tighter start-offset checks, keep them for Chromium and Firefox.
 ## Known differences
 
 - **30 fps headless** (macOS): see above. A WebKit scroll is sampled about half as often as in
-  Chromium; peak velocities are derived over whole frames, so they stay comparable within WebKit.
+  Chromium; peak velocities are derived between moving samples at least 12 ms apart, so they
+  stay comparable within WebKit and close to the other engines'.
 - **Easing evaluation:** WebKit's `cubic-bezier()` solver lands up to about 0.02 px from
   Chromium's near the endpoints; within WebKit it is deterministic.
 - **Sample serialization:** computed `matrix()` values have six decimals instead of Chromium's

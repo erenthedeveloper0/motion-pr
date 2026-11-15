@@ -769,19 +769,26 @@ export function installAgent(win: Window & typeof globalThis): void {
           : Math.min(animationStart, firstScrollMove);
     let origin: WindowOrigin;
     if (trigger) {
+      // The interaction that caused the motion is the last one at or before it, not the window's
+      // first: in "scrollIntoView, waitForAnimations, click" the click reveals the content, and
+      // measuring from the scroll would add the settle wait (and its jitter) to the latency.
+      // Engines may backdate a start slightly (Anime.js advances new animations by 12 ms), so the
+      // same one-frame tolerance as the pre-trigger filter applies.
+      const cause =
+        motionStart === null
+          ? trigger
+          : (triggers.findLast((t) => t.time <= motionStart + 17) ?? trigger);
       origin = {
         kind: "trigger",
         time: motionStart ?? trigger.time,
         trigger: {
-          step: trigger.step,
-          type: trigger.type,
-          ...(trigger.event ? { event: trigger.event } : {}),
+          step: cause.step,
+          type: cause.type,
+          ...(cause.event ? { event: cause.event } : {}),
         },
-        // Engines may backdate a start slightly (Anime.js advances new animations by 12 ms), so
-        // the same one-frame tolerance as the pre-trigger filter applies.
         latency:
-          motionStart !== null && motionStart >= trigger.time - 17
-            ? round3(Math.max(0, motionStart - trigger.time))
+          motionStart !== null && motionStart >= cause.time - 17
+            ? round3(Math.max(0, motionStart - cause.time))
             : null,
       };
     } else {
@@ -798,10 +805,19 @@ export function installAgent(win: Window & typeof globalThis): void {
       if (tl.startTime !== null) tl.startTime = round3(tl.startTime - origin.time);
     let scrollEnd = 0;
     for (const track of scrollTracks) {
-      // Keep the last still sample before the window origin so curves start from rest.
+      // Keep the last still sample before the window origin so curves start from rest, and never
+      // one after the movement began: with 1 ms timers (Firefox, WebKit) the last still sample
+      // and the first moved one can share a timestamp, and keeping the moved one dropped the
+      // rest position (the scroll then seemed to start a frame's distance later).
+      let firstMoved = track.samples.length;
+      for (let i = 1; i < track.samples.length; i++) {
+        if (moved(track.samples[i]!, track.samples[i - 1]!)) {
+          firstMoved = i;
+          break;
+        }
+      }
       let firstKept = 0;
-      for (let i = 0; i < track.samples.length; i++)
-        if (track.samples[i]!.time <= origin.time) firstKept = i;
+      for (let i = 0; i < firstMoved; i++) if (track.samples[i]!.time <= origin.time) firstKept = i;
       // The kept rest sample is re-stamped to the origin: the scroller sat still until then.
       track.samples = track.samples.slice(firstKept).map((sample) => ({
         ...sample,

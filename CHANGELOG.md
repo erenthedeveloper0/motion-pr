@@ -67,8 +67,9 @@ so 0.1 captures and comparisons read unchanged.
 - Terminal output, Markdown summaries and the report's top bar name the engine of each capture.
 - `--browser` has no built-in default any more: it falls back to `MOTIONPR_BROWSER`, then to
   `browser.name`.
-- Scroll peak velocity is derived over intervals of at least 12 ms. Comparisons of existing
-  Chromium captures can report slightly different velocity figures (captures are unchanged).
+- Scroll peak velocity is derived between samples observed while the scroller moves, over
+  intervals of at least 12 ms. Comparisons of existing Chromium captures can report slightly
+  different velocity figures (captures are unchanged).
 
 ### Fixed
 
@@ -83,9 +84,20 @@ so 0.1 captures and comparisons read unchanged.
   ease-out, a few pixels short of the destination; stillness is now judged by the drift over the
   still period.
 - Peak scroll velocities derived from two samples 1 ms apart (1 ms timers in Firefox and WebKit)
-  reached implausible values ("78 px/ms").
+  reached implausible values ("78 px/ms"), and timing the first move from the re-stamped rest
+  sample made the same build's peak velocity differ by up to 90% between WebKit runs.
+- With 1 ms timers, a scroller's last still sample and first moved sample can share a timestamp
+  (Lenis in WebKit emits both in one millisecond). The moved one was kept as the rest position, so
+  the same build's scroll seemed to start a frame's distance later (a false "Scroll starts at"
+  warning, 87 px in the demo). The rest sample is now always one from before the movement.
 - Firefox returns keyframe offsets in single precision (`0.4000000059604645`); offsets are rounded
   to 6 decimals.
+- Trigger latency was measured from a checkpoint window's first interaction instead of the one
+  that caused the motion. In "scrollIntoView, waitForAnimations, click" it included the settle wait,
+  so two runs of the same build could differ by over 100 ms on a loaded machine (seen in WebKit on
+  CI). It is now measured from the last interaction before the motion, which is also the recorded
+  `window.trigger`. Latencies are compared only when both captures name the same trigger, so
+  baselines from 0.1 do not report a latency change.
 - Sampled path and end-value differences of an animation the app cancelled mid-way were graded
   like any other; where a cancelled animation stopped depends on when the cancel ran (a timer under
   load), so they are now `uncertain`. Declared timing changes stay definite.

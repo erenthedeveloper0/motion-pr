@@ -14,7 +14,8 @@ const result = await build({
   bundle: true,
   format: "iife",
   platform: "browser",
-  target: ["chrome110"],
+  // The agent runs in all three engines (Playwright's builds are far newer than these floors).
+  target: ["chrome110", "firefox115", "safari16"],
   write: false,
   minify: false,
   legalComments: "none",
