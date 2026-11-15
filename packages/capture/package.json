@@ -1,6 +1,6 @@
 {
   "name": "@motionpr/capture",
-  "version": "0.1.0-alpha.1",
+  "version": "0.2.0-alpha",
   "private": true,
   "description": "MotionPR capture engine: Playwright scenario runner and in-page animation agent.",
   "type": "module",

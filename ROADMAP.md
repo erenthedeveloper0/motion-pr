@@ -1,8 +1,16 @@
 # Roadmap
 
-What comes after `0.1.0-alpha`, roughly in order. Nothing here is built yet; what is built is in
-[the README's Status section](README.md#status) and [Limitations](docs/advanced/limitations.md).
-Order changes with what users run into; open an issue to argue for something.
+What comes after `0.2.0-alpha`, roughly in order. Nothing under "Towards a beta" or "Later" is
+built yet; what is built is in [the changelog](CHANGELOG.md) and
+[Limitations](docs/advanced/limitations.md). Order changes with what users run into; open an
+issue to argue for something.
+
+## Done
+
+- **Firefox and WebKit captures, with per-browser baselines** (`0.2.0-alpha`). Chromium, Firefox
+  and WebKit through one capture pipeline; baselines, captures, comparisons and reports per
+  engine; `--browser all`; explicit cross-browser comparison; every browser suite and the demo
+  app's expectations run in each engine. See [Browser support](docs/browsers/support.md).
 
 ## Towards a beta
 
@@ -19,7 +27,8 @@ Order changes with what users run into; open an issue to argue for something.
 
 ## Later
 
-- Firefox and WebKit captures, with per-browser baselines.
+- Engines in parallel within one `--browser all` run (today they run one after another; a CI
+  matrix runs them in parallel).
 - Comparing against the base branch as a first-class `motionpr run` mode, not a workflow recipe.
 - Report deep links (open a report at a scenario, checkpoint and time).
 - Smaller captures: an optional compact JSON format for large suites.
