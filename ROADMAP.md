@@ -7,6 +7,11 @@ issue to argue for something.
 
 ## Done
 
+- **Nested native scroll containers** (unreleased, after `0.3.0-alpha`). The scroll motion of
+  overflow containers is recorded from where they rested, compared and waited for like the
+  document's, whether a step or the page scrolls them; `wheel` steps take a `selector` to scroll
+  the container under it (`scrollTo` already had one). Containers in shadow roots and iframes are
+  not recorded yet. See [Scenarios](docs/configuration/scenarios.md#scroll-motion).
 - **Stable ScrollTrigger positions under native smooth scrolling** (unreleased, after
   `0.3.0-alpha`). Where a ScrollTrigger animation runs in the scroll is compared from the
   `start`/`end` positions ScrollTrigger resolved, and its `scrub` and `toggleActions` as scroll
@@ -29,10 +34,9 @@ issue to argue for something.
 
 1. **Example projects.** Small, runnable projects (plain HTML, React with GSAP, Astro with Lenis)
    with their scenarios and committed baselines, tested in CI like the demo app.
-2. **Nested native scroll containers.** Record scroll motion of overflow containers, not only the
-   document scroller, and let `scrollTo`/`wheel` steps target them.
-3. **Shadow DOM.** Selectors that pierce shadow roots for replay, with browser tests.
-4. **Adapter protocol 2.** Freeze the adapter contract for custom engines before `1.0`, with a
+2. **Shadow DOM.** Selectors that pierce shadow roots for replay, with browser tests, and scroll
+   containers inside shadow roots.
+3. **Adapter protocol 2.** Freeze the adapter contract for custom engines before `1.0`, with a
    conformance suite adapters can run.
 
 ## Later

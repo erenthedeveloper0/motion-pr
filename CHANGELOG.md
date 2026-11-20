@@ -10,8 +10,11 @@ prerelease may change the capture format or the API, and every such change is li
 Where a GSAP ScrollTrigger animation runs in the scroll is compared from the `start` and `end`
 positions ScrollTrigger resolved, so two runs of one build agree in every engine, also under
 native smooth scrolling (roadmap: stable ScrollTrigger positions under native smooth scrolling).
-Capture schema and comparison schema stay at version 2, and the adapter protocol at 1: the new
-field is optional, so 0.3 captures and custom adapters work unchanged.
+The scroll motion of native scroll containers is recorded, compared and waited for like the
+document's, and `wheel` steps can point at an element (roadmap: nested native scroll
+containers). Capture schema and comparison schema stay at version 2, and the adapter protocol at
+1: the new fields are optional or have defaults, so 0.3 captures and custom adapters work
+unchanged.
 
 ### Added
 
@@ -33,6 +36,29 @@ field is optional, so 0.3 captures and custom adapters work unchanged.
 - Browser tests in Chromium, Firefox and WebKit (recorded positions, two runs of one build with no
   finding at all, a moved start, `scrub` and `toggleActions` changes, a ScrollTrigger in a scroll
   container) and unit tests for the comparison and the schema.
+- **Scroll containers.** Overflow elements that scroll get a `ScrollMotionRecord` each
+  (`native:test-id:feed:vertical`, `sessionId: "container"`, the container as `wrapper`, its
+  `scrollBehavior` and `scrollSnapType` as options), whether a step scrolls them (`scrollTo` with
+  `selector`, `wheel`) or the page does (a carousel's "next" button, a chat log scrolling to its
+  newest message). Before each interaction and when a window opens, the agent notes where every
+  container rests (about 1 ms per 1,000 elements), so records start from rest; movement comes
+  from the containers' scroll events, with no per-frame layout reads. A container that a scroll
+  engine already records (a Lenis `wrapper`) is not recorded twice, and containers matched by
+  `ignore.selectors` are skipped. Instant `scroll` steps stay state changes.
+- **Settling waits for containers.** `waitForScrollSettled` and the settle before a checkpoint
+  wait for every container that moved in the window or that a `scrollTo` step is scrolling.
+- **`wheel` over an element.** `selector` puts the pointer at the centre of the element's visible
+  part first (`position` is then relative to its top-left corner), so the wheel scrolls that
+  container, or the Lenis instance whose `wrapper` it is. The step fails with a message when the
+  element is outside the viewport (_wheel: … is outside the viewport at (116, 1000). Bring it
+  into view first, e.g. with a scrollIntoView step._) or covered by another element.
+- `capture.scrollContainers` (default `true`; `false` records the document scroller only) and
+  `settings.scrollContainers` in captures, which reads as `false` for older captures.
+- Browser tests in Chromium, Firefox and WebKit (a `scrollTo` and a `wheel` step in a container,
+  page-driven motion, a container that begins to overflow during the window, two containers in
+  one scenario, instant positioning, `ignore.selectors`, the opt-out, refused `wheel` points, two
+  runs of one build, a changed destination and snapping, a baseline without containers), a Lenis
+  test with a `wrapper`, and unit tests for the comparison and the schema.
 
 ### Changed
 
@@ -44,6 +70,25 @@ field is optional, so 0.3 captures and custom adapters work unchanged.
   4268px (+240px)_, the same in all three engines, instead of as a progress difference.
 - The GSAP adapter's info diagnostic `GSAP_SCROLLTRIGGER_OBSERVED` mentions the recorded
   positions.
+- A scroll container recorded in only one capture is `uncertain` instead of a `warning`
+  (`scroll-added`) or `critical` (`scroll-removed`) when the other capture could not record it:
+  _… The baseline was captured without scroll-container recording (MotionPR 0.3.0-alpha or
+  earlier, or capture.scrollContainers: false), so this is uncertain; capture it again to compare
+  this scroller._ A severity set for the rule still applies.
+- Easing-curve and peak-velocity differences of a native scroll whose positions reached the page
+  unevenly (some frames without a new position, others with two) are `uncertain`, with the reason
+  in the message. Firefox animates native smooth scrolling off the main thread and its positions
+  arrive up to a frame late: two runs of one build differed by up to 19% in curve and 73% in peak
+  velocity, which was reported as `info` or `warning`. Positions, duration and settling are
+  compared as before, and Lenis is not affected.
+
+### Fixed
+
+- Native smooth scrolling read as unsettled in Chromium and WebKit (_Scroller had not settled
+  when the checkpoint was captured; add a waitForScrollSettled step_, `uncertain`) even after
+  `waitForScrollSettled`. Native positions are recorded when they change, so a scroll whose last
+  frame still moved fast ended on a moving sample. When the scroller was still at the end of the
+  window (unchanged for 100 ms), a final sample now records that.
 
 ### Upgrading
 
@@ -51,12 +96,21 @@ Baselines accepted with `0.3.0-alpha` or earlier have no `scrollLink`. Compariso
 keep comparing progress at the same scroll position, with its noise in Firefox and WebKit, until
 a new baseline is accepted; nothing else changes for them.
 
+They also have no scroll containers (`settings.scrollContainers` reads as `false`): scenarios
+that scroll a container get an `uncertain` _New native scroll motion (native:…)_ until a new
+baseline is accepted, and the new `capture.scrollContainers` key adds an `info`
+`CONFIG_DIFFERS` note. Checkpoints now wait for containers to stop moving; a container that
+scrolls by itself all the time (a ticker moved with `scrollLeft`) belongs in `ignore.selectors`.
+`capture.scrollContainers: false` keeps the `0.3.0-alpha` behavior.
+
 ### Known limitations
 
 - ScrollTriggers with `containerAnimation` have no positions (theirs lie along another animation,
   not the scroll) and keep the progress comparison.
-- A ScrollTrigger in a scroll container gets its positions compared, but the container's own
-  scroll motion is still not recorded (roadmap: nested native scroll containers).
+- Scroll containers inside shadow roots or iframes are not recorded (their scroll events do not
+  reach the page's document). A container added, or starting to overflow, after its window opened
+  is `partial`: its position before the first scroll event was not observed.
+- `scrollTo` steps do not drive a Lenis instance on a container; `wheel` over its `wrapper` does.
 
 ## [0.3.0-alpha] — 2026-11-20
 

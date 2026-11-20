@@ -75,6 +75,11 @@ later run: they are part of the configuration hash, and a changed hash is report
 - **Fractional scroll positions.** Firefox reports `scrollY` with sub-pixel precision; Chromium
   and WebKit round to whole pixels. Scroll settling is judged by the drift over the still period,
   so the slow tail of a Lenis ease-out is waited for in every engine.
+- **Smooth scrolling off the main thread.** Firefox animates native smooth scrolling (APZ) and
+  the page sees its positions up to a frame late: some frames bring no new position, others two.
+  The easing curve and peak velocity of two runs of one build then differ (up to 19% and 73% in
+  MotionPR's tests), so those differences are `uncertain`; positions, duration and settling are
+  stable. Lenis scrolls in the page and is not affected.
 - **Start times before the input event.** Firefox stamps animations created by a click at the
   frame time, which can precede the click's timestamp: trigger latencies are about 0 ms.
 - **Single-precision keyframe offsets.** `getKeyframes()` returns `0.4000000059604645` for

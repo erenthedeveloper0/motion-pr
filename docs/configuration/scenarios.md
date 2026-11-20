@@ -61,15 +61,27 @@ checkpoint.
 | Step                   | Fields and defaults                                                                                                                                                                                                |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `scrollTo`             | `target` (px on the scroll axis, or a selector), `behavior` (`smooth` \| `instant`, default `smooth`), `via` (`auto` \| `lenis` \| `native`, default `auto`), `axis?`, `offset?`, `selector?` (a native container) |
-| `wheel`                | `deltaX` (0), `deltaY` (0), `steps` (1, max 100), `interval` (16 ms), `position?` (default: viewport centre)                                                                                                       |
+| `wheel`                | `deltaX` (0), `deltaY` (0), `steps` (1, max 100), `interval` (16 ms), `selector?` (point at this element), `position?` (default: viewport centre, or the element's centre)                                         |
 | `waitForScrollSettled` | `timeout` (5000 ms), `threshold` (0.5 px), `stableFrames` (6), `minStableMs` (100 ms)                                                                                                                              |
 
 - `via: "auto"` scrolls through the first attached Lenis instance when there is one, otherwise
   natively (with a `SCROLL_NATIVE` note); `via: "lenis"` requires Lenis.
 - `wheel` sends real wheel events, so smooth-scroll engines react exactly as they do for users.
+  The browser scrolls whatever is under the pointer. With `selector`, the pointer goes to the
+  centre of the element's visible part first (`position` is then relative to its top-left
+  corner), so the wheel scrolls that scroll container, or the Lenis instance whose `wrapper` it
+  is. The element must be in the viewport and not covered by another element; otherwise the step
+  fails and says which, because MotionPR does not scroll to reach it (bring it into view with a
+  `scrollIntoView` step first).
+- **Scroll containers** (unreleased, after `0.3.0-alpha`): the scroll motion of overflow
+  elements is recorded like the document's, whether a step scrolls them (`scrollTo` with
+  `selector`, `wheel` over them) or the page does (a carousel's "next" button). Instant `scroll`
+  steps stay state changes. Turn it off with `capture.scrollContainers: false`
+  ([Sampling](sampling.md#scroll-containers)).
 - `waitForScrollSettled` resolves when every scroller moved less than `threshold` per sample for
-  `stableFrames` consecutive samples and at least `minStableMs`. On timeout it adds
-  `SCROLL_NOT_SETTLED` instead of failing.
+  `stableFrames` consecutive samples and at least `minStableMs`: the document, each attached
+  Lenis instance and each scroll container that scrolled in the window or that a `scrollTo` step
+  is scrolling. On timeout it adds `SCROLL_NOT_SETTLED` instead of failing.
 
 See [Lenis](../integrations/lenis.md) for what is recorded.
 

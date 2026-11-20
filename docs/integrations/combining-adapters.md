@@ -45,7 +45,9 @@ Connect each engine in the app as its guide describes ([GSAP](gsap.md), [Anime.j
 - An animation is recorded by exactly one source. Anime.js `waapi.animate()` creates real Web
   Animations; the Anime.js adapter _claims_ them, so MotionPR's native collector records them
   once, labelled `source: animejs`, `driver: waapi`.
-- When Lenis drives the document scroller, the native document scroll is not recorded again.
+- When Lenis drives the document scroller, the native document scroll is not recorded again;
+  when it drives a scroll container (`wrapper`), that container is not recorded again as a native
+  scroll container.
 - If two engines animate the same property of the same element at the same time (usually a bug
   in the app), the checkpoint gets a `POSSIBLE_DUPLICATE_RECORDS` warning naming them.
 

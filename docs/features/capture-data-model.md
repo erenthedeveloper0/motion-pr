@@ -175,6 +175,17 @@ axis, the wrapper element (null for the document), the engine options that shape
 `targetScroll`, `progress`, `velocity`, `direction`, `isScrolling` and `isStopped` on the window
 clock. It is never replayed; see [Lenis](../integrations/lenis.md).
 
+Native scrolling has one record for the document (`native:window:vertical`, `sessionId:
+"document"`) and, unreleased after `0.3.0-alpha`, one per scroll container that moved
+(`native:test-id:feed:vertical`, `sessionId: "container"`, the container as `wrapper`, and
+`scrollBehavior` and `scrollSnapType` as its options). A container that a scroll engine already
+records (a Lenis `wrapper`) is not recorded again. Native positions are recorded when they
+change; when the scroller was still at the end of the window, the last sample says so. A
+container first seen while scrolling, because it was added or began to overflow after the window
+opened, is `partial`: its position before the first scroll event was not observed. The capture's
+`settings.scrollContainers` says whether containers were recorded (`false` in captures made
+before this, and with `capture.scrollContainers: false`).
+
 ## Correlations
 
 When an animation runs while a scroller moves, the checkpoint lists a correlation:

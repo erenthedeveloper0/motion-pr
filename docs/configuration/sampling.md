@@ -24,6 +24,7 @@ description: How many values per animation, how many frames per checkpoint, and 
 | `capture.waitForFonts`             | `true`   | Wait for `document.fonts.ready`; report failed faces                 |
 | `capture.waitForImages`            | `true`   | Wait for non-lazy images                                             |
 | `capture.concurrency`              | `1`      | Scenarios captured in parallel (separate contexts, one browser)      |
+| `capture.scrollContainers`         | `true`   | Record scroll containers' motion, not only the document's            |
 
 ## Samples
 
@@ -50,6 +51,19 @@ nothing moved is stored once.
 | `frames.format: "jpeg"`                         | No frame divergence (it needs lossless PNG) |
 | `{ type: "capture", label, frames: false }`     | No filmstrip for that checkpoint            |
 | `{ type: "capture", label, screenshot: false }` | No visual comparison for that checkpoint    |
+
+## Scroll containers
+
+Unreleased, after `0.3.0-alpha`. MotionPR records how native scroll containers (elements whose
+content overflows and scrolls) move, not only the document, and waits for them to settle before
+a checkpoint. Before each interaction it notes where every container rests, a pass over the page
+of about 1 ms per 1,000 elements, so a container that starts to move has its rest position.
+
+`capture.scrollContainers: false` records the document scroller only, as `0.3.0-alpha` did. To
+leave out one container, such as a ticker that scrolls by itself all the time, add it to
+`ignore.selectors` instead ([Ignore rules](ignore-rules.md)). Captures record the setting
+(`settings.scrollContainers`); a container that only one side could record is `uncertain` in a
+comparison ([Severity](../features/severity.md#scroll-and-timeline-rules)).
 
 ## Concurrency
 

@@ -67,8 +67,10 @@ timing)`) and seeking the paused clones, so the originals never re-dispatch
    window-relative time rounded to 1 µs, so a sample at a `steps()` boundary is the same in every
    run and every engine. Everything else is frozen. Samples (computed styles, transforms, geometry) and filmstrip frames are taken at
    deterministic times, then all state is restored.
-6. **Scroll** is never replayed. Scroll motion is observed live (Lenis events, native positions
-   each frame) and stored as `ScrollMotionRecord`s. Scroll-linked animations (CSS scroll
+6. **Scroll** is never replayed. Scroll motion is observed live (Lenis events, the document's
+   native position each frame, and, unreleased after `0.3.0-alpha`, each scroll container's
+   position at its scroll events, with its rest position noted before each interaction) and
+   stored as `ScrollMotionRecord`s. Scroll-linked animations (CSS scroll
    timelines, GSAP ScrollTrigger) are recorded as metadata plus, for GSAP, a live progress trace.
    An adapter that reports an animation's `scrollRange` and implements `seekProgress()` (GSAP,
    since `0.3.0-alpha`) has it sampled at evenly spaced progress values between the

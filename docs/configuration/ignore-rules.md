@@ -25,7 +25,8 @@ ignore: {
 ```
 
 Ignored motion is not recorded, so it cannot produce differences. Animations on elements matched
-by `ignore.selectors` are also left out when MotionPR waits for motion to settle; ignored names
+by `ignore.selectors` are also left out when MotionPR waits for motion to settle, and so is the
+scroll motion of a matched scroll container (unreleased, after `0.3.0-alpha`); ignored names
 and properties are only dropped from the records, so a long animation ignored by name still has to
 finish (or be infinite) before a checkpoint settles.
 
