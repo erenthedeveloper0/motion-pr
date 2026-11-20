@@ -55,6 +55,7 @@ export function emptyBundle(id = "20261113-120000-abcd"): CaptureBundle {
       frames: { enabled: true, fps: 30, maxFrames: 90, format: "png" },
       maxWindow: 5000,
       maskInputs: true,
+      scrollContainers: true,
     },
     configHash: "abc",
     scenarios: [],

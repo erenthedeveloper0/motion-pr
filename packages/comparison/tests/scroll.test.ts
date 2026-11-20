@@ -5,7 +5,12 @@ import {
   type ScrollMotionRecord,
   type TimelineRecord,
 } from "@motionpr/core";
-import { compareScrollRecords, compareTimelineRecords, scrollMetrics } from "../src/index.ts";
+import {
+  compareScrollRecords,
+  compareTimelineRecords,
+  scrollMetrics,
+  unevenDelivery,
+} from "../src/index.ts";
 
 const config = resolveConfig({ baseURL: "http://x", scenarios: [{ id: "x" }] }).comparison;
 
@@ -508,5 +513,158 @@ describe("scroll-linked values", () => {
     };
     const changes = await compare(old as never, await scrollSampled(-240, [0, 1]));
     expect(changes.map((c) => [c.kind, c.severity])).toEqual([["completeness", "uncertain"]]);
+  });
+});
+
+describe("native scroll containers in a comparison", () => {
+  /** A native scroll container (an overflow element) that scrolled 640px. */
+  async function container(): Promise<ScrollMotionRecord> {
+    const { element } = await import("./helpers.ts");
+    return {
+      ...lerpScroll(640, { source: "native" }),
+      id: "native:test-id:feed:vertical",
+      sessionId: "container",
+      wrapper: element("test-id:feed"),
+      config: { scrollBehavior: "auto", scrollSnapType: "none" },
+    };
+  }
+  /** Differences between a baseline and a candidate checkpoint with these scroll records. */
+  async function differences(
+    b: ScrollMotionRecord[],
+    c: ScrollMotionRecord[],
+    recorded: { baseline: boolean; candidate: boolean },
+    severity: Record<string, string> = {},
+  ) {
+    const { bundle, checkpoint, scenario } = await import("./helpers.ts");
+    const { compareCaptures } = await import("../src/index.ts");
+    const side = (records: ScrollMotionRecord[], scrollContainers: boolean) => {
+      const made = bundle([scenario("s", [checkpoint("scrolled", [], { scrollMotion: records })])]);
+      return { ...made, settings: { ...made.settings, scrollContainers } };
+    };
+    const result = await compareCaptures({
+      baseline: { bundle: side(b, recorded.baseline), dir: "." },
+      candidate: { bundle: side(c, recorded.candidate), dir: "." },
+      config: { ...config, visual: { ...config.visual, enabled: false }, severity } as never,
+    });
+    return result.differences.filter((d) => d.category === "scroll");
+  }
+
+  it("reports a container scroll missing from a capture that recorded containers", async () => {
+    const both = { baseline: true, candidate: true };
+    expect((await differences([], [await container()], both))[0]).toMatchObject({
+      severity: "warning",
+      title: "New native scroll motion (native:test-id:feed:vertical)",
+      detail: "The candidate recorded this scroller moving 640px; the baseline did not.",
+    });
+    expect((await differences([await container()], [], both))[0]!.severity).toBe("critical");
+  });
+
+  it("is uncertain about a container the other capture could not record", async () => {
+    const added = await differences([], [await container()], { baseline: false, candidate: true });
+    expect(added).toHaveLength(1);
+    expect(added[0]!.severity).toBe("uncertain");
+    expect(added[0]!.detail).toMatch(
+      /^The candidate recorded this scroller moving 640px; the baseline did not\. The baseline was captured without scroll-container recording \(MotionPR 0\.3\.0-alpha or earlier, or capture\.scrollContainers: false\)/,
+    );
+    const removed = await differences([await container()], [], {
+      baseline: true,
+      candidate: false,
+    });
+    expect(removed[0]!.severity).toBe("uncertain");
+    // A configured severity still applies, and the document scroller is always recorded.
+    const configured = await differences(
+      [],
+      [await container()],
+      { baseline: false, candidate: true },
+      { "scroll-added": "critical" },
+    );
+    expect(configured[0]!.severity).toBe("critical");
+    const document = await differences([], [lerpScroll(640, { source: "native" })], {
+      baseline: false,
+      candidate: true,
+    });
+    expect(document[0]!.severity).toBe("warning");
+  });
+
+  it("compares a container recorded on both sides like any scroller", async () => {
+    const moved = { ...(await container()) };
+    moved.samples = lerpScroll(1280, { source: "native" }).samples;
+    moved.config = { scrollBehavior: "auto", scrollSnapType: "y mandatory" };
+    const found = await differences([await container()], [moved], {
+      baseline: true,
+      candidate: true,
+    });
+    const details = found.map((d) => d.detail);
+    expect(details).toContain("Scroll target 640px → 1280px (+640px)");
+    expect(details).toContain("Scroll setting scrollSnapType: none → y mandatory");
+    expect(found.find((d) => d.detail.startsWith("Scroll setting"))!.severity).toBe("info");
+    expect(found.every((d) => d.scrollKey === "native:test-id:feed:vertical")).toBe(true);
+  });
+});
+
+describe("native scrolls whose positions reached the page unevenly", () => {
+  /**
+   * A native smooth scroll (ease-out, one step per frame) as Firefox delivers it to the page:
+   * from frame `late[0]` to `late[1]` every position arrives a frame late, so the page sees one
+   * frame without a new position, then catches up with a double step. No event fires on a frame
+   * without movement, so no sample is recorded for it.
+   */
+  function delivered(late: [number, number] | null, to = 1200): ScrollMotionRecord {
+    const frames = 40;
+    const at = (i: number) => Math.round(to * (1 - (1 - i / frames) ** 3));
+    const samples: ScrollMotionRecord["samples"] = [sample(0, 0, to)];
+    for (let i = 1; i <= frames; i++) {
+      const shown = at(late && i >= late[0] && i <= late[1] ? i - 1 : i);
+      if (shown !== samples.at(-1)!.animatedScroll) samples.push(sample(i * 16.667, shown, to));
+    }
+    samples.push(sample(frames * 16.667 + 300, to, to));
+    return { ...lerpScroll(to, { source: "native" }), samples, config: {} };
+  }
+
+  it("tells uneven delivery from a position every frame", () => {
+    expect(unevenDelivery(delivered(null))).toBe(false);
+    expect(unevenDelivery(delivered([3, 12]))).toBe(true);
+    // Scroll engines in the page set their positions themselves.
+    expect(unevenDelivery({ ...delivered([3, 12]), source: "lenis" })).toBe(false);
+  });
+
+  it("grades curve and peak-velocity differences as uncertain, positions as usual", () => {
+    const [same] = compareScrollRecords([delivered(null)], [delivered([2, 12])], config);
+    const timing = same!.changes.filter((c) =>
+      ["scroll-curve", "scroll-velocity"].includes(c.rule),
+    );
+    expect(timing.map((c) => c.rule)).toContain("scroll-curve");
+    for (const change of timing) {
+      expect(change.severity).toBe("uncertain");
+      expect(change.message).toMatch(
+        /\(uncertain: this native scroll's positions reached the page unevenly, up to a frame late\)$/,
+      );
+    }
+    expect(same!.changes.filter((c) => c.rule === "scroll-position")).toEqual([]);
+    const [moved] = compareScrollRecords([delivered([2, 12])], [delivered(null, 1500)], config);
+    expect(moved!.changes.find((c) => c.kind === "scroll-target")).toMatchObject({
+      severity: "warning",
+      message: "Scroll target 1200px → 1500px (+300px)",
+    });
+  });
+
+  it("keeps definite findings for even delivery and respects severity overrides", () => {
+    const even = delivered(null);
+    // A linear scroll of the same distance and duration, one position per frame.
+    const linear: ScrollMotionRecord = {
+      ...even,
+      samples: [
+        ...Array.from({ length: 41 }, (_, i) => sample(i * 16.667, 30 * i, 1200)),
+        sample(40 * 16.667 + 300, 1200, 1200),
+      ],
+    };
+    expect(unevenDelivery(linear)).toBe(false);
+    const [definite] = compareScrollRecords([even], [linear], config);
+    expect(definite!.changes.find((c) => c.rule === "scroll-curve")!.severity).toBe("warning");
+    const [overridden] = compareScrollRecords([delivered(null)], [delivered([2, 12])], {
+      ...config,
+      severity: { "scroll-curve": "warning" },
+    });
+    expect(overridden!.changes.find((c) => c.rule === "scroll-curve")!.severity).toBe("warning");
   });
 });

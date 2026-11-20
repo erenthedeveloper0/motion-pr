@@ -220,6 +220,7 @@ export function bundle(
       frames: { enabled: false, fps: 30, maxFrames: 90, format: "png" },
       maxWindow: 5000,
       maskInputs: true,
+      scrollContainers: true,
     },
     configHash: "h",
     scenarios,

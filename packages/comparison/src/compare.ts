@@ -191,6 +191,8 @@ async function compareCheckpoint(
     assets: ComparisonResult["assets"];
     scale: number;
     crossBrowser: boolean;
+    /** Whether each capture recorded native scroll containers (`settings.scrollContainers`). */
+    scrollContainers: { baseline: boolean; candidate: boolean };
   },
 ): Promise<CheckpointComparison> {
   const { config } = ctx.options;
@@ -374,11 +376,20 @@ async function compareCheckpoint(
       const metrics = sc.baseline ?? sc.candidate;
       const moved = metrics?.duration !== null && metrics?.duration !== undefined;
       const rule = sc.status === "removed" ? "scroll-removed" : "scroll-added";
-      const severity = applyOverride(
-        rule,
-        moved ? (sc.status === "removed" ? "critical" : "warning") : "info",
-        config,
-      );
+      // A native scroll container that the other capture could not have recorded (made before
+      // 0.4.0-alpha, or with capture.scrollContainers off): its absence there says nothing.
+      const record = (sc.status === "removed" ? b : c).scrollMotion.find((r) => r.id === sc.key);
+      const other = sc.status === "removed" ? "candidate" : "baseline";
+      const unrecorded =
+        record?.source === "native" && record.wrapper !== null && !ctx.scrollContainers[other];
+      const severity =
+        unrecorded && !config.severity[rule]
+          ? "uncertain"
+          : applyOverride(
+              rule,
+              moved ? (sc.status === "removed" ? "critical" : "warning") : "info",
+              config,
+            );
       sc.severity = severity;
       if (severity)
         ctx.diffs.add({
@@ -394,9 +405,12 @@ async function compareCheckpoint(
               ? `${engine} scroll motion no longer recorded (${sc.key})`
               : `New ${engine} scroll motion (${sc.key})`,
           detail:
-            sc.status === "removed"
+            (sc.status === "removed"
               ? `The baseline recorded this scroller${moved ? ` moving ${Math.round(Math.abs(metrics!.distance))}px` : ""}; the candidate did not.`
-              : `The candidate recorded this scroller${moved ? ` moving ${Math.round(Math.abs(metrics!.distance))}px` : ""}; the baseline did not.`,
+              : `The candidate recorded this scroller${moved ? ` moving ${Math.round(Math.abs(metrics!.distance))}px` : ""}; the baseline did not.`) +
+            (unrecorded
+              ? ` The ${other} was captured without scroll-container recording (MotionPR 0.3.0-alpha or earlier, or capture.scrollContainers: false), so this is uncertain; capture it again to compare this scroller.`
+              : ""),
           measurement: "measured",
         });
       continue;
@@ -693,6 +707,10 @@ export async function compareCaptures(options: CompareOptions): Promise<Comparis
       assets,
       structural,
       crossBrowser,
+      scrollContainers: {
+        baseline: b.settings.scrollContainers,
+        candidate: c.settings.scrollContainers,
+      },
     });
     const severity = maxSeverity(checkpoints.map((cp) => cp.severity));
     const changed = checkpoints.some((cp) => cp.status !== "unchanged");
@@ -798,6 +816,7 @@ async function compareScenarioCheckpoints(
     diffs: DifferenceList;
     assets: ComparisonResult["assets"];
     crossBrowser: boolean;
+    scrollContainers: { baseline: boolean; candidate: boolean };
     structural: (
       key: string,
       rule: "checkpoint-added" | "checkpoint-removed",

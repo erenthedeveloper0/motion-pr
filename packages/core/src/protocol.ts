@@ -449,6 +449,8 @@ export interface AgentConfig {
   ignoreAnimationNames: string[];
   ignoreProperties: string[];
   maxWindowMs: number;
+  /** Record native scroll containers, not only the document scroller (`capture.scrollContainers`). */
+  scrollContainers: boolean;
 }
 
 /** API installed on `window.__MOTIONPR_AGENT__` while MotionPR is capturing. */
@@ -491,7 +493,14 @@ export interface MotionprAgentApi {
   /** Registered adapters with their health, for the capture's adapter status table. */
   adapterStatus(): RawAdapterStatus[];
   /** Internal bookkeeping sizes (memory-bound checks and debugging). */
-  stats(): { tracked: number; nativeScrollSamples: number; adapters: number; window: number };
+  stats(): {
+    tracked: number;
+    nativeScrollSamples: number;
+    /** Scroll containers known in the current window (scanned or seen scrolling). */
+    scrollContainers: number;
+    adapters: number;
+    window: number;
+  };
   /**
    * What this engine supports and how it schedules work: Web Animations features, timer
    * resolution and the frame interval (measured over a dozen frames).

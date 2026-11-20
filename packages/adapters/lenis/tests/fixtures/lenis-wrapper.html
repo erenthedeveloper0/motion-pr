@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Lenis on a scroll container fixture</title>
+    <!--
+      Lenis scrolls a container (wrapper option), not the document (viewport 900×600): the panel
+      is 400px tall with 2000px of content. The container scrolls natively under Lenis, so it
+      must be recorded once, by the Lenis adapter, not also as a native scroll container.
+    -->
+    <link rel="stylesheet" href="lenis.css" />
+    <style>
+      body {
+        margin: 0;
+      }
+      [data-testid="panel"] {
+        height: 400px;
+        overflow-y: auto;
+      }
+      .content {
+        height: 2000px;
+        background: linear-gradient(#fff, #ccc);
+      }
+    </style>
+  </head>
+  <body>
+    <div data-testid="panel"><div class="content"></div></div>
+    <script src="lenis.min.js"></script>
+    <script src="adapter.js"></script>
+    <script>
+      const wrapper = document.querySelector("[data-testid=panel]");
+      const lenis = new Lenis({ wrapper, content: wrapper.firstElementChild, autoRaf: true });
+      window.lenis = lenis;
+      MotionprLenis.motionprLenis.attach(lenis, { name: "panel" });
+    </script>
+  </body>
+</html>

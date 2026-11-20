@@ -165,6 +165,13 @@ describe("capture schema migration v1 → v2", () => {
     expect(() => parseCaptureBundle(structuredClone(upgraded))).toThrow(/scrollLink\.scrub/);
   });
 
+  it("reads captures made before scroll-container recording as not recording containers", () => {
+    const upgraded = parseCaptureBundle(structuredClone(v1Capture));
+    expect(upgraded.settings.scrollContainers).toBe(false);
+    upgraded.settings.scrollContainers = true;
+    expect(parseCaptureBundle(structuredClone(upgraded)).settings.scrollContainers).toBe(true);
+  });
+
   it("rejects captures newer than this version", () => {
     expect(() => parseCaptureBundle({ ...v1Capture, schemaVersion: 3 })).toThrow(
       /understands up to v2/,

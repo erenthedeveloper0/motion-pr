@@ -201,7 +201,7 @@ export function describeStep(step: ResolvedStep): string {
     case "scrollTo":
       return `scrollTo ${typeof step.target === "number" ? `${step.target}px` : step.target} (${step.behavior}, via ${step.via})`;
     case "wheel":
-      return `wheel Δx=${step.deltaX} Δy=${step.deltaY}${step.steps > 1 ? ` in ${step.steps} steps` : ""}`;
+      return `wheel${step.selector ? ` over ${step.selector}` : ""} Δx=${step.deltaX} Δy=${step.deltaY}${step.steps > 1 ? ` in ${step.steps} steps` : ""}`;
     case "waitForScrollSettled":
       return "wait for scroll to settle";
     case "fill":
@@ -411,6 +411,7 @@ export async function runCapture(options: CaptureOptions): Promise<CaptureOutcom
       },
       maxWindow: config.capture.maxWindow,
       maskInputs: config.privacy.maskInputs,
+      scrollContainers: config.capture.scrollContainers,
     },
     configHash: configHash(config),
     scenarios: results.filter(Boolean),
@@ -551,6 +552,7 @@ async function runScenario(
       ignoreAnimationNames: config.ignore.animations,
       ignoreProperties: config.ignore.properties,
       maxWindowMs: config.capture.maxWindow,
+      scrollContainers: config.capture.scrollContainers,
     };
     await context.addInitScript({
       content: `window.__MOTIONPR_AGENT__ && window.__MOTIONPR_AGENT__.configure(${JSON.stringify(agentConfig)});`,
@@ -908,11 +910,13 @@ async function executeStep(
       return;
     }
     case "wheel": {
-      const viewport = page.viewportSize();
-      const at = step.position ?? {
-        x: Math.round((viewport?.width ?? 800) / 2),
-        y: Math.round((viewport?.height ?? 600) / 2),
-      };
+      const viewport = page.viewportSize() ?? { width: 800, height: 600 };
+      const at = step.selector
+        ? await wheelPoint(page, step.selector, step.position, viewport, hooks.config)
+        : (step.position ?? {
+            x: Math.round(viewport.width / 2),
+            y: Math.round(viewport.height / 2),
+          });
       await page.mouse.move(at.x, at.y);
       for (let k = 0; k < step.steps; k++) {
         await page.mouse.wheel(step.deltaX / step.steps, step.deltaY / step.steps);
@@ -991,6 +995,59 @@ async function executeStep(
     case "screenshot":
       return hooks.capture(step);
   }
+}
+
+/**
+ * Where a `wheel` step with a `selector` puts the pointer: the centre of the element's visible
+ * part, or `position` relative to its top-left corner. The browser scrolls the scroll container
+ * under the pointer, so the point must be in the viewport and the element must be the one hit
+ * there; MotionPR never scrolls to reach it (that would be motion of its own).
+ */
+async function wheelPoint(
+  page: Page,
+  selector: string,
+  position: { x: number; y: number } | undefined,
+  viewport: { width: number; height: number },
+  config: ResolvedConfig,
+): Promise<{ x: number; y: number }> {
+  const locator = page.locator(selector);
+  await locator.waitFor({ state: "visible", timeout: config.capture.actionTimeout });
+  const box = await locator.boundingBox();
+  if (!box) throw new Error(`wheel: ${selector} is not rendered.`);
+  const left = Math.max(0, box.x);
+  const top = Math.max(0, box.y);
+  const right = Math.min(viewport.width, box.x + box.width);
+  const bottom = Math.min(viewport.height, box.y + box.height);
+  const at = position
+    ? { x: box.x + position.x, y: box.y + position.y }
+    : { x: (left + right) / 2, y: (top + bottom) / 2 };
+  if (
+    right <= left ||
+    bottom <= top ||
+    at.x < 0 ||
+    at.y < 0 ||
+    at.x >= viewport.width ||
+    at.y >= viewport.height
+  )
+    throw new Error(
+      `wheel: ${selector} is outside the viewport at (${Math.round(at.x)}, ${Math.round(at.y)}). Bring it into view first, e.g. with a scrollIntoView step.`,
+    );
+  const point = { x: Math.round(at.x), y: Math.round(at.y) };
+  const covering = await locator.evaluate(
+    (el, [x, y]) => {
+      const root = el.getRootNode() as Document | ShadowRoot;
+      const hit = root.elementFromPoint(x!, y!);
+      if (!hit || el === hit || el.contains(hit)) return null;
+      const id = hit.getAttribute("data-testid") ?? hit.id;
+      return `${hit.tagName.toLowerCase()}${id ? ` (${id})` : ""}`;
+    },
+    [point.x, point.y],
+  );
+  if (covering)
+    throw new Error(
+      `wheel: ${selector} is covered by ${covering} at (${point.x}, ${point.y}); the wheel would scroll that instead. Pass a position inside the element that is not covered.`,
+    );
+  return point;
 }
 
 interface CheckpointContext {

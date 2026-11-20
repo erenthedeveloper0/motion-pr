@@ -49,6 +49,47 @@ function velocities(samples: readonly ScrollSample[]): { t: number; v: number }[
   return out;
 }
 
+/**
+ * Whether a native scroller's positions reached the page unevenly while it moved: some frames
+ * brought no new position and others two. Firefox animates smooth scrolling off the main thread
+ * and its positions arrive up to a frame late; a wheel step without smooth scrolling moves at
+ * the pace of its wheel events. The movement's timing is then only known to about a frame, so
+ * its easing curve and peak velocity are too; positions, duration and settling are not affected.
+ * Scroll engines that run in the page (Lenis) are never uneven.
+ */
+export function unevenDelivery(record: ScrollMotionRecord): boolean {
+  if (record.source !== "native") return false;
+  const s = record.samples;
+  let first = -1;
+  let last = -1;
+  for (let i = 1; i < s.length; i++) {
+    if (Math.abs(s[i]!.animatedScroll - s[i - 1]!.animatedScroll) <= MOVE_EPSILON) continue;
+    if (first === -1) first = i;
+    last = i;
+  }
+  // Intervals between moving samples. The rest sample before the first one is re-stamped to the
+  // window origin, so that first interval says nothing about delivery.
+  const steps: { dt: number; dp: number }[] = [];
+  for (let i = first + 1; i <= last; i++)
+    steps.push({
+      dt: s[i]!.time - s[i - 1]!.time,
+      dp: Math.abs(s[i]!.animatedScroll - s[i - 1]!.animatedScroll),
+    });
+  if (steps.length < 3) return false;
+  const frame = steps.map((x) => x.dt).sort((a, b) => a - b)[Math.floor(steps.length / 2)]!;
+  return steps.some(
+    ({ dt, dp }) =>
+      // Two positions within one frame.
+      dt < frame * 0.5 ||
+      // A frame without a new position while moving at least 2 px per frame. (Slower, a
+      // position rounded to whole pixels, as Chromium and WebKit report it, can repeat.)
+      (dt > frame * 1.5 && dp / (dt / frame) >= 2),
+  );
+}
+
+const UNEVEN =
+  "uncertain: this native scroll's positions reached the page unevenly, up to a frame late";
+
 function interpolate(points: readonly { t: number; y: number }[], t: number): number {
   if (!points.length) return 0;
   if (t <= points[0]!.t) return points[0]!.y;
@@ -218,6 +259,12 @@ function scrollDrafts(
     mb.unsettled ||
     mc.unsettled;
   const measurement = incomplete ? "incomplete" : "measured";
+  // Curve and peak velocity depend on when each position arrived (see unevenDelivery).
+  const uneven = unevenDelivery(b) || unevenDelivery(c);
+  const timing = (severity: Severity, message: string) =>
+    uneven
+      ? { severity: "uncertain" as const, message: `${message} (${UNEVEN})` }
+      : { severity, message };
 
   if (b.source !== c.source) {
     drafts.push({
@@ -315,8 +362,10 @@ function scrollDrafts(
         after: null,
         delta: curve.maxDeviation,
         measurement,
-        severity: curve.maxDeviation >= sc.warnCurveDeviation ? "warning" : "info",
-        message: `Scroll easing changed: progress deviates up to ${Math.round(curve.maxDeviation * 100)}% of the distance at ${Math.round(curve.maxDeviationAt * 100)}% of the movement`,
+        ...timing(
+          curve.maxDeviation >= sc.warnCurveDeviation ? "warning" : "info",
+          `Scroll easing changed: progress deviates up to ${Math.round(curve.maxDeviation * 100)}% of the distance at ${Math.round(curve.maxDeviationAt * 100)}% of the movement`,
+        ),
       });
     }
   }
@@ -332,8 +381,10 @@ function scrollDrafts(
         delta: round(mc.peakVelocity - mb.peakVelocity, 4),
         unit: "px/ms",
         measurement,
-        severity: rel > sc.velocityTolerance * 2 ? "warning" : "info",
-        message: `Peak scroll velocity ${round(mb.peakVelocity, 2)} → ${round(mc.peakVelocity, 2)} px/ms (${mc.peakVelocity > mb.peakVelocity ? "+" : "-"}${Math.round(rel * 100)}%)`,
+        ...timing(
+          rel > sc.velocityTolerance * 2 ? "warning" : "info",
+          `Peak scroll velocity ${round(mb.peakVelocity, 2)} → ${round(mc.peakVelocity, 2)} px/ms (${mc.peakVelocity > mb.peakVelocity ? "+" : "-"}${Math.round(rel * 100)}%)`,
+        ),
       });
     }
   }

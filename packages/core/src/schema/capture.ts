@@ -283,12 +283,18 @@ export const scrollSampleSchema = z.object({
 });
 export type ScrollSample = z.infer<typeof scrollSampleSchema>;
 
-/** How one scroller (Lenis instance or native scroll container) moved during a checkpoint window. */
+/**
+ * How one scroller moved during a checkpoint window: a Lenis instance, the document's native
+ * scrolling, or a native scroll container (an overflow element; `wrapper` is set).
+ */
 export const scrollMotionRecordSchema = z.object({
   /** Stable key: `<source>:<wrapper element key or "window">:<axis>`. */
   id: z.string(),
   source: z.enum(["lenis", "native"]),
-  /** Identifies the engine instance within the page session (Lenis instances are numbered). */
+  /**
+   * Identifies the engine instance within the page session: the Lenis instance's name or
+   * number, or for native scrolling `document` or `container`.
+   */
   sessionId: z.string(),
   axis: z.enum(["vertical", "horizontal"]),
   /** Scroll container; null for the document scroller. */
@@ -482,6 +488,12 @@ export const captureSettingsSchema = z.object({
   }),
   maxWindow: z.number(),
   maskInputs: z.boolean(),
+  /**
+   * Whether the scroll motion of native scroll containers was recorded
+   * (`capture.scrollContainers`). Captures made before `0.4.0-alpha` did not record it and read
+   * as `false`: a container scroll missing from them is not evidence that it did not move.
+   */
+  scrollContainers: z.boolean().default(false),
 });
 
 export const captureBundleSchema = z.object({
