@@ -138,6 +138,27 @@ One element animated over time. This is the record of the menu from
 | `parent`                   | The `TimelineRecord` this animation belongs to                                                       |
 | `progressTrace`            | Live progress of scroll-linked animations (GSAP ScrollTrigger), window-relative                      |
 | `samples[].scrollProgress` | Scroll-linked animations only (since `0.3.0-alpha`): the progress the sample was rendered at         |
+| `scrollLink`               | Scroll-linked animations (unreleased, after `0.3.0-alpha`): where they run in the scroll, see below  |
+
+`scrollLink` is written for ScrollTrigger animations (and by custom adapters that report it) and
+is absent otherwise, including in captures taken with `0.3.0-alpha` or earlier:
+
+```json
+{
+  "start": 400,
+  "end": 1300,
+  "axis": "vertical",
+  "scroller": null,
+  "scrub": 0,
+  "toggleActions": null
+}
+```
+
+`start` and `end` are the scroll positions (CSS px of the scroller) where the scroll-driven
+progress is 0 and 1, as the engine resolved them. `scroller` is `null` for the document,
+otherwise the scroll container's element key. `scrub` is `0` when progress follows the scroll
+directly, the smoothing in ms when it catches up over time, and `null` when the animation plays
+in time once triggered; `toggleActions` (enter, leave, enter back, leave back) is set only then.
 
 ## TimelineRecord
 

@@ -42,6 +42,7 @@ Everything below is covered by automated tests that run in each engine against a
 | GSAP adapter (tweens, timelines, labels, staggers, reverse)  | Verified | Verified | Verified |
 | GSAP ScrollTrigger (metadata and live progress)              | Verified | Verified | Verified |
 | GSAP ScrollTrigger values                                    | Verified | Verified | Verified |
+| GSAP ScrollTrigger positions (unreleased)                    | Verified | Verified | Verified |
 | Anime.js v4 adapter (timelines, staggers, WAAPI, eases)      | Verified | Verified | Verified |
 | Lenis adapter (scroll motion, velocity, reduced motion)      | Verified | Verified | Verified |
 | GSAP with Lenis in one page                                  | Verified | Verified | Verified |

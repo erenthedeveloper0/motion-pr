@@ -172,10 +172,24 @@ gsap.to(".hero-image", {
   `partial` (_Sampled only where the scroll went: 50%–80% scroll progress (the animation runs
   from 50% to 100%)_). When the scroll never reaches it, the record is `metadata-only`, with the
   reason.
+- **Positions** (unreleased, after `0.3.0-alpha`). Every record of a ScrollTrigger animation
+  carries `scrollLink`, read from the ScrollTrigger instance: the `start` and `end` scroll
+  positions it resolved (px), its scroller (`null` for the document, otherwise the container's
+  element key) and axis, `scrub` (`0` for `scrub: true`, the smoothing in ms for
+  `scrub: <seconds>`, `null` without scrub) and, without scrub, its four `toggleActions`. These
+  come from ScrollTrigger's layout, not from the scroll's timing, so two runs of one build agree
+  in every engine.
 - **Comparison** answers two questions separately:
-  - _Where in the scroll does it run?_ Progress at the same scroll position. A moved
-    `start`/`end` or a different scrub range: _Scroll-linked progress at the same scroll position
-    differs by up to 14% (at 656px: 28% → 14%)_.
+  - _Where in the scroll does it run?_ The positions ScrollTrigger resolved (unreleased, after
+    `0.3.0-alpha`). A moved `start` or `end`: _Starts at scroll position 400px → 550px
+    (+150px)_ (`scroll-position` rule: ignored up to `comparison.scroll.positionTolerancePx`, a
+    warning from `warnPositionPx`). A changed `scrub` or `toggleActions` is a scroll setting:
+    _Scroll setting scrub: on → 500ms_ (`info`), or a `warning` when scrubbing is turned on or
+    off. Positions on a different scroller or axis are not compared: _Scroll-linked to document →
+    test-id:panel_. Captures taken with `0.3.0-alpha` or earlier have no positions; when either
+    side lacks them, MotionPR compares progress at the same scroll position instead, as
+    `0.3.0-alpha` does: _Scroll-linked progress at the same scroll position differs by up to 14%
+    (at 656px: 28% → 14%)_.
   - _What does it write?_ Values at the same scroll progress, over the progress both captures
     reached. A changed parallax distance: _Scroll-linked translateY differs by up to 120px at the
     same scroll progress (at 100%: -120px → -240px)_. Transforms and opacity use the `trajectory`,
@@ -187,6 +201,8 @@ gsap.to(".hero-image", {
   progress, so it is not reported as an animation of its own; settling waits for it.
 - **Not sampled:** ScrollTrigger animations whose tween or timeline repeats (one progress value
   would stand for several states), and non-element targets. They keep timing and live progress.
+- **No positions** for ScrollTriggers with `containerAnimation` (their `start`/`end` lie along
+  another animation, not the scroll): they are compared by progress at the same scroll position.
 
 ## Troubleshooting
 

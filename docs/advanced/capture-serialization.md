@@ -80,6 +80,11 @@ missing: `environment.browser.channel` and `userAgent` (`null`), `environment.os
 engine before 0.2) and `crossBrowser` (`false`). Captures and comparisons from 0.1 read
 unchanged; 0.1 ignores the new fields when it reads 0.2 files.
 
+MotionPR 0.3 added optional `samples[].scrollProgress`. Unreleased builds after `0.3.0-alpha`
+add optional `scrollLink` to animation records (where a scroll-linked animation runs in the
+scroll, see [Capture data model](../features/capture-data-model.md#animationrecord)). Both are
+absent from older captures, which read unchanged; `0.3.0-alpha` ignores `scrollLink`.
+
 ## Untrusted input
 
 Captures may come from CI artifacts of pull requests. Asset ids and paths are validated

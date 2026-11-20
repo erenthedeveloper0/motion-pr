@@ -73,7 +73,9 @@ timing)`) and seeking the paused clones, so the originals never re-dispatch
    An adapter that reports an animation's `scrollRange` and implements `seekProgress()` (GSAP,
    since `0.3.0-alpha`) has it sampled at evenly spaced progress values between the
    lowest and highest observed progress; time-based seeks show the progress observed at that
-   time.
+   time. Where such an animation runs in the scroll is read from its engine (`scrollLink`: the
+   `start`/`end` ScrollTrigger resolved, `scrub`, `toggleActions`; unreleased, after
+   `0.3.0-alpha`), so comparing it does not depend on how either run's scroll was scheduled.
 7. **Normalization** (Node side) assigns stable ids (`<element key>::<type>::<name>`), links
    animations to `TimelineRecord`s, computes completeness and correlations, and writes the
    capture bundle (see [Capture serialization](capture-serialization.md)).

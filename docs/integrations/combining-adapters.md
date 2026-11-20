@@ -57,7 +57,8 @@ MotionPR distinguishes three things that often happen together:
 2. **Scroll-linked animations**, whose engine declares that their progress follows scroll: CSS
    scroll-driven animations (`timeline: scroll | view`) and GSAP ScrollTrigger animations. They
    have no start time, so they are not replayed in time; MotionPR records their timing and, for
-   GSAP, their **progress observed live** (`progressTrace`).
+   GSAP, their **progress observed live** (`progressTrace`) and the **positions ScrollTrigger
+   resolved** (`scrollLink`, unreleased after `0.3.0-alpha`).
 3. **Animations that merely ran during a scroll**, e.g. an `IntersectionObserver` reveal.
 
 Every checkpoint lists `correlations`: `kind: "scroll-linked"` for (2), and
@@ -65,10 +66,12 @@ Every checkpoint lists `correlations`: `kind: "scroll-linked"` for (2), and
 **not** a claim that the scroll caused the animation; the report says so. MotionPR does not
 assume a GSAP animation is controlled by Lenis just because both are present.
 
-For scroll-linked GSAP animations the comparison relates progress to scroll position: if the
-same scroll position yields different progress (a moved ScrollTrigger `start`/`end`, a different
-scrub range), it reports _“Scroll-linked progress at the same scroll position differs by up to
-N%”_. The _values_ a scroll-linked tween writes (e.g. `yPercent`) are sampled at the progress the
+For scroll-linked GSAP animations the comparison reports a moved ScrollTrigger `start`/`end`
+from the positions ScrollTrigger resolved: _“Starts at scroll position 400px → 550px (+150px)”_,
+and a changed `scrub` or `toggleActions` as a scroll setting (unreleased, after `0.3.0-alpha`).
+Captures without those positions (`0.3.0-alpha` and earlier) are compared by relating progress
+to scroll position instead: _“Scroll-linked progress at the same scroll position differs by up
+to N%”_. The _values_ a scroll-linked tween writes (e.g. `yPercent`) are sampled at the progress the
 scroll reached and compared at the same progress, so a changed parallax distance is found too:
 _“Scroll-linked translateY differs by up to 120px at the same scroll progress”_ (see
 [GSAP: ScrollTrigger](gsap.md#scrolltrigger)).

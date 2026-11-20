@@ -5,6 +5,59 @@ workspace packages it bundles are versioned with it. Format:
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MotionPR is an alpha: until `1.0`, any
 prerelease may change the capture format or the API, and every such change is listed here.
 
+## [Unreleased]
+
+Where a GSAP ScrollTrigger animation runs in the scroll is compared from the `start` and `end`
+positions ScrollTrigger resolved, so two runs of one build agree in every engine, also under
+native smooth scrolling (roadmap: stable ScrollTrigger positions under native smooth scrolling).
+Capture schema and comparison schema stay at version 2, and the adapter protocol at 1: the new
+field is optional, so 0.3 captures and custom adapters work unchanged.
+
+### Added
+
+- **ScrollTrigger positions.** Records of ScrollTrigger animations carry `scrollLink`, read from
+  the ScrollTrigger instance's public, read-only state: the `start` and `end` scroll positions it
+  resolved (px), its scroller (`null` for the document, otherwise the container's element key)
+  and axis, `scrub` (`0` for `scrub: true`, the smoothing in ms for `scrub: <seconds>`, `null`
+  without scrub) and, without scrub, its four `toggleActions`. Nothing is refreshed or replayed.
+- **Comparison by resolved positions.** A moved `start` or `end` is reported once per animation:
+  _Starts at scroll position 400px → 550px (+150px)_ (`scroll-start`/`scroll-end`, graded by the
+  `scroll-position` rule with `comparison.scroll.positionTolerancePx` and `warnPositionPx`). A
+  changed `scrub` or `toggleActions` is a scroll setting (`scroll-config`, `scroll-curve` rule):
+  _Scroll setting scrub: on → 500ms_ (`info`; a `warning` when scrubbing is turned on or off).
+  Positions on another scroller or axis are not compared: _Scroll-linked to document →
+  test-id:panel_ (`warning`).
+- Adapter protocol: optional `AdapterAnimation.scrollLink` for custom adapters with
+  scroll-linked animations; `AnimationRecord.scrollLink` in captures. Public types
+  `AdapterScrollLink` and `ScrollLink`.
+- Browser tests in Chromium, Firefox and WebKit (recorded positions, two runs of one build with no
+  finding at all, a moved start, `scrub` and `toggleActions` changes, a ScrollTrigger in a scroll
+  container) and unit tests for the comparison and the schema.
+
+### Changed
+
+- When both captures have resolved positions, a ScrollTrigger animation's progress at the same
+  scroll position is no longer compared. That comparison relates two live recordings (progress
+  and scroll position), and under native smooth scrolling two runs of one build differed by up to
+  11% in Firefox and 28% in WebKit. It stays the fallback when either capture has no positions.
+- The demo app's moved journal parallax is reported as _Starts at scroll position 4028px →
+  4268px (+240px)_, the same in all three engines, instead of as a progress difference.
+- The GSAP adapter's info diagnostic `GSAP_SCROLLTRIGGER_OBSERVED` mentions the recorded
+  positions.
+
+### Upgrading
+
+Baselines accepted with `0.3.0-alpha` or earlier have no `scrollLink`. Comparisons against them
+keep comparing progress at the same scroll position, with its noise in Firefox and WebKit, until
+a new baseline is accepted; nothing else changes for them.
+
+### Known limitations
+
+- ScrollTriggers with `containerAnimation` have no positions (theirs lie along another animation,
+  not the scroll) and keep the progress comparison.
+- A ScrollTrigger in a scroll container gets its positions compared, but the container's own
+  scroll motion is still not recorded (roadmap: nested native scroll containers).
+
 ## [0.3.0-alpha] — 2026-11-20
 
 The values GSAP ScrollTrigger animations write are sampled and compared (roadmap: scroll-linked
@@ -268,6 +321,7 @@ published or tagged, so this release collects their work and the version starts 
 - Filled values are never written to captures or reports; inputs are masked in screenshots; query
   values in recorded URLs are redacted by default. MotionPR sends no telemetry.
 
+[Unreleased]: https://github.com/erenthedeveloper0/motionpr/compare/v0.3.0-alpha...main
 [0.3.0-alpha]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.3.0-alpha
 [0.2.0-alpha]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.2.0-alpha
 [0.1.0-alpha.1]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.1.0-alpha.1

@@ -44,8 +44,12 @@ a hidden one.
   Progress at the same scroll position relates two live recordings (progress and scroll
   position); in MotionPR's tests with native smooth scrolling, two runs of the same build
   differed by up to 11% in Firefox and 28% in WebKit (none in Chromium), which is reported as an
-  `info` or `warning`. The values a ScrollTrigger animation writes are compared by progress and
-  were stable in all three engines.
+  `info` or `warning`. Unreleased builds after `0.3.0-alpha` compare the `start`/`end` positions
+  ScrollTrigger resolved instead, which were stable in all three engines; progress at the same
+  scroll position remains the fallback for captures without them (taken with `0.3.0-alpha` or
+  earlier) and for ScrollTriggers with `containerAnimation`
+  ([GSAP](../integrations/gsap.md#scrolltrigger)). The values a ScrollTrigger animation writes
+  are compared by progress and were stable in all three engines.
 - **CSS scroll-driven animations** are recorded as metadata only.
 - **Nested scroll containers**: native scroll motion is recorded for the document scroller only.
   Containers scrolled by Lenis (`wrapper`) are recorded through the Lenis adapter but not covered by

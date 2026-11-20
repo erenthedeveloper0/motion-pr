@@ -7,6 +7,12 @@ issue to argue for something.
 
 ## Done
 
+- **Stable ScrollTrigger positions under native smooth scrolling** (unreleased, after
+  `0.3.0-alpha`). Where a ScrollTrigger animation runs in the scroll is compared from the
+  `start`/`end` positions ScrollTrigger resolved, and its `scrub` and `toggleActions` as scroll
+  settings, instead of relating two live recordings; two runs of one build now agree in Chromium,
+  Firefox and WebKit. Captures without positions keep the progress comparison. See
+  [GSAP: ScrollTrigger](docs/integrations/gsap.md#scrolltrigger).
 - **Windows in CI** (`0.3.0-alpha`). The unit tests, the Chromium
   browser suites, the demo app's expectations and the packaged CLI run on `windows-latest`.
   Firefox and WebKit on Windows are not covered yet.
@@ -23,13 +29,10 @@ issue to argue for something.
 
 1. **Example projects.** Small, runnable projects (plain HTML, React with GSAP, Astro with Lenis)
    with their scenarios and committed baselines, tested in CI like the demo app.
-2. **Stable ScrollTrigger positions under native smooth scrolling.** Progress at the same scroll
-   position is noisy in Firefox and WebKit (up to 28% between runs of one build); compare
-   ScrollTrigger's resolved `start`/`end` positions instead of relating two live recordings.
-3. **Nested native scroll containers.** Record scroll motion of overflow containers, not only the
+2. **Nested native scroll containers.** Record scroll motion of overflow containers, not only the
    document scroller, and let `scrollTo`/`wheel` steps target them.
-4. **Shadow DOM.** Selectors that pierce shadow roots for replay, with browser tests.
-5. **Adapter protocol 2.** Freeze the adapter contract for custom engines before `1.0`, with a
+3. **Shadow DOM.** Selectors that pierce shadow roots for replay, with browser tests.
+4. **Adapter protocol 2.** Freeze the adapter contract for custom engines before `1.0`, with a
    conformance suite adapters can run.
 
 ## Later

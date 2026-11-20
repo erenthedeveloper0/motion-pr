@@ -252,9 +252,11 @@ process.exitCode = exitCodeFor(result);
 | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `TimelineRecord`                                                                  | A GSAP/Anime.js timeline in a checkpoint: duration, iterations, labels, children |
 | `ScrollMotionRecord`, `ScrollSample`                                              | How a scroller (Lenis or native) moved, sample by sample                         |
+| `ScrollLink`                                                                      | Where a scroll-linked animation runs in the scroll (unreleased)                  |
 | `MotionCorrelation`                                                               | An animation that ran while a scroller moved (`scroll-linked` or `overlap`)      |
 | `Provenance`                                                                      | `declared` / `observed` / `inferred` / `unavailable`, per recorded field         |
 | `AdapterStatus`                                                                   | Adapter health recorded per scenario                                             |
 | `ScrollComparison`, `ScrollMetrics`, `TimelineComparison`                         | Comparison results for scroll and timelines                                      |
 | `AdapterTimeline`, `AdapterScrollTrack`, `AdapterCapability`, `AdapterDiagnostic` | Adapter contract types for custom adapters                                       |
+| `AdapterScrollLink`                                                               | Resolved scroll positions a custom adapter reports (unreleased)                  |
 | `SUPPORTED_ENGINE_RANGES`                                                         | Tested version ranges of the first-party adapters (`gsap`, `animejs`, `lenis`)   |
