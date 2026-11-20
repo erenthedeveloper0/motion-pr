@@ -70,6 +70,10 @@ timing)`) and seeking the paused clones, so the originals never re-dispatch
 6. **Scroll** is never replayed. Scroll motion is observed live (Lenis events, native positions
    each frame) and stored as `ScrollMotionRecord`s. Scroll-linked animations (CSS scroll
    timelines, GSAP ScrollTrigger) are recorded as metadata plus, for GSAP, a live progress trace.
+   An adapter that reports an animation's `scrollRange` and implements `seekProgress()` (GSAP,
+   unreleased after `0.2.0-alpha`) has it sampled at evenly spaced progress values between the
+   lowest and highest observed progress; time-based seeks show the progress observed at that
+   time.
 7. **Normalization** (Node side) assigns stable ids (`<element key>::<type>::<name>`), links
    animations to `TimelineRecord`s, computes completeness and correlations, and writes the
    capture bundle (see [Capture serialization](capture-serialization.md)).

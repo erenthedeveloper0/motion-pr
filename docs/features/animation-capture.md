@@ -77,8 +77,9 @@ closes on the next click.
 
 - Motion drawn by your own `requestAnimationFrame` loop with inline styles, on `<canvas>` or in
   WebGL, unless you write an [adapter](../advanced/custom-adapters.md).
-- Values written by scroll-linked tweens (GSAP ScrollTrigger). Their progress is recorded live
-  and compared against scroll position; the values they write are not sampled.
+- Values written by scroll-linked tweens (GSAP ScrollTrigger) in `0.2.0-alpha`: their progress
+  is recorded live and compared against scroll position. Unreleased builds after `0.2.0-alpha`
+  sample the values where the scroll went ([GSAP: ScrollTrigger](../integrations/gsap.md#scrolltrigger)).
 - Scroll itself is never replayed; it is recorded live. See [Lenis](../integrations/lenis.md).
 
 The full list is in [Limitations](../advanced/limitations.md). The internals are described in

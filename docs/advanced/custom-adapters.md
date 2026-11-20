@@ -68,12 +68,25 @@ window.__MOTIONPR_AGENT__?.registerAdapter(adapter);
 | `beginWindow()`                                   | A checkpoint finished: forget animations that already ended                    |
 | `isAnimating()`                                   | `true` while a tracked finite animation plays (used for settling)              |
 | `beginReplay()`, `seek(t)`, `endReplay()`         | Deterministic replay; without them records are metadata only                   |
+| `seekProgress(id, progress)`                      | Scroll-linked animations (unreleased, after `0.2.0-alpha`), see below          |
 | `collectTimelines()`                              | `TimelineRecord`s: duration, labels, children                                  |
 | `collectScroll()`, `scrollStates()`, `scrollTo()` | Scroll motion, settle detection, and the `scrollTo` step                       |
 | `claims(animation)`                               | Mark native `Animation` objects your engine created, so they are recorded once |
 | `diagnostics()`                                   | Health messages shown in captures and reports                                  |
 
 The agent also has `unregisterAdapter(adapter)`; call it from your own `dispose()`.
+
+### Scroll-linked animations
+
+An animation whose progress follows scroll has no start time: report `startTime: null`,
+`timeline: "scroll"` and its live progress as `progressTrace` (`{ t, progress }` on the
+`performance.now()` clock, one entry per change). To have its values sampled (unreleased, after
+`0.2.0-alpha`), also report `scrollRange: { from, to }`, the part of that progress (0..1) during
+which this animation is active, keep `samplable: true`, and implement
+`seekProgress(id, progress)`: render animation `id` at that progress, synchronously and without
+callbacks. The agent calls it between `beginReplay()` and `endReplay()`, after `seek()`, at evenly
+spaced progress values between the lowest and highest progress in the trace. In `seek(t)`, render
+it at the progress it showed at time `t`.
 
 ## Rules that keep captures trustworthy
 

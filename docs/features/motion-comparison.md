@@ -55,7 +55,8 @@ delay changes it explains.
 - **Scroll** ([Lenis](../integrations/lenis.md)): start, end and target position, settle
   duration, the normalized progress curve, peak velocity, overshoot, direction changes,
   smooth-scroll lag and engine options. Scroll-linked GSAP animations are compared by their
-  progress at the same scroll position.
+  progress at the same scroll position and (unreleased, after `0.2.0-alpha`) by the values they
+  write at the same scroll progress ([GSAP: ScrollTrigger](../integrations/gsap.md#scrolltrigger)).
 - **Pixels** ([Visual comparison](visual-comparison.md)): the settled screenshot of each
   checkpoint, and per-frame divergence of the filmstrips.
 

@@ -7,6 +7,10 @@ issue to argue for something.
 
 ## Done
 
+- **Scroll-linked tween values** (unreleased, on `main` after `0.2.0-alpha`). GSAP ScrollTrigger
+  animations are sampled at the progress the scroll reached and compared at the same progress, so
+  a changed parallax distance is found, not only a moved `start`/`end`. Repeating ScrollTrigger
+  animations stay timing-only. See [GSAP: ScrollTrigger](docs/integrations/gsap.md#scrolltrigger).
 - **Firefox and WebKit captures, with per-browser baselines** (`0.2.0-alpha`). Chromium, Firefox
   and WebKit through one capture pipeline; baselines, captures, comparisons and reports per
   engine; `--browser all`; explicit cross-browser comparison; every browser suite and the demo
@@ -17,8 +21,9 @@ issue to argue for something.
 1. **Example projects.** Small, runnable projects (plain HTML, React with GSAP, Astro with Lenis)
    with their scenarios and committed baselines, tested in CI like the demo app.
 2. **Windows in CI.** Paths are handled in code; nothing runs it on Windows yet.
-3. **Scroll-linked tween values.** Sample the values ScrollTrigger animations write at recorded
-   scroll positions, so a changed parallax distance is found, not only a moved `start`/`end`.
+3. **Stable ScrollTrigger positions under native smooth scrolling.** Progress at the same scroll
+   position is noisy in Firefox and WebKit (up to 28% between runs of one build); compare
+   ScrollTrigger's resolved `start`/`end` positions instead of relating two live recordings.
 4. **Nested native scroll containers.** Record scroll motion of overflow containers, not only the
    document scroller, and let `scrollTo`/`wheel` steps target them.
 5. **Shadow DOM.** Selectors that pierce shadow roots for replay, with browser tests.

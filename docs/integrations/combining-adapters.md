@@ -56,8 +56,8 @@ MotionPR distinguishes three things that often happen together:
 1. **Scroll motion** (Lenis or native): a `ScrollMotionRecord`.
 2. **Scroll-linked animations**, whose engine declares that their progress follows scroll: CSS
    scroll-driven animations (`timeline: scroll | view`) and GSAP ScrollTrigger animations. They
-   cannot be replayed; MotionPR records their timing and, for GSAP, their **progress observed
-   live** (`progressTrace`).
+   have no start time, so they are not replayed in time; MotionPR records their timing and, for
+   GSAP, their **progress observed live** (`progressTrace`).
 3. **Animations that merely ran during a scroll**, e.g. an `IntersectionObserver` reveal.
 
 Every checkpoint lists `correlations`: `kind: "scroll-linked"` for (2), and
@@ -68,8 +68,11 @@ assume a GSAP animation is controlled by Lenis just because both are present.
 For scroll-linked GSAP animations the comparison relates progress to scroll position: if the
 same scroll position yields different progress (a moved ScrollTrigger `start`/`end`, a different
 scrub range), it reports _“Scroll-linked progress at the same scroll position differs by up to
-N%”_. The _values_ a scroll-linked tween writes (e.g. `yPercent`) are not sampled, so a change
-of parallax distance alone is not detected.
+N%”_. In `0.2.0-alpha` the _values_ a scroll-linked tween writes (e.g. `yPercent`) are not
+sampled, so a change of parallax distance alone is not detected. Unreleased builds after
+`0.2.0-alpha` sample them at the progress the scroll reached and compare them at the same
+progress: _“Scroll-linked translateY differs by up to 120px at the same scroll progress”_ (see
+[GSAP: ScrollTrigger](gsap.md#scrolltrigger)).
 
 ## Filtering by engine
 

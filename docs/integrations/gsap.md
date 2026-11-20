@@ -11,10 +11,11 @@ from inside your page.
 
 **Status:** supported for the patterns listed below. Tested against GSAP **3.15.1**; the adapter
 reports versions outside `>=3.12.0 <4.0.0` as _untested_ (it still runs). ScrollTrigger-driven
-animations cannot be replayed (their progress follows scroll); MotionPR records their timing,
-observes their progress live and compares it against recorded scroll motion (see
-[Combining adapters](combining-adapters.md)). The adapter's browser tests and the demo app's GSAP
-and ScrollTrigger scenarios pass in Chromium, Firefox and WebKit.
+animations have no start time (their progress follows scroll); MotionPR records their timing,
+observes their progress live, compares it against recorded scroll motion and samples the values
+they write over the progress the scroll reached (see [ScrollTrigger](#scrolltrigger)). The
+adapter's browser tests and the demo app's GSAP and ScrollTrigger scenarios pass in Chromium,
+Firefox and WebKit.
 
 |         |                                                                                                           |
 | ------- | --------------------------------------------------------------------------------------------------------- |
@@ -49,7 +50,7 @@ adapters: [{ name: "gsap", required: true }],
 
 ### Is it safe in production?
 
-Yes. `@erenthedeveloper0/motionpr/gsap` is a small, dependency-free browser module (about 25 kB unminified, 7 kB gzipped). When
+Yes. `@erenthedeveloper0/motionpr/gsap` is a small, dependency-free browser module (about 27 kB unminified, 8 kB gzipped). When
 MotionPR is not capturing the page (no agent present), `register()` returns `false` and changes
 nothing: GSAP is not wrapped and no ticker listener is added. You can also load it only in
 development:
@@ -71,7 +72,7 @@ work unchanged because they call `gsap.to()`/`gsap.timeline()` underneath.
 | `motionprGsap.register(gsap, options?)`             | Connects GSAP to a capturing MotionPR agent. Returns `true` when active. `RegisterOptions`: `{ force?: boolean }` (install without an agent, for tests) |
 | `motionprGsap.track(animation, name?)`              | Tracks an animation explicitly and gives it a stable name. Returns the animation                                                                        |
 | `motionprGsap.isActive()`                           | `true` when registered with a capturing agent                                                                                                           |
-| `motionprGsap.getDiagnostics()`                     | Adapter health messages (e.g. ScrollTrigger animations recorded as metadata)                                                                            |
+| `motionprGsap.getDiagnostics()`                     | Adapter health messages (e.g. how many animations follow ScrollTrigger)                                                                                 |
 | `motionprGsap.dispose()`                            | Restores `gsap.to/from/fromTo/timeline`, removes the ticker listener and unregisters. Animations keep running                                           |
 | `SUPPORTED_GSAP_RANGE`                              | The tested version range (`>=3.12.0 <4.0.0`)                                                                                                            |
 | `gsapProperties(vars)`                              | Maps tween vars to the CSS properties they animate (`x`, `rotation`, `scale` → `transform`; `autoAlpha` → `opacity`, `visibility`)                      |
@@ -106,29 +107,30 @@ For every tween **per target element**:
 | playback rate         | Product of time scales up to the root; negative while reversed                                                                                                                           |
 | easing                | The ease name (`power3.out`, `back.out(1.7)`, `steps(5)`, custom names) **and** 65 samples of GSAP's own ease function, so any ease, including CustomEase, is drawn and compared exactly |
 | properties            | Tween vars mapped to CSS properties                                                                                                                                                      |
-| samples               | Computed styles and geometry, by rendering the timeline at exact times                                                                                                                   |
+| samples               | Computed styles and geometry, by rendering the timeline at exact times (ScrollTrigger: at exact progress values, see [ScrollTrigger](#scrolltrigger))                                    |
 | group                 | Staggered tweens share a group, which drives stagger-interval comparison                                                                                                                 |
 
 ## Supported patterns
 
-| Pattern                                                          | Status                                                                |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `gsap.to / from / fromTo`                                        | ✅                                                                    |
-| `gsap.timeline()` with nested tweens and nested timelines        | ✅                                                                    |
-| Timeline labels and position parameters                          | ✅                                                                    |
-| `stagger` (number, object, function)                             | ✅ per-target records with real offsets                               |
-| Keyframes (`keyframes: [...]`)                                   | ✅ expanded like staggers                                             |
-| `repeat`, `yoyo`, `repeatDelay`, infinite repeats                | ✅ (one iteration sampled for infinite)                               |
-| Timelines created paused and played later (`tl.play()` on click) | ✅ recorded in the window where they run                              |
-| `tl.reverse()` (e.g. menu close)                                 | ✅ negative playback rate                                             |
-| `timeScale()`                                                    | ✅                                                                    |
-| `gsap.context()`, `useGSAP()`                                    | ✅                                                                    |
-| `gsap.set()` / zero-duration tweens                              | ignored (not motion)                                                  |
-| Non-DOM targets (plain objects, canvas)                          | timing only, no samples                                               |
-| ScrollTrigger (`scrollTrigger:` vars)                            | ⚠️ metadata only, marked experimental                                 |
-| Animations created before `register()`                           | ⚠️ picked up if still on the global timeline; otherwise use `track()` |
-| `new gsap.core.Timeline()` / `new gsap.core.Tween()`             | use `track()`                                                         |
-| Draggable, Observer, Flip                                        | not observed                                                          |
+| Pattern                                                           | Status                                                                |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `gsap.to / from / fromTo`                                         | ✅                                                                    |
+| `gsap.timeline()` with nested tweens and nested timelines         | ✅                                                                    |
+| Timeline labels and position parameters                           | ✅                                                                    |
+| `stagger` (number, object, function)                              | ✅ per-target records with real offsets                               |
+| Keyframes (`keyframes: [...]`)                                    | ✅ expanded like staggers                                             |
+| `repeat`, `yoyo`, `repeatDelay`, infinite repeats                 | ✅ (one iteration sampled for infinite)                               |
+| Timelines created paused and played later (`tl.play()` on click)  | ✅ recorded in the window where they run                              |
+| `tl.reverse()` (e.g. menu close)                                  | ✅ negative playback rate                                             |
+| `timeScale()`                                                     | ✅                                                                    |
+| `gsap.context()`, `useGSAP()`                                     | ✅                                                                    |
+| `gsap.set()` / zero-duration tweens                               | ignored (not motion)                                                  |
+| Non-DOM targets (plain objects, canvas)                           | timing only, no samples                                               |
+| ScrollTrigger (`scrollTrigger:` vars), `scrub` or `toggleActions` | ✅ values sampled where the scroll went ([below](#scrolltrigger))     |
+| ScrollTrigger on a repeating tween or timeline                    | ⚠️ timing and live progress only                                      |
+| Animations created before `register()`                            | ⚠️ picked up if still on the global timeline; otherwise use `track()` |
+| `new gsap.core.Timeline()` / `new gsap.core.Tween()`              | use `track()`                                                         |
+| Draggable, Observer, Flip                                         | not observed                                                          |
 
 ## How replay works
 
@@ -137,6 +139,54 @@ During a capture MotionPR pauses the root timelines and renders them at exact ti
 callbacks do **not** fire again. Afterwards each timeline's time and paused state are restored, so
 your app keeps working (a menu timeline still opens and closes). Other running GSAP animations are
 frozen during replay so frames are deterministic. Infinite ones are set to their start.
+
+## ScrollTrigger
+
+_New after `0.2.0-alpha` (unreleased): `0.2.0-alpha` records ScrollTrigger animations as timing
+and live progress only._
+
+A ScrollTrigger animation has no start time: with `scrub` its progress follows the scroll, with
+`toggleActions` it plays once its trigger enters. Scroll is never replayed, so the adapter records
+the animation's progress live on GSAP's ticker (`progressTrace`). For sampling, MotionPR renders it
+at `capture.samples` evenly spaced progress values between the lowest and highest progress the
+page showed in the checkpoint, with `totalTime(t, true)` like any other replay. Each sample has a
+`scrollProgress` and, as its `windowTime`, the moment the page first showed that progress.
+
+```ts
+gsap.to(".hero-image", {
+  yPercent: -12,
+  ease: "none",
+  scrollTrigger: {
+    trigger: ".hero",
+    start: "top bottom",
+    end: "bottom top",
+    scrub: true,
+  },
+});
+```
+
+- **Scroll progress** is the progress of the scroll-driven tween or timeline, 0 to 1. A tween
+  inside a scrubbed timeline is sampled in its own part of it: the second of two equal tweens
+  between 50% and 100%.
+- **Coverage.** When the scenario's scroll stops before the end of a tween's part, the record is
+  `partial` (_Sampled only where the scroll went: 50%–80% scroll progress (the animation runs
+  from 50% to 100%)_). When the scroll never reaches it, the record is `metadata-only`, with the
+  reason.
+- **Comparison** answers two questions separately:
+  - _Where in the scroll does it run?_ Progress at the same scroll position. A moved
+    `start`/`end` or a different scrub range: _Scroll-linked progress at the same scroll position
+    differs by up to 14% (at 656px: 28% → 14%)_.
+  - _What does it write?_ Values at the same scroll progress, over the progress both captures
+    reached. A changed parallax distance: _Scroll-linked translateY differs by up to 120px at the
+    same scroll progress (at 100%: -120px → -240px)_. Transforms and opacity use the `trajectory`,
+    `size` and `opacity` thresholds, other properties (colors, lengths) the `keyframes` rule. A
+    moved `start` alone does not change these values, so it is reported once.
+- **Replay.** While MotionPR renders other animations at a time (filmstrip frames, the settled
+  screenshot, samples), ScrollTrigger animations show the progress the page showed at that time.
+- **`scrub: <seconds>`** smooths progress with an internal GSAP tween. Its effect is the recorded
+  progress, so it is not reported as an animation of its own; settling waits for it.
+- **Not sampled:** ScrollTrigger animations whose tween or timeline repeats (one progress value
+  would stand for several states), and non-element targets. They keep timing and live progress.
 
 ## Troubleshooting
 
