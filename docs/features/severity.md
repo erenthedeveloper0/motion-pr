@@ -102,7 +102,7 @@ you can see which override applies.
 Scroll comparisons whose data is incomplete (a scroller still moving at capture) are reported as
 `uncertain`.
 
-Unreleased, after `0.3.0-alpha`, two more cases are `uncertain` unless the rule's severity is
+Since `0.4.0-alpha`, two more cases are `uncertain` unless the rule's severity is
 set:
 
 - `scroll-added` and `scroll-removed` for a scroll container that the other capture could not
@@ -115,7 +115,7 @@ set:
   (_… (uncertain: this native scroll's positions reached the page unevenly, up to a frame
   late)_). Positions, duration and settling stay definite.
 
-Unreleased, after `0.3.0-alpha`: `scroll-position` also grades where a ScrollTrigger animation
+Since `0.4.0-alpha`: `scroll-position` also grades where a ScrollTrigger animation
 starts and ends (the positions ScrollTrigger resolved), and `scroll-curve` changes of its `scrub`
 (a warning when scrubbing is turned on or off, otherwise info), `toggleActions` (info) and
 scroller (warning). See [GSAP: ScrollTrigger](../integrations/gsap.md#scrolltrigger).

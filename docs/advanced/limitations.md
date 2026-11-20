@@ -5,7 +5,7 @@ description: What this alpha does not do, and where each limitation is documente
 
 # Limitations
 
-MotionPR is in alpha (`0.3.0-alpha`). Everything below is a known limitation of this release, not
+MotionPR is in alpha (`0.4.0-alpha`). Everything below is a known limitation of this release, not
 a hidden one.
 
 ## Browsers and platforms
@@ -44,14 +44,14 @@ a hidden one.
   Progress at the same scroll position relates two live recordings (progress and scroll
   position); in MotionPR's tests with native smooth scrolling, two runs of the same build
   differed by up to 11% in Firefox and 28% in WebKit (none in Chromium), which is reported as an
-  `info` or `warning`. Unreleased builds after `0.3.0-alpha` compare the `start`/`end` positions
+  `info` or `warning`. Since `0.4.0-alpha`, MotionPR compares the `start`/`end` positions
   ScrollTrigger resolved instead, which were stable in all three engines; progress at the same
   scroll position remains the fallback for captures without them (taken with `0.3.0-alpha` or
   earlier) and for ScrollTriggers with `containerAnimation`
   ([GSAP](../integrations/gsap.md#scrolltrigger)). The values a ScrollTrigger animation writes
   are compared by progress and were stable in all three engines.
 - **CSS scroll-driven animations** are recorded as metadata only.
-- **Scroll containers** (unreleased, after `0.3.0-alpha`): native overflow containers are
+- **Scroll containers** (since `0.4.0-alpha`): native overflow containers are
   recorded, but not inside shadow roots or iframes (their scroll events do not reach the page's
   document). A container added, or starting to overflow, after its window opened is `partial`.
   `scrollTo` steps drive the first attached Lenis instance or a native container, not a Lenis

@@ -148,7 +148,7 @@ npx motionpr report --regenerate
   includes them), but element selectors do not pierce shadow roots, so a replaced shadow element
   cannot be re-found for replay. Not covered by tests yet; give such elements a
   `data-motionpr-id` on a stable host where possible.
-- **Scroll containers** (unreleased, after `0.3.0-alpha`): containers inside shadow roots or
+- **Scroll containers** (since `0.4.0-alpha`): containers inside shadow roots or
   iframes are not recorded as scroll motion (their animations still are).
 - **`wheel: … is outside the viewport`**: a `wheel` step with `selector` points at an element that
   is not on screen. Add a `scrollIntoView` step for it first; MotionPR does not scroll on its own.

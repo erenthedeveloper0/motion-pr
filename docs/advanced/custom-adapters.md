@@ -89,7 +89,7 @@ spaced progress values between the lowest and highest progress in the trace. In 
 it at the progress it showed at time `t`.
 
 If your engine resolves where in the scroll the animation runs, report it as `scrollLink`
-(unreleased, after `0.3.0-alpha`; type `AdapterScrollLink`):
+(since `0.4.0-alpha`; type `AdapterScrollLink`):
 
 ```ts
 scrollLink: {

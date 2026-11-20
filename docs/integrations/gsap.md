@@ -172,7 +172,7 @@ gsap.to(".hero-image", {
   `partial` (_Sampled only where the scroll went: 50%–80% scroll progress (the animation runs
   from 50% to 100%)_). When the scroll never reaches it, the record is `metadata-only`, with the
   reason.
-- **Positions** (unreleased, after `0.3.0-alpha`). Every record of a ScrollTrigger animation
+- **Positions** (since `0.4.0-alpha`). Every record of a ScrollTrigger animation
   carries `scrollLink`, read from the ScrollTrigger instance: the `start` and `end` scroll
   positions it resolved (px), its scroller (`null` for the document, otherwise the container's
   element key) and axis, `scrub` (`0` for `scrub: true`, the smoothing in ms for
@@ -180,8 +180,8 @@ gsap.to(".hero-image", {
   come from ScrollTrigger's layout, not from the scroll's timing, so two runs of one build agree
   in every engine.
 - **Comparison** answers two questions separately:
-  - _Where in the scroll does it run?_ The positions ScrollTrigger resolved (unreleased, after
-    `0.3.0-alpha`). A moved `start` or `end`: _Starts at scroll position 400px → 550px
+  - _Where in the scroll does it run?_ The positions ScrollTrigger resolved (since
+    `0.4.0-alpha`). A moved `start` or `end`: _Starts at scroll position 400px → 550px
     (+150px)_ (`scroll-position` rule: ignored up to `comparison.scroll.positionTolerancePx`, a
     warning from `warnPositionPx`). A changed `scrub` or `toggleActions` is a scroll setting:
     _Scroll setting scrub: on → 500ms_ (`info`), or a `warning` when scrubbing is turned on or

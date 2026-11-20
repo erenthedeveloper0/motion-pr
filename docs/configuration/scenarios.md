@@ -73,7 +73,7 @@ checkpoint.
   is. The element must be in the viewport and not covered by another element; otherwise the step
   fails and says which, because MotionPR does not scroll to reach it (bring it into view with a
   `scrollIntoView` step first).
-- **Scroll containers** (unreleased, after `0.3.0-alpha`): the scroll motion of overflow
+- **Scroll containers** (since `0.4.0-alpha`): the scroll motion of overflow
   elements is recorded like the document's, whether a step scrolls them (`scrollTo` with
   `selector`, `wheel` over them) or the page does (a carousel's "next" button). Instant `scroll`
   steps stay state changes. Turn it off with `capture.scrollContainers: false`

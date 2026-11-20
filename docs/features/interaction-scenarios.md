@@ -112,7 +112,7 @@ steps: [
 ];
 ```
 
-Unreleased, after `0.3.0-alpha`: overflow elements that scroll are recorded too, one
+Since `0.4.0-alpha`: overflow elements that scroll are recorded too, one
 `ScrollMotionRecord` each (`native:test-id:feed:vertical`), from where they rested before the
 interaction, whether a step or the page scrolled them.
 

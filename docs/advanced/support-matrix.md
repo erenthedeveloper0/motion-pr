@@ -18,7 +18,7 @@ description: Browsers, runtimes, engines and platforms MotionPR is tested with, 
 | GSAP                                | Verified with 3.15.1 (range `>=3.12 <4`)           | 23 browser tests per engine; ScrollTrigger: live progress, values sampled where the scroll went, positions        |
 | Anime.js                            | Verified with 4.5.0 (range `>=4 <5`)               | 22 browser tests per engine, unit tests; v3 is not supported                                                      |
 | Lenis                               | Verified with 1.3.27 (range `>=1.1 <2`)            | 16 browser tests per engine; scroll motion, never replayed                                                        |
-| Native scroll containers            | Verified in all three engines (unreleased)         | 12 browser tests per engine: steps, page-driven scrolls, settling, comparison                                     |
+| Native scroll containers            | Verified in all three engines                      | 12 browser tests per engine: steps, page-driven scrolls, settling, comparison                                     |
 | macOS                               | Verified (arm64), all three engines                | Development machine                                                                                               |
 | Linux                               | Covered by the repository's CI, all three engines  | `ubuntu-latest`, one job per engine                                                                               |
 | Windows                             | Covered by the repository's CI, Chromium           | `windows-latest`: unit tests, Chromium browser suites, demo app, packaged CLI. Firefox and WebKit are not covered |

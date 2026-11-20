@@ -5,7 +5,7 @@ workspace packages it bundles are versioned with it. Format:
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MotionPR is an alpha: until `1.0`, any
 prerelease may change the capture format or the API, and every such change is listed here.
 
-## [Unreleased]
+## [0.4.0-alpha] — 2026-11-20
 
 Where a GSAP ScrollTrigger animation runs in the scroll is compared from the `start` and `end`
 positions ScrollTrigger resolved, so two runs of one build agree in every engine, also under
@@ -375,7 +375,7 @@ published or tagged, so this release collects their work and the version starts 
 - Filled values are never written to captures or reports; inputs are masked in screenshots; query
   values in recorded URLs are redacted by default. MotionPR sends no telemetry.
 
-[Unreleased]: https://github.com/erenthedeveloper0/motionpr/compare/v0.3.0-alpha...main
+[0.4.0-alpha]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.4.0-alpha
 [0.3.0-alpha]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.3.0-alpha
 [0.2.0-alpha]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.2.0-alpha
 [0.1.0-alpha.1]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.1.0-alpha.1

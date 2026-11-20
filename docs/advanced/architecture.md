@@ -68,7 +68,7 @@ timing)`) and seeking the paused clones, so the originals never re-dispatch
    run and every engine. Everything else is frozen. Samples (computed styles, transforms, geometry) and filmstrip frames are taken at
    deterministic times, then all state is restored.
 6. **Scroll** is never replayed. Scroll motion is observed live (Lenis events, the document's
-   native position each frame, and, unreleased after `0.3.0-alpha`, each scroll container's
+   native position each frame, and, since `0.4.0-alpha`, each scroll container's
    position at its scroll events, with its rest position noted before each interaction) and
    stored as `ScrollMotionRecord`s. Scroll-linked animations (CSS scroll
    timelines, GSAP ScrollTrigger) are recorded as metadata plus, for GSAP, a live progress trace.
@@ -76,8 +76,8 @@ timing)`) and seeking the paused clones, so the originals never re-dispatch
    since `0.3.0-alpha`) has it sampled at evenly spaced progress values between the
    lowest and highest observed progress; time-based seeks show the progress observed at that
    time. Where such an animation runs in the scroll is read from its engine (`scrollLink`: the
-   `start`/`end` ScrollTrigger resolved, `scrub`, `toggleActions`; unreleased, after
-   `0.3.0-alpha`), so comparing it does not depend on how either run's scroll was scheduled.
+   `start`/`end` ScrollTrigger resolved, `scrub`, `toggleActions`; since
+   `0.4.0-alpha`), so comparing it does not depend on how either run's scroll was scheduled.
 7. **Normalization** (Node side) assigns stable ids (`<element key>::<type>::<name>`), links
    animations to `TimelineRecord`s, computes completeness and correlations, and writes the
    capture bundle (see [Capture serialization](capture-serialization.md)).

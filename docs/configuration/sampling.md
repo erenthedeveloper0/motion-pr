@@ -54,7 +54,7 @@ nothing moved is stored once.
 
 ## Scroll containers
 
-Unreleased, after `0.3.0-alpha`. MotionPR records how native scroll containers (elements whose
+Since `0.4.0-alpha`. MotionPR records how native scroll containers (elements whose
 content overflows and scrolls) move, not only the document, and waits for them to settle before
 a checkpoint. Before each interaction it notes where every container rests, a pass over the page
 of about 1 ms per 1,000 elements, so a container that starts to move has its rest position.

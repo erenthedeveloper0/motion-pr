@@ -138,7 +138,7 @@ One element animated over time. This is the record of the menu from
 | `parent`                   | The `TimelineRecord` this animation belongs to                                                       |
 | `progressTrace`            | Live progress of scroll-linked animations (GSAP ScrollTrigger), window-relative                      |
 | `samples[].scrollProgress` | Scroll-linked animations only (since `0.3.0-alpha`): the progress the sample was rendered at         |
-| `scrollLink`               | Scroll-linked animations (unreleased, after `0.3.0-alpha`): where they run in the scroll, see below  |
+| `scrollLink`               | Scroll-linked animations (since `0.4.0-alpha`): where they run in the scroll, see below              |
 
 `scrollLink` is written for ScrollTrigger animations (and by custom adapters that report it) and
 is absent otherwise, including in captures taken with `0.3.0-alpha` or earlier:
@@ -176,7 +176,7 @@ axis, the wrapper element (null for the document), the engine options that shape
 clock. It is never replayed; see [Lenis](../integrations/lenis.md).
 
 Native scrolling has one record for the document (`native:window:vertical`, `sessionId:
-"document"`) and, unreleased after `0.3.0-alpha`, one per scroll container that moved
+"document"`) and, since `0.4.0-alpha`, one per scroll container that moved
 (`native:test-id:feed:vertical`, `sessionId: "container"`, the container as `wrapper`, and
 `scrollBehavior` and `scrollSnapType` as its options). A container that a scroll engine already
 records (a Lenis `wrapper`) is not recorded again. Native positions are recorded when they

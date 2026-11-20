@@ -1,22 +1,21 @@
 # Roadmap
 
-What comes after `0.3.0-alpha`, roughly in order. Nothing under "Towards a beta" or "Later" is
+What comes after `0.4.0-alpha`, roughly in order. Nothing under "Towards a beta" or "Later" is
 built yet; what is built is in [the changelog](CHANGELOG.md) and
 [Limitations](docs/advanced/limitations.md). Order changes with what users run into; open an
 issue to argue for something.
 
 ## Done
 
-- **Nested native scroll containers** (unreleased, after `0.3.0-alpha`). The scroll motion of
-  overflow containers is recorded from where they rested, compared and waited for like the
-  document's, whether a step or the page scrolls them; `wheel` steps take a `selector` to scroll
-  the container under it (`scrollTo` already had one). Containers in shadow roots and iframes are
-  not recorded yet. See [Scenarios](docs/configuration/scenarios.md#scroll-motion).
-- **Stable ScrollTrigger positions under native smooth scrolling** (unreleased, after
-  `0.3.0-alpha`). Where a ScrollTrigger animation runs in the scroll is compared from the
-  `start`/`end` positions ScrollTrigger resolved, and its `scrub` and `toggleActions` as scroll
-  settings, instead of relating two live recordings; two runs of one build now agree in Chromium,
-  Firefox and WebKit. Captures without positions keep the progress comparison. See
+- **Nested native scroll containers** (`0.4.0-alpha`). The scroll motion of overflow
+  containers is recorded from where they rested, compared and waited for like the document's,
+  whether a step or the page scrolls them; `wheel` steps take a `selector` to scroll the
+  container under it (`scrollTo` already had one). Containers in shadow roots and iframes are not
+  recorded yet. See [Scenarios](docs/configuration/scenarios.md#scroll-motion).
+- **Stable ScrollTrigger positions under native smooth scrolling** (`0.4.0-alpha`). Where a
+  ScrollTrigger animation runs in the scroll is compared from the `start`/`end` positions
+  ScrollTrigger resolved, and its `scrub` and `toggleActions` as scroll settings, instead of
+  relating two live recordings; two runs of one build now agree in Chromium, Firefox and WebKit. Captures without positions keep the progress comparison. See
   [GSAP: ScrollTrigger](docs/integrations/gsap.md#scrolltrigger).
 - **Windows in CI** (`0.3.0-alpha`). The unit tests, the Chromium
   browser suites, the demo app's expectations and the packaged CLI run on `windows-latest`.

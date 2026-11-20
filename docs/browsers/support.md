@@ -42,10 +42,10 @@ Everything below is covered by automated tests that run in each engine against a
 | GSAP adapter (tweens, timelines, labels, staggers, reverse)  | Verified | Verified | Verified |
 | GSAP ScrollTrigger (metadata and live progress)              | Verified | Verified | Verified |
 | GSAP ScrollTrigger values                                    | Verified | Verified | Verified |
-| GSAP ScrollTrigger positions (unreleased)                    | Verified | Verified | Verified |
+| GSAP ScrollTrigger positions                                 | Verified | Verified | Verified |
 | Anime.js v4 adapter (timelines, staggers, WAAPI, eases)      | Verified | Verified | Verified |
 | Lenis adapter (scroll motion, velocity, reduced motion)      | Verified | Verified | Verified |
-| Native scroll containers (unreleased)                        | Verified | Verified | Verified |
+| Native scroll containers                                     | Verified | Verified | Verified |
 | GSAP with Lenis in one page                                  | Verified | Verified | Verified |
 | The demo app's 11 intended changes found, nothing else       | Verified | Verified | Verified |
 | CLI: capture, compare, run, baseline, report, doctor         | Verified | Verified | Verified |
