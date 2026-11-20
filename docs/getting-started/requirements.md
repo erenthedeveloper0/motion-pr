@@ -35,7 +35,8 @@ reported as _untested_ by `motionpr doctor` and in captures, and MotionPR still 
 
 This release was verified on macOS (arm64) with Node.js 24 and Playwright 1.65's Chromium,
 Firefox and WebKit. The repository's CI runs the same browser suites on Linux, once per engine.
-Windows paths are handled in code but no CI job runs on Windows yet. See the
+On Windows, CI runs the unit tests, the Chromium browser suites, the demo app and the packaged
+CLI; Firefox and WebKit are not covered there. See the
 [support matrix](../advanced/support-matrix.md) and [Browser support](../browsers/support.md).
 
 Next: [Installation](installation.md).

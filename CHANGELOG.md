@@ -8,7 +8,7 @@ prerelease may change the capture format or the API, and every such change is li
 ## [Unreleased]
 
 The values GSAP ScrollTrigger animations write are sampled and compared (roadmap: scroll-linked
-tween values). Capture schema and comparison schema stay at version 2, and the adapter protocol at
+tween values), and the repository's CI runs on Windows (roadmap: Windows in CI). Capture schema and comparison schema stay at version 2, and the adapter protocol at
 1: every new field and method is optional, so 0.2 captures and custom adapters work unchanged.
 
 ### Added
@@ -33,6 +33,9 @@ tween values). Capture schema and comparison schema stay at version 2, and the a
 - Browser tests for ScrollTrigger (scrubbed tween and timeline, `toggleActions`, `scrub: 0.5`,
   partial and missed ranges, two runs of one build, changed distance and fade, moved start, replay
   safety) in Chromium, Firefox and WebKit, and unit tests for the comparison.
+- **Windows in CI.** A `chromium on Windows` job runs the unit tests, the browser suites and the
+  demo app's expected differences in Chromium on `windows-latest`, and installs and runs the packed
+  package in a clean project.
 
 ### Changed
 
@@ -52,6 +55,10 @@ tween values). Capture schema and comparison schema stay at version 2, and the a
   `totalProgress`. It could be recorded as a GSAP animation without an element (seen in WebKit as
   an `uncertain` _Added: gsap on adapter:gsap:…_). It is no longer reported; settling still waits
   for it and replay still freezes it.
+- The repository's packaging check and tests could not run on Windows: `scripts/pack-check.mjs`
+  now runs npm, npx, pnpm and the installed bin through `cmd.exe` and no longer needs `cp`, the
+  documentation checks compare `/`-separated page paths, and the CLI tests link the package with
+  a junction instead of a directory symlink.
 
 ### Upgrading
 
@@ -65,6 +72,7 @@ compare no values; accept a new baseline to compare values.
   WebKit: two runs of one build differed by up to 11% (Firefox) and 28% (WebKit) in MotionPR's
   tests. This is unchanged from `0.2.0-alpha`; the new value comparison is stable in all three
   engines.
+- Firefox and WebKit are not tested on Windows; Chromium is.
 
 ## [0.2.0-alpha] — 2026-11-15
 

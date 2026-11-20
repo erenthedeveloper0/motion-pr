@@ -24,8 +24,9 @@ a hidden one.
 - **Timer-driven interruptions are environmental.** When an app cancels or reverses motion from a
   `setTimeout`, where the animation stood at that moment depends on scheduling. Sampled path and
   end-value differences of cancelled animations are `uncertain`.
-- **Verified on macOS and Linux CI.** Windows paths are handled in code, but no CI job runs on
-  Windows, for any engine.
+- **Windows is verified with Chromium only.** The repository's CI runs the unit tests, the
+  Chromium browser suites, the demo app's expectations and the packaged CLI on Windows. Firefox
+  and WebKit are verified on macOS and Linux.
 - **Pixels depend on the platform.** Visual comparison is a warning by default for this reason;
   capture baselines where CI runs ([Baseline management](../ci/baseline-management.md)).
 

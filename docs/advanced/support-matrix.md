@@ -20,12 +20,12 @@ description: Browsers, runtimes, engines and platforms MotionPR is tested with, 
 | Lenis                               | Verified with 1.3.27 (range `>=1.1 <2`)            | 15 browser tests per engine; scroll motion, never replayed                                                                       |
 | macOS                               | Verified (arm64), all three engines                | Development machine                                                                                                              |
 | Linux                               | Covered by the repository's CI, all three engines  | `ubuntu-latest`, one job per engine                                                                                              |
-| Windows                             | Not covered                                        | Paths are handled in code; no CI job yet                                                                                         |
+| Windows                             | Covered by the repository's CI, Chromium           | `windows-latest`: unit tests, Chromium browser suites, demo app, packaged CLI. Firefox and WebKit are not covered                |
 
 ## Browser tests per engine
 
 The browser suites run once per engine (`MOTIONPR_TEST_BROWSER=firefox pnpm test:integration`);
-CI runs Chromium in the main job and Firefox and WebKit in a matrix.
+CI runs Chromium in the main job, Firefox and WebKit in a matrix, and Chromium again on Windows.
 
 | Suite                                                                                  | Chromium | Firefox | WebKit |
 | -------------------------------------------------------------------------------------- | -------: | ------: | -----: |
@@ -38,7 +38,7 @@ CI runs Chromium in the main job and Firefox and WebKit in a matrix.
 | Demo app: every intended change, nothing else (e2e)                                    |       15 |      15 |     15 |
 
 The three CLI tests that only Chromium's run lists start all three engines in one project; they
-run once, in the main CI job, where every engine is installed.
+run once, in the main CI job, where every engine is installed. The Windows job runs the other 12.
 
 "Verified" means covered by automated tests against a real browser in this repository. Outside a
 tested range, an adapter reports the engine as _untested_ and keeps running. How the engines

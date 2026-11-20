@@ -111,8 +111,8 @@ whose last still and first moved samples share a millisecond still starts from i
   and Playwright's `moz-firefox` channels) or `browser.executablePath`; MotionPR's tests cover
   only Playwright's builds.
 - **Other versions** of an engine than the ones above are not tested.
-- **Windows** is not covered by CI for any engine. Playwright's WebKit on Windows is the least
-  mature build.
+- **Firefox and WebKit on Windows** are not covered by CI; Chromium is. Playwright's WebKit on
+  Windows is the least mature build.
 - **Engines run one after another** in a multi-browser run, not in parallel.
 - **Cross-browser pixel comparison** is never definite: pixel, geometry, start-offset and scroll
   differences between engines are `uncertain` by design.
