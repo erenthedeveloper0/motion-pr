@@ -111,6 +111,9 @@ scrolls by itself all the time (a ticker moved with `scrollLeft`) belongs in `ig
   reach the page's document). A container added, or starting to overflow, after its window opened
   is `partial`: its position before the first scroll event was not observed.
 - `scrollTo` steps do not drive a Lenis instance on a container; `wheel` over its `wrapper` does.
+- Chromium on Windows jumps instead of animating `behavior: "smooth"` scrolls when the system's
+  animation effects are off, as on GitHub's Windows runners. A `scrollTo` step records the jump;
+  a smooth scroll the page starts after a click is then a state change, not scroll motion.
 
 ## [0.3.0-alpha] — 2026-11-20
 

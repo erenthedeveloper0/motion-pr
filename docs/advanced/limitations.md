@@ -56,6 +56,9 @@ a hidden one.
   document). A container added, or starting to overflow, after its window opened is `partial`.
   `scrollTo` steps drive the first attached Lenis instance or a native container, not a Lenis
   instance on a container; `wheel` over its `wrapper` does.
+- **Smooth scrolling depends on the platform.** Chromium on Windows jumps instead of animating
+  `behavior: "smooth"` scrolls when the system's animation effects are off, as on GitHub's
+  Windows runners ([Chromium](../browsers/chromium.md#known-limitations)).
 - **Native smooth scrolling in Firefox** runs off the main thread, and its positions reach the
   page up to a frame late. Two runs of one build differed by up to 19% in easing curve and 73% in
   peak velocity in MotionPR's tests; those differences are `uncertain`. Positions, duration and
