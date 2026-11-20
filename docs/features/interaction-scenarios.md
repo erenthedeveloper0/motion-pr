@@ -96,6 +96,26 @@ steps: [
 `scrollTo` and `wheel` produce **scroll motion**, recorded live as a `ScrollMotionRecord`. See
 [Lenis](../integrations/lenis.md).
 
+### Scroll containers
+
+```ts
+steps: [
+  { type: "scrollTo", target: 1200, selector: "[data-testid=feed]" }, // native, smooth
+  { type: "waitForScrollSettled" },
+  { type: "capture", label: "feed" },
+  { type: "wheel", deltaY: 600, steps: 6, selector: "[data-testid=feed]" }, // pointer over it
+  { type: "waitForScrollSettled" },
+  { type: "capture", label: "feed-wheel" },
+  { type: "click", selector: "[data-testid=next-slide]" }, // the page scrolls a carousel
+  { type: "waitForScrollSettled" },
+  { type: "capture", label: "carousel" },
+];
+```
+
+Since `0.4.0-alpha`: overflow elements that scroll are recorded too, one
+`ScrollMotionRecord` each (`native:test-id:feed:vertical`), from where they rested before the
+interaction, whether a step or the page scrolled them.
+
 ### Forms
 
 ```ts

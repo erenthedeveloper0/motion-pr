@@ -64,5 +64,12 @@ and reports its timer resolution and frame rate.
 
 - Chromium's `scrollY` is a whole number of pixels, so smooth-scroll curves are slightly
   stepped compared with Firefox's fractional positions. Compare Chromium with Chromium.
+- **`behavior: "smooth"` on Windows.** Chromium on Windows animates smooth scrolls only when the
+  system's animation effects are on. On GitHub's `windows-latest` runners they are off: a
+  `scrollTo` step, or the page's own `scrollTo({ behavior: "smooth" })` and CSS
+  `scroll-behavior: smooth`, jumps instead. A `scrollTo` step still records the jump as scroll
+  motion; a jump the page makes after a click is a state change, not scroll motion. Scrolling
+  that the page animates itself (Lenis, or a carousel writing `scrollLeft` each frame) is not
+  affected. Capture baselines on the platform where they are compared.
 
 See [Browser support](support.md) and [Cross-browser testing](cross-browser-testing.md).

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>gsap scrolltrigger container fixture</title>
+    <!--
+      A ScrollTrigger whose scroller is a container (viewport 800×500): the panel is 400px tall
+      and scrolls 1200px of content, with the band 500px into it. The scrubbed tween runs from
+      panel scroll 100 ("top bottom": 500 − 400) to 800 ("bottom top": 500 + 300). `?start=`
+      moves its start.
+    -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #fff;
+        font: 16px sans-serif;
+      }
+      [data-testid="panel"] {
+        position: relative;
+        height: 400px;
+        overflow-y: auto;
+      }
+      .content {
+        position: relative;
+        height: 1200px;
+      }
+      .band {
+        position: absolute;
+        top: 500px;
+        left: 0;
+        width: 100%;
+        height: 300px;
+        background: #eee;
+      }
+      .box {
+        position: absolute;
+        top: 40px;
+        left: 40px;
+        width: 80px;
+        height: 80px;
+        background: rgb(0, 0, 255);
+      }
+    </style>
+  </head>
+  <body>
+    <div data-testid="panel">
+      <div class="content">
+        <section class="band"><div class="box" data-testid="drift"></div></section>
+      </div>
+    </div>
+    <script src="/gsap.min.js"></script>
+    <script src="/ScrollTrigger.min.js"></script>
+    <script src="/adapter.js"></script>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const { motionprGsap } = MotionprGsap;
+      window.registered = motionprGsap.register(gsap);
+      gsap.registerPlugin(ScrollTrigger);
+
+      gsap.to("[data-testid=drift]", {
+        x: 200,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".band",
+          scroller: "[data-testid=panel]",
+          start: params.get("start") ?? "top bottom",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+    </script>
+  </body>
+</html>

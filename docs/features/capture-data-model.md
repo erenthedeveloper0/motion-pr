@@ -138,6 +138,27 @@ One element animated over time. This is the record of the menu from
 | `parent`                   | The `TimelineRecord` this animation belongs to                                                       |
 | `progressTrace`            | Live progress of scroll-linked animations (GSAP ScrollTrigger), window-relative                      |
 | `samples[].scrollProgress` | Scroll-linked animations only (since `0.3.0-alpha`): the progress the sample was rendered at         |
+| `scrollLink`               | Scroll-linked animations (since `0.4.0-alpha`): where they run in the scroll, see below              |
+
+`scrollLink` is written for ScrollTrigger animations (and by custom adapters that report it) and
+is absent otherwise, including in captures taken with `0.3.0-alpha` or earlier:
+
+```json
+{
+  "start": 400,
+  "end": 1300,
+  "axis": "vertical",
+  "scroller": null,
+  "scrub": 0,
+  "toggleActions": null
+}
+```
+
+`start` and `end` are the scroll positions (CSS px of the scroller) where the scroll-driven
+progress is 0 and 1, as the engine resolved them. `scroller` is `null` for the document,
+otherwise the scroll container's element key. `scrub` is `0` when progress follows the scroll
+directly, the smoothing in ms when it catches up over time, and `null` when the animation plays
+in time once triggered; `toggleActions` (enter, leave, enter back, leave back) is set only then.
 
 ## TimelineRecord
 
@@ -153,6 +174,17 @@ axis, the wrapper element (null for the document), the engine options that shape
 (`lerp`, `duration`, …; scalars only), and samples of `actualScroll`, `animatedScroll`,
 `targetScroll`, `progress`, `velocity`, `direction`, `isScrolling` and `isStopped` on the window
 clock. It is never replayed; see [Lenis](../integrations/lenis.md).
+
+Native scrolling has one record for the document (`native:window:vertical`, `sessionId:
+"document"`) and, since `0.4.0-alpha`, one per scroll container that moved
+(`native:test-id:feed:vertical`, `sessionId: "container"`, the container as `wrapper`, and
+`scrollBehavior` and `scrollSnapType` as its options). A container that a scroll engine already
+records (a Lenis `wrapper`) is not recorded again. Native positions are recorded when they
+change; when the scroller was still at the end of the window, the last sample says so. A
+container first seen while scrolling, because it was added or began to overflow after the window
+opened, is `partial`: its position before the first scroll event was not observed. The capture's
+`settings.scrollContainers` says whether containers were recorded (`false` in captures made
+before this, and with `capture.scrollContainers: false`).
 
 ## Correlations
 

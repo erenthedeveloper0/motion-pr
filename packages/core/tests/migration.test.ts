@@ -146,6 +146,32 @@ describe("capture schema migration v1 → v2", () => {
     expect(bundle.scenarios[0]!.adapters).toEqual([]);
   });
 
+  it("reads resolved scroll positions, which older captures do not have", () => {
+    const upgraded = parseCaptureBundle(structuredClone(v1Capture));
+    const records = () => upgraded.scenarios[0]!.checkpoints[0]!.animations;
+    expect(records().every((a) => a.scrollLink === undefined)).toBe(true);
+    const scrollLink = {
+      start: 400,
+      end: 1300,
+      axis: "vertical",
+      scroller: "test-id:panel",
+      scrub: 500,
+      toggleActions: null,
+    };
+    records()[1]!.scrollLink = scrollLink as never;
+    const reread = parseCaptureBundle(structuredClone(upgraded));
+    expect(reread.scenarios[0]!.checkpoints[0]!.animations[1]!.scrollLink).toEqual(scrollLink);
+    records()[1]!.scrollLink = { ...scrollLink, scrub: -1 } as never;
+    expect(() => parseCaptureBundle(structuredClone(upgraded))).toThrow(/scrollLink\.scrub/);
+  });
+
+  it("reads captures made before scroll-container recording as not recording containers", () => {
+    const upgraded = parseCaptureBundle(structuredClone(v1Capture));
+    expect(upgraded.settings.scrollContainers).toBe(false);
+    upgraded.settings.scrollContainers = true;
+    expect(parseCaptureBundle(structuredClone(upgraded)).settings.scrollContainers).toBe(true);
+  });
+
   it("rejects captures newer than this version", () => {
     expect(() => parseCaptureBundle({ ...v1Capture, schemaVersion: 3 })).toThrow(
       /understands up to v2/,

@@ -159,6 +159,28 @@ export type Completeness = z.infer<typeof completenessSchema>;
 export const provenanceSchema = z.enum(["declared", "observed", "inferred", "unavailable"]);
 export type Provenance = z.infer<typeof provenanceSchema>;
 
+/**
+ * Where a scroll-linked animation runs in the scroll, as its engine resolved it. Positions are
+ * scroll offsets (CSS px) of the scroller, so two runs of one build at one viewport agree.
+ */
+export const scrollLinkSchema = z.object({
+  /** Scroll position at which the scroll-driven progress is 0 (ScrollTrigger's `start`). */
+  start: z.number(),
+  /** Scroll position at which the scroll-driven progress is 1 (ScrollTrigger's `end`). */
+  end: z.number(),
+  axis: z.enum(["vertical", "horizontal"]),
+  /** Element key of the scroll container; null for the document scroller. */
+  scroller: z.string().nullable(),
+  /**
+   * `0` when progress follows the scroll directly (`scrub: true`), the catch-up time in ms when
+   * smoothed (`scrub: 0.5` → 500), null when the animation plays in time once triggered.
+   */
+  scrub: z.number().min(0).nullable(),
+  /** Enter, leave, enter-back and leave-back actions of a triggered animation; null if scrubbed. */
+  toggleActions: z.string().nullable(),
+});
+export type ScrollLink = z.infer<typeof scrollLinkSchema>;
+
 export const ANIMATION_TYPES = [
   "css-animation",
   "css-transition",
@@ -199,6 +221,12 @@ export const animationRecordSchema = z.object({
    * because they follow scroll (GSAP ScrollTrigger). Window-relative ms. Empty otherwise.
    */
   progressTrace: z.array(z.object({ time: z.number(), progress: z.number() })).default([]),
+  /**
+   * Scroll-linked animations whose engine resolves them (GSAP ScrollTrigger): where in the
+   * scroll their scroll-driven progress runs and how it follows the scroll. Absent otherwise,
+   * and in captures made before MotionPR recorded it.
+   */
+  scrollLink: scrollLinkSchema.optional(),
   playState: z.string(),
   group: z.string().nullable(),
   meta: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
@@ -255,12 +283,18 @@ export const scrollSampleSchema = z.object({
 });
 export type ScrollSample = z.infer<typeof scrollSampleSchema>;
 
-/** How one scroller (Lenis instance or native scroll container) moved during a checkpoint window. */
+/**
+ * How one scroller moved during a checkpoint window: a Lenis instance, the document's native
+ * scrolling, or a native scroll container (an overflow element; `wrapper` is set).
+ */
 export const scrollMotionRecordSchema = z.object({
   /** Stable key: `<source>:<wrapper element key or "window">:<axis>`. */
   id: z.string(),
   source: z.enum(["lenis", "native"]),
-  /** Identifies the engine instance within the page session (Lenis instances are numbered). */
+  /**
+   * Identifies the engine instance within the page session: the Lenis instance's name or
+   * number, or for native scrolling `document` or `container`.
+   */
   sessionId: z.string(),
   axis: z.enum(["vertical", "horizontal"]),
   /** Scroll container; null for the document scroller. */
@@ -454,6 +488,12 @@ export const captureSettingsSchema = z.object({
   }),
   maxWindow: z.number(),
   maskInputs: z.boolean(),
+  /**
+   * Whether the scroll motion of native scroll containers was recorded
+   * (`capture.scrollContainers`). Captures made before `0.4.0-alpha` did not record it and read
+   * as `false`: a container scroll missing from them is not evidence that it did not move.
+   */
+  scrollContainers: z.boolean().default(false),
 });
 
 export const captureBundleSchema = z.object({

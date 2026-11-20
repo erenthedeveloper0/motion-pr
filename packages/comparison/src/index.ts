@@ -20,5 +20,11 @@ export {
   frameDivergence,
   type ImageSource,
 } from "./visual.ts";
-export { compareScrollRecords, matchScroll, scrollMetrics, CURVE_POINTS } from "./scroll.ts";
+export {
+  compareScrollRecords,
+  matchScroll,
+  scrollMetrics,
+  unevenDelivery,
+  CURVE_POINTS,
+} from "./scroll.ts";
 export { compareTimelineRecords } from "./timelines.ts";

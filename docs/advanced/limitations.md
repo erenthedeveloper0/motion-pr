@@ -5,7 +5,7 @@ description: What this alpha does not do, and where each limitation is documente
 
 # Limitations
 
-MotionPR is in alpha (`0.3.0-alpha`). Everything below is a known limitation of this release, not
+MotionPR is in alpha (`0.4.0-alpha`). Everything below is a known limitation of this release, not
 a hidden one.
 
 ## Browsers and platforms
@@ -44,12 +44,26 @@ a hidden one.
   Progress at the same scroll position relates two live recordings (progress and scroll
   position); in MotionPR's tests with native smooth scrolling, two runs of the same build
   differed by up to 11% in Firefox and 28% in WebKit (none in Chromium), which is reported as an
-  `info` or `warning`. The values a ScrollTrigger animation writes are compared by progress and
-  were stable in all three engines.
+  `info` or `warning`. Since `0.4.0-alpha`, MotionPR compares the `start`/`end` positions
+  ScrollTrigger resolved instead, which were stable in all three engines; progress at the same
+  scroll position remains the fallback for captures without them (taken with `0.3.0-alpha` or
+  earlier) and for ScrollTriggers with `containerAnimation`
+  ([GSAP](../integrations/gsap.md#scrolltrigger)). The values a ScrollTrigger animation writes
+  are compared by progress and were stable in all three engines.
 - **CSS scroll-driven animations** are recorded as metadata only.
-- **Nested scroll containers**: native scroll motion is recorded for the document scroller only.
-  Containers scrolled by Lenis (`wrapper`) are recorded through the Lenis adapter but not covered by
-  browser tests, and steps do not drive them.
+- **Scroll containers** (since `0.4.0-alpha`): native overflow containers are
+  recorded, but not inside shadow roots or iframes (their scroll events do not reach the page's
+  document). A container added, or starting to overflow, after its window opened is `partial`.
+  `scrollTo` steps drive the first attached Lenis instance or a native container, not a Lenis
+  instance on a container; `wheel` over its `wrapper` does.
+- **Smooth scrolling depends on the platform.** Chromium on Windows jumps instead of animating
+  `behavior: "smooth"` scrolls when the system's animation effects are off, as on GitHub's
+  Windows runners ([Chromium](../browsers/chromium.md#known-limitations)).
+- **Native smooth scrolling in Firefox** runs off the main thread, and its positions reach the
+  page up to a frame late. Two runs of one build differed by up to 19% in easing curve and 73% in
+  peak velocity in MotionPR's tests; those differences are `uncertain`. Positions, duration and
+  settling are stable. Headless engines also move a native scroller once per `wheel` event, so
+  the curve of a native `wheel` scroll follows the step's `interval`.
 - **Shadow DOM**: animations inside shadow roots are discovered, but selectors do not pierce shadow
   roots, so replayed shadow elements cannot always be re-found. Not covered by tests yet.
 

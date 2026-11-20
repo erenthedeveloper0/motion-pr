@@ -2,9 +2,10 @@ import type {
   AnimationRecord,
   ChangeKind,
   ComparisonConfig,
+  ScrollLink,
   ScrollMotionRecord,
 } from "@motionpr/core";
-import type { ChangeDraft } from "./severity.ts";
+import { magnitudeSeverity, type ChangeDraft } from "./severity.ts";
 
 const POINTS = 33;
 /** Minimum shared scroll range (px) for a meaningful comparison. */
@@ -63,10 +64,110 @@ function movingScroll(records: readonly ScrollMotionRecord[]): ScrollMotionRecor
   );
 }
 
+const round2 = (n: number) => Math.round(n * 100) / 100;
+const px = (n: number) => `${Math.round(n * 10) / 10}px`;
+const scroller = (l: ScrollLink) =>
+  `${l.scroller ?? "document"}${l.axis === "horizontal" ? " (horizontal)" : ""}`;
+const scrubText = (s: number | null) =>
+  s === null ? "off (plays once triggered)" : s === 0 ? "on" : `${round2(s)}ms`;
+
+/**
+ * Compares where two scroll-linked animations run in the scroll, from the positions their engine
+ * resolved (ScrollTrigger's `start` and `end`), and how their progress follows the scroll
+ * (`scrub`, `toggleActions`). These are read from the engine, so two runs of one build agree in
+ * every browser engine, also under native smooth scrolling.
+ *
+ * Returns null when either record has no resolved positions (captures from before MotionPR
+ * recorded them, `containerAnimation` triggers, adapters that do not report them): the caller
+ * then compares progress at the same scroll position instead ({@link scrollLinkedChange}).
+ */
+export function scrollLinkChanges(
+  b: AnimationRecord,
+  c: AnimationRecord,
+  config: ComparisonConfig,
+): ChangeDraft[] | null {
+  const lb = b.scrollLink;
+  const lc = c.scrollLink;
+  if (!lb || !lc) return null;
+  const sc = config.scroll;
+  const drafts: ChangeDraft[] = [];
+
+  if (lb.scroller !== lc.scroller || lb.axis !== lc.axis) {
+    // Positions on different scrollers or axes are not comparable.
+    drafts.push({
+      kind: "scroll-config",
+      rule: "scroll-curve",
+      property: "scroller",
+      before: scroller(lb),
+      after: scroller(lc),
+      measurement: "measured",
+      severity: "warning",
+      message: `Scroll-linked to ${scroller(lb)} → ${scroller(lc)}`,
+    });
+  } else {
+    for (const [kind, label, before, after] of [
+      ["scroll-start", "Starts at scroll position", lb.start, lc.start],
+      ["scroll-end", "Ends at scroll position", lb.end, lc.end],
+    ] as const) {
+      const delta = round2(after - before);
+      const severity = magnitudeSeverity(
+        Math.abs(delta),
+        sc.positionTolerancePx,
+        sc.warnPositionPx,
+      );
+      if (!severity) continue;
+      drafts.push({
+        kind,
+        rule: "scroll-position",
+        before,
+        after,
+        delta,
+        unit: "px",
+        measurement: "measured",
+        severity,
+        message: `${label} ${px(before)} → ${px(after)} (${delta > 0 ? "+" : ""}${px(delta)})`,
+      });
+    }
+  }
+
+  if (lb.scrub !== lc.scrub) {
+    // Scrubbed ↔ played once triggered changes what drives the animation; a different
+    // smoothing time only changes how closely it follows the scroll.
+    const modeChanged = (lb.scrub === null) !== (lc.scrub === null);
+    drafts.push({
+      kind: "scroll-config",
+      rule: "scroll-curve",
+      property: "scrub",
+      before: lb.scrub,
+      after: lc.scrub,
+      ...(modeChanged ? {} : { delta: round2(lc.scrub! - lb.scrub!), unit: "ms" }),
+      measurement: "measured",
+      severity: modeChanged ? "warning" : "info",
+      message: `Scroll setting scrub: ${scrubText(lb.scrub)} → ${scrubText(lc.scrub)}`,
+    });
+  } else if (lb.toggleActions !== lc.toggleActions) {
+    drafts.push({
+      kind: "scroll-config",
+      rule: "scroll-curve",
+      property: "toggleActions",
+      before: lb.toggleActions,
+      after: lc.toggleActions,
+      measurement: "measured",
+      severity: "info",
+      message: `Scroll setting toggleActions: ${lb.toggleActions ?? "none"} → ${lc.toggleActions ?? "none"}`,
+    });
+  }
+  return drafts;
+}
+
 /**
  * Compares a scroll-linked animation (e.g. GSAP ScrollTrigger with scrub) by its progress at the
  * same scroll positions: a moved trigger point or a changed scrub range shows up here even
  * though the animation itself cannot be replayed. Returns null when there is not enough data.
+ *
+ * This relates two live recordings, so it depends on how each run's scroll was scheduled (noisy
+ * under native smooth scrolling in Firefox and WebKit). It is used only for records without
+ * resolved positions; see {@link scrollLinkChanges}.
  */
 export function scrollLinkedChange(
   b: AnimationRecord,

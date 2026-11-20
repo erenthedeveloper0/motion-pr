@@ -110,7 +110,7 @@ disappears. The website's hero draws it from the demo app's real baseline and ca
 | GSAP `power3.out` → `back.out(1.7)`                     | `Easing power3.out → back.out(1.7) (max deviation 16% of progress at 41% time; now overshoots)`                |
 | An Anime.js timeline step moved from `-=120` to `+=120` | `Label “ship” moved 600ms → 840ms`, `Timeline duration 840ms → 1080ms`                                         |
 | Lenis `lerp` from 0.1 to 0.06                           | `Scroll takes 1229ms → 2046ms to settle (+816ms)`, `Peak scroll velocity 4.11 → 2.56 px/ms (-38%)`             |
-| A ScrollTrigger `start` moved                           | `Scroll-linked progress at the same scroll position differs by up to 14%`                                      |
+| A ScrollTrigger `start` moved                           | `Starts at scroll position 4028px → 4268px (+240px)`                                                           |
 | An element matched only by DOM position changed         | **uncertain**, never a failure: `(element matched by DOM position only)`                                       |
 
 Every row comes from the bundled demo app, whose candidate variant contains eleven deliberate
@@ -122,7 +122,7 @@ in [Severity & thresholds](docs/features/severity.md).
 
 ## Status
 
-**Alpha — `0.3.0-alpha`.** It works end to end in Chromium, Firefox and WebKit for the engines below, and
+**Alpha — `0.4.0-alpha`.** It works end to end in Chromium, Firefox and WebKit for the engines below, and
 every claim in the documentation is backed by an automated test. Do not put it on a path that
 blocks production releases yet: the capture format and the public API may change before `1.0`.
 Older captures are migrated when they are read.
@@ -150,8 +150,7 @@ Older captures are migrated when they are read.
 
 ### Not built yet
 
-Nested native scroll containers · Shadow DOM selector piercing · example projects · engines in
-parallel within one run. The
+Shadow DOM selector piercing · example projects · engines in parallel within one run. The
 [roadmap](ROADMAP.md) orders them, and [Limitations](docs/advanced/limitations.md) lists every
 known gap.
 

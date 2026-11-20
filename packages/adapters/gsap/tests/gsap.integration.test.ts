@@ -301,9 +301,10 @@ describe("GSAP adapter: ScrollTrigger values", () => {
     });
     return result.differences;
   };
+  const gsapFindings = (diffs: Difference[]) => diffs.filter((d) => d.source === "gsap");
   // Findings about the values scroll-linked animations write (not where they sit in the scroll).
   const valueFindings = (diffs: Difference[]) =>
-    diffs.filter((d) => d.source === "gsap" && !/Scroll-linked progress/.test(d.title));
+    gsapFindings(diffs).filter((d) => d.category !== "scroll");
 
   let full: CaptureBundle;
   beforeAll(async () => {
@@ -365,9 +366,31 @@ describe("GSAP adapter: ScrollTrigger values", () => {
     expect(find(cp.animations, "test-id:story-a").samples.length).toBe(11);
   });
 
-  it("finds no value differences between two runs of the same build", async () => {
+  it("finds no differences between two runs of the same build", async () => {
     const again = await capture(scrolled(1800), "/scrolltrigger.html");
-    expect(valueFindings(await compare(full, again))).toEqual([]);
+    // Where the animations run comes from ScrollTrigger's resolved positions, not from relating
+    // live progress to the recorded scroll, so native smooth scrolling (whose timing differs
+    // between runs in Firefox and WebKit) adds no finding.
+    expect(gsapFindings(await compare(full, again)).map((d) => d.title)).toEqual([]);
+  });
+
+  it("records where each animation runs in the scroll, as ScrollTrigger resolved it", () => {
+    const cp = checkpointOf(full);
+    const link = (key: string) => find(cp.animations, key).scrollLink;
+    const scrubbed = { axis: "vertical", scroller: null, scrub: 0, toggleActions: null };
+    expect(link("test-id:parallax")).toEqual({ start: 400, end: 1300, ...scrubbed });
+    // Both tweens of the scrubbed timeline carry the timeline's ScrollTrigger positions.
+    expect(link("test-id:story-a")).toEqual({ start: 1000, end: 2000, ...scrubbed });
+    expect(link("test-id:story-b")).toEqual(link("test-id:story-a"));
+    // Played once triggered: no scrub, ScrollTrigger's default toggleActions ("play").
+    expect(link("test-id:reveal")).toEqual({
+      start: 1600,
+      end: 2200,
+      axis: "vertical",
+      scroller: null,
+      scrub: null,
+      toggleActions: "play none none none",
+    });
   });
 
   it("reports a changed parallax distance at the same scroll progress", async () => {
@@ -388,17 +411,69 @@ describe("GSAP adapter: ScrollTrigger values", () => {
     );
   });
 
-  it("samples a smoothed scrub (scrub: 0.5) and finds its values unchanged", async () => {
+  it("samples a smoothed scrub (scrub: 0.5): same values, a changed scroll setting", async () => {
     const smoothed = await capture(scrolled(1800), "/scrolltrigger.html?scrub=0.5");
     const parallax = find(checkpointOf(smoothed).animations, "test-id:parallax");
     expect(parallax.completeness.status).toBe("complete");
     expect(parallax.samples.at(-1)!.numeric.translateY).toBeCloseTo(-120, 1);
-    expect(valueFindings(await compare(full, smoothed))).toEqual([]);
+    expect(parallax.scrollLink).toMatchObject({ start: 400, end: 1300, scrub: 500 });
+    const found = gsapFindings(await compare(full, smoothed));
+    expect(found.map((d) => d.title)).toEqual([
+      "gsap on parallax: Scroll setting scrub: on → 500ms",
+    ]);
+    expect(found[0]).toMatchObject({ severity: "info", category: "scroll" });
   });
 
-  it("reports a moved start as a progress difference only, not as changed values", async () => {
+  it("reports a moved start once, as the position ScrollTrigger resolved", async () => {
+    // "top 70%": the band's top (900px) meets 70% of the 500px viewport at scroll 550.
     const later = await capture(scrolled(1800), "/scrolltrigger.html?start=top%2070%25");
-    expect(valueFindings(await compare(full, later))).toEqual([]);
+    const found = gsapFindings(await compare(full, later));
+    expect(found.map((d) => d.title)).toEqual([
+      "gsap on parallax: Starts at scroll position 400px → 550px (+150px)",
+    ]);
+    expect(found[0]).toMatchObject({
+      severity: "warning",
+      category: "scroll",
+      delta: 150,
+      unit: "px",
+    });
+  });
+
+  it("reports changed toggleActions as a scroll setting", async () => {
+    const reversing = await capture(
+      scrolled(1800),
+      "/scrolltrigger.html?actions=play%20none%20none%20reverse",
+    );
+    const found = gsapFindings(await compare(full, reversing));
+    expect(found.map((d) => d.title)).toEqual([
+      "gsap on reveal: Scroll setting toggleActions: play none none none → play none none reverse",
+    ]);
+    expect(found[0]!.severity).toBe("info");
+  });
+
+  it("records and compares positions in a scroll container", async () => {
+    // fixtures/scrolltrigger-container.html: the tween runs from panel scroll 100 to 800.
+    const steps = [
+      { type: "scroll", y: 800, selector: "[data-testid=panel]" },
+      { type: "wait", duration: 250 },
+      { type: "capture", label: "scrolled" },
+    ];
+    const before = await capture(steps, "/scrolltrigger-container.html");
+    const drift = find(checkpointOf(before).animations, "test-id:drift");
+    expect(drift.scrollLink).toEqual({
+      start: 100,
+      end: 800,
+      axis: "vertical",
+      scroller: "test-id:panel",
+      scrub: 0,
+      toggleActions: null,
+    });
+    expect(drift.completeness.status).toBe("complete");
+    // "top 75%": the band's top (500px into the panel) meets 75% of the 400px panel at 200.
+    const after = await capture(steps, "/scrolltrigger-container.html?start=top%2075%25");
+    expect(gsapFindings(await compare(before, after)).map((d) => d.title)).toEqual([
+      "gsap on drift: Starts at scroll position 100px → 200px (+100px)",
+    ]);
   });
 
   it("restores ScrollTrigger animations after replay without firing their callbacks", async () => {

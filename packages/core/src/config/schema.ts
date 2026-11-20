@@ -91,7 +91,15 @@ export const wheelStepSchema = z.object({
   /** Split the delta into this many wheel events, `interval` ms apart (default 1). */
   steps: z.number().int().min(1).max(100).default(1),
   interval: ms(1000).default(16),
-  /** Move the pointer here first (viewport CSS px); defaults to the viewport centre. */
+  /**
+   * Move the pointer over this element first (its centre), so the wheel scrolls the scroll
+   * container under it. It must be in the viewport: MotionPR does not scroll to reach it.
+   */
+  selector: selector.optional(),
+  /**
+   * Where the pointer goes first: viewport CSS px, or with `selector` relative to the element's
+   * top-left corner. Defaults to the viewport centre (the element's centre with `selector`).
+   */
   position: position.optional(),
 });
 
@@ -481,6 +489,11 @@ export const configSchema = z.object({
       waitForImages: z.boolean().default(true),
       /** Scenarios captured in parallel (each in its own browser context). */
       concurrency: z.number().int().min(1).max(16).default(1),
+      /**
+       * Record the scroll motion of native scroll containers (overflow elements), not only the
+       * document, and wait for them to settle. `false` records the document scroller only.
+       */
+      scrollContainers: z.boolean().default(true),
     })
     .prefault({}),
   comparison: comparisonConfigSchema.prefault({}),

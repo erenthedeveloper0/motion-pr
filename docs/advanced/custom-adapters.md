@@ -88,6 +88,24 @@ callbacks. The agent calls it between `beginReplay()` and `endReplay()`, after `
 spaced progress values between the lowest and highest progress in the trace. In `seek(t)`, render
 it at the progress it showed at time `t`.
 
+If your engine resolves where in the scroll the animation runs, report it as `scrollLink`
+(since `0.4.0-alpha`; type `AdapterScrollLink`):
+
+```ts
+scrollLink: {
+  start: 400, // scroll position (CSS px) where progress is 0
+  end: 1300, // … where progress is 1
+  axis: "vertical",
+  scroller: null, // the scroll container element; null for the document
+  scrub: 0, // 0: follows the scroll; ms of smoothing; null: plays once triggered
+  toggleActions: null, // with scrub: null, e.g. "play none none reverse"
+},
+```
+
+Comparisons then report a moved start or end, and changed `scrub` or `toggleActions`, from these
+values instead of relating `progressTrace` to the recorded scroll, which depends on how each
+run's scroll was scheduled. Without it, progress at the same scroll position is compared.
+
 ## Rules that keep captures trustworthy
 
 - Report times on the `performance.now()` clock.

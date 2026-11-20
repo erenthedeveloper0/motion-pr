@@ -60,6 +60,11 @@ Scroll motion is compared by its own metrics (see [Lenis](../integrations/lenis.
 | `comparison.scroll.overshootTolerancePx` | `4`     | Overshoot differences ignored                             |
 | `comparison.scroll.settleVelocity`       | `0.02`  | Velocity (px/ms) below which a scroller counts as settled |
 
+Since `0.4.0-alpha`: `positionTolerancePx` and `warnPositionPx` also apply to a moved
+ScrollTrigger `start` or `end` ([GSAP: ScrollTrigger](../integrations/gsap.md#scrolltrigger)).
+Scroll-linked progress at the same scroll position, graded with `curveTolerance` and
+`warnCurveDeviation`, is then compared only for captures without those positions.
+
 ## Overrides
 
 `comparison.severity` maps a rule name to `critical`, `warning`, `info`, `uncertain` or `off`.

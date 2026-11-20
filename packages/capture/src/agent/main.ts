@@ -29,6 +29,7 @@ import type {
   RawDiagnostic,
   RawKeyframe,
   RawSample,
+  RawScrollLink,
   RawTiming,
   SettleResult,
   TimelineKind,
@@ -52,6 +53,21 @@ interface Tracked {
   canceledAt: number | null;
   /** Set once the animation finished; a later cancel (e.g. class removed) is not a truncation. */
   finished: boolean;
+}
+
+/** A native scroll container (an overflow element) known in the current window. */
+interface ContainerTrack {
+  el: Element;
+  /** Positions in time order (performance clock). The first is the rest position when known. */
+  samples: { t: number; x: number; y: number }[];
+  /** False when the container was first seen while scrolling, so where it rested is unknown. */
+  restObserved: boolean;
+  /** Scroll events seen in the window. Containers without any did not move. */
+  events: number;
+  /** A step is scrolling it: settling waits for it before its first scroll event. */
+  watched: boolean;
+  /** Element key, computed once. */
+  key: string | null;
 }
 
 interface Trigger {
@@ -99,6 +115,8 @@ const META_KEYS = new Set(["offset", "computedOffset", "easing", "composite"]);
 const KNOWN_ADAPTER_TYPES = new Set<AnimationType>(["gsap", "animejs"]);
 /** One frame at 60 Hz, used to bound when observed movement actually began. */
 const FRAME_MS = 1000 / 60;
+/** Native scrolling counts as finished after this long without movement. */
+const NATIVE_QUIET_MS = 100;
 /** Upper bound of native scroll samples kept per window (≈ 33 s at 60 fps). */
 const MAX_NATIVE_SCROLL_SAMPLES = 2000;
 
@@ -114,6 +132,7 @@ export function installAgent(win: Window & typeof globalThis): void {
     ignoreAnimationNames: [],
     ignoreProperties: [],
     maxWindowMs: 5000,
+    scrollContainers: true,
   };
 
   const tracked = new Map<Animation, Tracked>();
@@ -135,6 +154,10 @@ export function installAgent(win: Window & typeof globalThis): void {
   /** Last scroller positions seen by pending(), to tell advancing from stalled smooth scrolls. */
   const lastPendingScroll = new Map<string, number>();
   let lastNativeMove = 0;
+  /** Native scroll containers of the current window: rest positions and observed movement. */
+  let containers = new Map<Element, ContainerTrack>();
+  /** When a scan last saw each element without overflow (its scroll offset was 0 then). */
+  let scannedAt = new WeakMap<Element, number>();
 
   const now = () => perf.now();
 
@@ -151,6 +174,83 @@ export function installAgent(win: Window & typeof globalThis): void {
     if (last) lastNativeMove = t;
     if (nativeScroll.length >= MAX_NATIVE_SCROLL_SAMPLES) nativeScroll.splice(1, 1);
     nativeScroll.push({ t, x, y });
+  }
+
+  /** The document scroller is recorded by `recordNativeScroll`, not as a container. */
+  function isDocumentScroller(el: Element): boolean {
+    return el === doc.documentElement || el === scrollingElement();
+  }
+
+  function newContainer(el: Element, samples: ContainerTrack["samples"], restObserved: boolean) {
+    const track: ContainerTrack = {
+      el,
+      samples,
+      restObserved,
+      events: 0,
+      watched: false,
+      key: null,
+    };
+    containers.set(el, track);
+    return track;
+  }
+
+  function containerKey(track: ContainerTrack): string {
+    track.key ??= identifyElement(track.el, null, config).key;
+    return track.key;
+  }
+
+  /**
+   * Notes where every element that can scroll (its content overflows) rests, so a container that
+   * starts scrolling later in the window has its rest position; scroll events only arrive after
+   * the first movement. An element without overflow has a scroll offset of 0 until it overflows,
+   * which is noted too. Runs when a window opens and before each interaction (before its trigger
+   * time, so latency does not include it), never per frame: about 1 ms per 1,000 elements.
+   */
+  function scanContainers(): void {
+    if (!config.scrollContainers || replaying) return;
+    const t = now();
+    const root = doc.documentElement;
+    const main = scrollingElement();
+    const all = doc.getElementsByTagName("*");
+    for (let i = 0; i < all.length; i++) {
+      const el = all[i]!;
+      if (el === root || el === main || containers.has(el)) continue;
+      // No overflow, no scroll range: the offset is 0 (within the sub-pixel the sizes round off).
+      if (el.scrollHeight <= el.clientHeight && el.scrollWidth <= el.clientWidth) {
+        scannedAt.set(el, t);
+        continue;
+      }
+      if (isIgnoredTarget(el)) continue;
+      newContainer(el, [{ t, x: el.scrollLeft, y: el.scrollTop }], true);
+    }
+  }
+
+  /** Records a container's position at one of its scroll events (once per frame while it moves). */
+  function recordContainerScroll(el: Element): void {
+    let track = containers.get(el);
+    if (!track) {
+      if (isIgnoredTarget(el)) return;
+      const at = scannedAt.get(el);
+      track = newContainer(el, at === undefined ? [] : [{ t: at, x: 0, y: 0 }], at !== undefined);
+    }
+    track.events++;
+    const x = el.scrollLeft;
+    const y = el.scrollTop;
+    const last = track.samples[track.samples.length - 1];
+    if (last && last.x === x && last.y === y) return;
+    const t = now();
+    lastNativeMove = t;
+    if (track.samples.length >= MAX_NATIVE_SCROLL_SAMPLES) track.samples.splice(1, 1);
+    track.samples.push({ t, x, y });
+  }
+
+  /** A container a step is about to scroll: note where it rests and wait for it to settle. */
+  function watchContainer(el: Element): void {
+    if (!config.scrollContainers || isDocumentScroller(el) || isIgnoredTarget(el)) return;
+    const track =
+      containers.get(el) ??
+      newContainer(el, [{ t: now(), x: el.scrollLeft, y: el.scrollTop }], true);
+    track.watched = true;
   }
 
   // ------------------------------------------------------------------------------------------
@@ -244,6 +344,18 @@ export function installAgent(win: Window & typeof globalThis): void {
     win.requestAnimationFrame(frame);
   };
   win.requestAnimationFrame(frame);
+  // Scroll containers: element scroll events do not bubble, but they pass the window while
+  // capturing. Document scrolling (target: the document) is polled per frame above.
+  win.addEventListener(
+    "scroll",
+    (event) => {
+      if (replaying || !config.scrollContainers) return;
+      const target = event.target;
+      if (target instanceof win.Element && !isDocumentScroller(target))
+        recordContainerScroll(target);
+    },
+    { capture: true, passive: true },
+  );
 
   // ------------------------------------------------------------------------------------------
   // Triggers
@@ -438,6 +550,7 @@ export function installAgent(win: Window & typeof globalThis): void {
       easingSamplesSource: null,
       progressTrace: [],
       scrollRange: null,
+      scrollLink: null,
       name,
       element: identifyElement(target, effect.pseudoElement, config),
       startTime: entry.finishedOnDiscovery ? null : start,
@@ -472,6 +585,35 @@ export function installAgent(win: Window & typeof globalThis): void {
       }
     }
     return null;
+  }
+
+  /**
+   * An adapter's resolved scroll positions, checked (adapters are third-party code) and with
+   * the scroll container as its element key. Null when absent or malformed.
+   */
+  function rawScrollLink(link: AdapterAnimation["scrollLink"]): RawScrollLink | null {
+    if (!link || typeof link !== "object") return null;
+    const { start, end, axis, scroller, scrub } = link;
+    const finite = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
+    if (!finite(start) || !finite(end) || (axis !== "vertical" && axis !== "horizontal"))
+      return null;
+    if (scrub !== null && !(finite(scrub) && scrub >= 0)) return null;
+    const actions = scrub === null ? link.toggleActions : null;
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const container =
+      scroller instanceof Element &&
+      scroller.isConnected &&
+      scroller !== document.documentElement &&
+      scroller !== document.body &&
+      scroller !== document.scrollingElement;
+    return {
+      start: round(start),
+      end: round(end),
+      axis,
+      scroller: container ? identifyElement(scroller, null, config).key : null,
+      scrub: scrub === null ? null : round(scrub),
+      toggleActions: typeof actions === "string" ? actions.slice(0, 80) : null,
+    };
   }
 
   function adapterRecord(adapter: MotionprAdapter, a: AdapterAnimation): RawAnimation | null {
@@ -513,6 +655,7 @@ export function installAgent(win: Window & typeof globalThis): void {
       easingSamplesSource: a.easingSamplesSource ?? null,
       progressTrace: (a.progressTrace ?? []).map((p) => ({ time: p.t, progress: p.progress })),
       scrollRange: a.scrollRange ? { from: a.scrollRange.from, to: a.scrollRange.to } : null,
+      scrollLink: rawScrollLink(a.scrollLink),
       name: a.name,
       element,
       startTime: a.startTime,
@@ -563,24 +706,36 @@ export function installAgent(win: Window & typeof globalThis): void {
     return { start: Math.min(r.startTime, a, b), end: Math.max(r.startTime, a, b) };
   }
 
-  /** Native document scroll track, unless a scroll adapter already drives the document. */
-  function nativeScrollTrack(adapterTracks: RawScrollTrack[]): RawScrollTrack | null {
-    if (adapterTracks.some((t) => t.wrapper === null)) return null;
-    recordNativeScroll();
-    const moved = nativeScroll.some(
-      (s, i) => i > 0 && (s.x !== nativeScroll[i - 1]!.x || s.y !== nativeScroll[i - 1]!.y),
+  /**
+   * Samples of a natively scrolled box on the axis it moved along most, with velocity derived
+   * from consecutive positions. Null when it never moved.
+   *
+   * Positions are only recorded when they change, so the last one is where the box stopped,
+   * not evidence that it stopped. `current` is its position now: when it still equals the last
+   * one and nothing moved for NATIVE_QUIET_MS, that observation is kept as a final still sample
+   * (without it, a scroll that ended on a fast frame read as unsettled).
+   */
+  function nativeSamples(
+    recorded: readonly { t: number; x: number; y: number }[],
+    current: { x: number; y: number } | null,
+    limitFor: (horizontal: boolean) => number,
+  ): { axis: "vertical" | "horizontal"; samples: RawScrollTrack["samples"] } | null {
+    const moved = recorded.some(
+      (s, i) => i > 0 && (s.x !== recorded[i - 1]!.x || s.y !== recorded[i - 1]!.y),
     );
     if (!moved) return null;
-    const horizontal =
-      Math.abs(nativeScroll[nativeScroll.length - 1]!.x - nativeScroll[0]!.x) >
-      Math.abs(nativeScroll[nativeScroll.length - 1]!.y - nativeScroll[0]!.y);
-    const el = scrollingElement();
-    const limit = horizontal
-      ? Math.max(0, el.scrollWidth - win.innerWidth)
-      : Math.max(0, el.scrollHeight - win.innerHeight);
-    const samples = nativeScroll.map((s, i) => {
+    const first = recorded[0]!;
+    const last = recorded[recorded.length - 1]!;
+    const t = now();
+    const points =
+      current && current.x === last.x && current.y === last.y && t - last.t >= NATIVE_QUIET_MS
+        ? [...recorded, { t, x: last.x, y: last.y }]
+        : recorded;
+    const horizontal = Math.abs(last.x - first.x) > Math.abs(last.y - first.y);
+    const limit = Math.max(0, limitFor(horizontal));
+    const samples = points.map((s, i) => {
       const pos = horizontal ? s.x : s.y;
-      const prev = i > 0 ? nativeScroll[i - 1]! : null;
+      const prev = i > 0 ? points[i - 1]! : null;
       const prevPos = prev ? (horizontal ? prev.x : prev.y) : pos;
       const dt = prev ? s.t - prev.t : 0;
       const velocity = dt > 0 ? (pos - prevPos) / dt : 0;
@@ -588,7 +743,7 @@ export function installAgent(win: Window & typeof globalThis): void {
         time: s.t,
         actualScroll: pos,
         animatedScroll: pos,
-        targetScroll: horizontal ? nativeScroll.at(-1)!.x : nativeScroll.at(-1)!.y,
+        targetScroll: horizontal ? last.x : last.y,
         progress: limit > 0 ? round6(pos / limit) : 0,
         velocity: round6(velocity),
         direction: Math.sign(pos - prevPos),
@@ -597,16 +752,28 @@ export function installAgent(win: Window & typeof globalThis): void {
         limit,
       };
     });
+    return { axis: horizontal ? "horizontal" : "vertical", samples };
+  }
+
+  /** Native document scroll track, unless a scroll adapter already drives the document. */
+  function nativeScrollTrack(adapterTracks: RawScrollTrack[]): RawScrollTrack | null {
+    if (adapterTracks.some((t) => t.wrapper === null)) return null;
+    recordNativeScroll();
+    const el = scrollingElement();
+    const motion = nativeSamples(nativeScroll, { x: win.scrollX, y: win.scrollY }, (horizontal) =>
+      horizontal ? el.scrollWidth - win.innerWidth : el.scrollHeight - win.innerHeight,
+    );
+    if (!motion) return null;
     return {
       source: "native",
       sessionId: "document",
-      axis: horizontal ? "horizontal" : "vertical",
+      axis: motion.axis,
       wrapper: null,
       config: {
         scrollBehavior: win.getComputedStyle(doc.documentElement).scrollBehavior || "auto",
       },
       prefersReducedMotion: win.matchMedia("(prefers-reduced-motion: reduce)").matches,
-      samples,
+      samples: motion.samples,
       events: nativeScroll.length,
       notes: [
         "Native scrolling: positions sampled once per animation frame; velocity is derived (px/ms).",
@@ -616,6 +783,58 @@ export function installAgent(win: Window & typeof globalThis): void {
       ],
       meta: {},
     };
+  }
+
+  /**
+   * Tracks of the native scroll containers that moved in this window, except containers a
+   * scroll adapter already records (a Lenis `wrapper`).
+   */
+  function containerScrollTracks(adapterWrappers: ReadonlySet<Element>): RawScrollTrack[] {
+    const out: RawScrollTrack[] = [];
+    const firstTrigger = triggers[0];
+    for (const track of containers.values()) {
+      if (track.events === 0 || adapterWrappers.has(track.el)) continue;
+      const el = track.el;
+      const motion = nativeSamples(
+        track.samples,
+        el.isConnected ? { x: el.scrollLeft, y: el.scrollTop } : null,
+        (horizontal) =>
+          horizontal ? el.scrollWidth - el.clientWidth : el.scrollHeight - el.clientHeight,
+      );
+      if (!motion) continue;
+      // Seen first while scrolling, but before the interaction: the position it rested at when
+      // the interaction began is known (movement before it is not part of the checkpoint).
+      const restKnown =
+        track.restObserved ||
+        (firstTrigger !== undefined && track.samples[0]!.t < firstTrigger.time - 17);
+      const style = el.isConnected ? win.getComputedStyle(el) : null;
+      out.push({
+        source: "native",
+        sessionId: "container",
+        axis: motion.axis,
+        wrapper: identifyElement(el, null, config),
+        config: {
+          scrollBehavior: style?.scrollBehavior || "auto",
+          scrollSnapType: style?.scrollSnapType || "none",
+        },
+        prefersReducedMotion: win.matchMedia("(prefers-reduced-motion: reduce)").matches,
+        samples: motion.samples,
+        events: track.events,
+        notes: [
+          "Native scroll container: positions recorded at each of its scroll events (once per frame while it moves); velocity is derived (px/ms).",
+          ...(restKnown
+            ? []
+            : [
+                "Its position before the first scroll event was not observed: the element was added to the page, or started to overflow, after the window opened.",
+              ]),
+          ...(track.samples.length >= MAX_NATIVE_SCROLL_SAMPLES
+            ? ["Sample buffer was full; the middle of the movement was thinned."]
+            : []),
+        ],
+        meta: {},
+      });
+    }
+    return out;
   }
 
   function moved(a: ScrollState, b: ScrollState, threshold = 0.01): boolean {
@@ -676,6 +895,7 @@ export function installAgent(win: Window & typeof globalThis): void {
     }
     const timelines: RawTimeline[] = [];
     const scrollTracks: RawScrollTrack[] = [];
+    const adapterWrappers = new Set<Element>();
     adapterSources.clear();
     for (const adapter of adapters) {
       try {
@@ -702,6 +922,7 @@ export function installAgent(win: Window & typeof globalThis): void {
           });
         }
         for (const track of adapter.collectScroll?.() ?? []) {
+          if (track.wrapper) adapterWrappers.add(track.wrapper);
           scrollTracks.push({
             source: adapter.name === "lenis" ? "lenis" : "native",
             sessionId: track.sessionId,
@@ -726,6 +947,7 @@ export function installAgent(win: Window & typeof globalThis): void {
     }
     const native = nativeScrollTrack(scrollTracks);
     if (native) scrollTracks.push(native);
+    scrollTracks.push(...containerScrollTracks(adapterWrappers));
     const firstTrigger = triggers[0];
     const motionRequested = triggers.some((t) => t.type === "scroll-motion");
     for (let i = scrollTracks.length - 1; i >= 0; i--) {
@@ -1244,7 +1466,7 @@ export function installAgent(win: Window & typeof globalThis): void {
         // adapter errors surface through collect()
       }
     }
-    if (!replaying && now() - lastNativeMove < 100 && lastNativeMove > windowOpenedAt) {
+    if (!replaying && now() - lastNativeMove < NATIVE_QUIET_MS && lastNativeMove > windowOpenedAt) {
       finiteCount++;
       running.push("native scrolling");
     }
@@ -1293,6 +1515,9 @@ export function installAgent(win: Window & typeof globalThis): void {
     pendingTrigger = null;
     lastCollect = null;
     nativeScroll = [{ t: windowOpenedAt, x: win.scrollX, y: win.scrollY }];
+    containers = new Map();
+    scannedAt = new WeakMap();
+    scanContainers();
     for (const adapter of adapters) {
       try {
         adapter.beginWindow?.();
@@ -1330,6 +1555,7 @@ export function installAgent(win: Window & typeof globalThis): void {
     }
     const container = request.selector ? doc.querySelector(request.selector) : null;
     if (request.selector && !container) throw new Error(`No element matches ${request.selector}`);
+    if (container) watchContainer(container);
     const el = container ?? scrollingElement();
     const horizontal = request.axis === "horizontal";
     let position: number;
@@ -1378,6 +1604,28 @@ export function installAgent(win: Window & typeof globalThis): void {
                 ? el.scrollHeight - win.innerHeight
                 : el.scrollWidth - win.innerWidth,
           });
+        }
+        // Containers that scrolled in this window or that a step is scrolling.
+        for (const track of containers.values()) {
+          if (track.events === 0 && !track.watched) continue;
+          const box = track.el;
+          for (const axis of ["vertical", "horizontal"] as const) {
+            const pos = axis === "vertical" ? box.scrollTop : box.scrollLeft;
+            states.set(`native ${containerKey(track)} (${axis})`, {
+              actualScroll: pos,
+              animatedScroll: pos,
+              targetScroll: pos,
+              progress: 0,
+              velocity: 0,
+              direction: 0,
+              isScrolling: false,
+              isStopped: false,
+              limit:
+                axis === "vertical"
+                  ? box.scrollHeight - box.clientHeight
+                  : box.scrollWidth - box.clientWidth,
+            });
+          }
         }
         for (const adapter of adapters) {
           try {
@@ -1509,6 +1757,8 @@ export function installAgent(win: Window & typeof globalThis): void {
       Object.assign(config, partial);
     },
     beginStep(index, type) {
+      // Before the trigger time: the scan's own duration is not part of the latency.
+      if (type !== "none" && type !== "navigation") scanContainers();
       const trigger: Trigger = { step: index, type, time: now() };
       pendingTrigger = trigger;
       if (type !== "none" && type !== "navigation") triggers.push(trigger);
@@ -1555,6 +1805,7 @@ export function installAgent(win: Window & typeof globalThis): void {
     stats: () => ({
       tracked: tracked.size,
       nativeScrollSamples: nativeScroll.length,
+      scrollContainers: containers.size,
       adapters: adapters.length,
       window: windowIndex,
     }),

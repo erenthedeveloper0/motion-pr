@@ -8,7 +8,8 @@
       - parallax: a scrubbed tween, active from scroll 400 to 1300 (`?distance=`, `?start=`,
         `?scrub=` seconds of smoothing instead of `scrub: true`)
       - story: a scrubbed timeline of two tweens, active from scroll 1000 to 2000 (`?fade=`)
-      - reveal: a time-based tween played once its trigger enters (scroll 1600)
+      - reveal: a time-based tween played once its trigger enters (scroll 1600; `?actions=` sets
+        its toggleActions)
     -->
     <style>
       html,
@@ -112,7 +113,12 @@
         x: -40,
         duration: 0.4,
         ease: "power2.out",
-        scrollTrigger: { trigger: ".finale", start: "top 80%" },
+        scrollTrigger: {
+          trigger: ".finale",
+          start: "top 80%",
+          // ScrollTrigger applies its default only when the key is absent.
+          ...(params.has("actions") ? { toggleActions: params.get("actions") } : {}),
+        },
       });
     </script>
   </body>

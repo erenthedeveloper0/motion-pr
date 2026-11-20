@@ -26,7 +26,7 @@ warnings and measured the curves 70% of progress apart at 27% of the time.
 | CSS transitions, CSS animations, Web Animations        | `AnimationRecord`    | Read from the browser, replayed through paused clones |
 | GSAP tweens, Anime.js animations                       | `AnimationRecord`    | Adapters that use the engines' public APIs            |
 | GSAP and Anime.js timelines                            | `TimelineRecord`     | Duration, repeat, speed, labels and children          |
-| Smooth and native scrolling (Lenis, `window.scrollTo`) | `ScrollMotionRecord` | Observed live, frame by frame, never replayed         |
+| Lenis and native scrolling, page and scroll containers | `ScrollMotionRecord` | Observed live, frame by frame, never replayed         |
 | Settled states and filmstrips                          | PNG assets           | Rendered at deterministic times during replay         |
 
 ## What it compares
@@ -49,7 +49,7 @@ measured. See [Motion comparison](../features/motion-comparison.md).
 
 ## Status
 
-MotionPR is in **alpha** (`0.3.0-alpha`). It is published on npm's `alpha` dist-tag for
+MotionPR is in **alpha** (`0.4.0-alpha`). It is published on npm's `alpha` dist-tag for
 feedback. The capture format can still change between minor versions, and older captures are
 migrated when they are read. It captures with Chromium, Firefox and WebKit, each against its own
 baseline ([Browser support](../browsers/support.md)). The full list of limitations is in

@@ -148,9 +148,15 @@ npx motionpr report --regenerate
   includes them), but element selectors do not pierce shadow roots, so a replaced shadow element
   cannot be re-found for replay. Not covered by tests yet; give such elements a
   `data-motionpr-id` on a stable host where possible.
-- **Nested scroll containers:** native scroll motion is recorded for the document scroller
-  only. Containers scrolled by Lenis (`wrapper` option) are recorded through the Lenis adapter;
-  other overflow containers are not recorded as scroll motion (their animations still are).
+- **Scroll containers** (since `0.4.0-alpha`): containers inside shadow roots or
+  iframes are not recorded as scroll motion (their animations still are).
+- **`wheel: … is outside the viewport`**: a `wheel` step with `selector` points at an element that
+  is not on screen. Add a `scrollIntoView` step for it first; MotionPR does not scroll on its own.
+- **`wheel: … is covered by …`**: another element (an overlay, a sticky header) sits over the
+  point, and the wheel would scroll that. Pass a `position` inside the element that is free.
+- **Checkpoints wait for a container that scrolls by itself** (a ticker moved with
+  `scrollLeft`): every scroll container is waited for. Add it to `ignore.selectors`, or set
+  `capture.scrollContainers: false`.
 - **Scroll is not replayed:** filmstrips of scroll windows show the final scroll position.
 - **Engines created before MotionPR's adapters** (GSAP tweens before `register()`, Anime.js
   instances created with the unwrapped functions) need `track()` and may be recorded with less

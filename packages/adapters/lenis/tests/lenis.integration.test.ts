@@ -101,7 +101,26 @@ describe("Lenis adapter: recording (real Lenis 1.3)", () => {
     expect(cp.scrollMotion).toHaveLength(1);
     expect(cp.scrollMotion[0]).toMatchObject({ id: "native:window:vertical", source: "native" });
     expect(cp.scrollMotion[0]!.samples.at(-1)!.animatedScroll).toBe(1200);
+    // Regression: native positions are recorded only when they change, so the record ended on
+    // its last moving sample and read as unsettled (Chromium, WebKit) despite the settle step.
+    expect(scrollMetrics(cp.scrollMotion[0]!, comparisonConfig()).unsettled).toBe(false);
     expect(bundle.scenarios[0]!.diagnostics.some((d) => d.code === "SCROLL_NATIVE")).toBe(true);
+  });
+
+  it("records a Lenis scroll container once, through Lenis, when a wheel step scrolls it", async () => {
+    const cp = checkpoint(
+      await h.capture("/lenis-wrapper.html", [
+        { type: "wheel", deltaY: 600, selector: "[data-testid=panel]" },
+        { type: "waitForScrollSettled" },
+        { type: "capture", label: "wheel" },
+      ]),
+    );
+    // The panel scrolls natively under Lenis: one record, Lenis's, with the panel as wrapper.
+    expect(cp.scrollMotion.map((r) => r.id)).toEqual(["lenis:test-id:panel:vertical"]);
+    const r = cp.scrollMotion[0]!;
+    expect(r).toMatchObject({ source: "lenis", sessionId: "panel" });
+    expect(r.wrapper).toMatchObject({ key: "test-id:panel" });
+    expect(r.samples.at(-1)!.animatedScroll).toBeCloseTo(600, 0);
   });
 
   it("records horizontal Lenis scrolling on the horizontal axis", async () => {

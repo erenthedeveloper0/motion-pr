@@ -42,8 +42,10 @@ Everything below is covered by automated tests that run in each engine against a
 | GSAP adapter (tweens, timelines, labels, staggers, reverse)  | Verified | Verified | Verified |
 | GSAP ScrollTrigger (metadata and live progress)              | Verified | Verified | Verified |
 | GSAP ScrollTrigger values                                    | Verified | Verified | Verified |
+| GSAP ScrollTrigger positions                                 | Verified | Verified | Verified |
 | Anime.js v4 adapter (timelines, staggers, WAAPI, eases)      | Verified | Verified | Verified |
 | Lenis adapter (scroll motion, velocity, reduced motion)      | Verified | Verified | Verified |
+| Native scroll containers                                     | Verified | Verified | Verified |
 | GSAP with Lenis in one page                                  | Verified | Verified | Verified |
 | The demo app's 11 intended changes found, nothing else       | Verified | Verified | Verified |
 | CLI: capture, compare, run, baseline, report, doctor         | Verified | Verified | Verified |
@@ -94,6 +96,7 @@ are listed so that you can read captures from each engine correctly.
 | Start time vs. input event          | ~25–45 ms later | at or before     | ~2–4 ms later   | Trigger latency is compared within one engine only                                                |
 | Interrupted transition timing       | frame-quantized | frame-quantized  | frame-quantized | The reversal's shortened duration depends on when the frame lands: compare within one engine      |
 | `cubic-bezier()` near the endpoints | reference       | same as Chromium | ~0.02 px apart  | Below `positionTolerancePx` (2 px)                                                                |
+| Native smooth-scroll positions      | every frame     | ≤ 1 frame late   | every frame     | Curve and peak-velocity differences of unevenly delivered native scrolls are `uncertain`          |
 
 Two problems these differences exposed were fixed for every engine: replay now seeks clones
 in window-relative time rounded to 1 µs (Firefox resolved times that landed a hair below a

@@ -135,13 +135,16 @@ for (const browser of demoBrowsers()) {
         t.some((x) => /^warning: Lenis scroll: Scroll takes \d+ms → \d+ms to settle/.test(x)),
       ).toBe(true);
       expect(t).toContain("info: Lenis scroll: Scroll setting lerp: 0.1 → 0.06");
-      expect(
-        t.some((x) =>
-          /^warning: gsap on journal-image: Scroll-linked progress at the same scroll position/.test(
-            x,
-          ),
+      // "top bottom" → "top 70%" of the 800px viewport: ScrollTrigger resolves a start 240px later.
+      const start = result().differences.filter(
+        (d) => d.scenarioKey === "lenis-journal@default" && d.source === "gsap",
+      );
+      expect(start.map((d) => `${d.severity}: ${d.title}`)).toEqual([
+        expect.stringMatching(
+          /^warning: gsap on journal-image: Starts at scroll position [\d.]+px → [\d.]+px \(\+240px\)$/,
         ),
-      ).toBe(true);
+      ]);
+      expect(start[0]).toMatchObject({ category: "scroll", delta: 240 });
       const scroll = result().differences.filter(
         (d) => d.scenarioKey === "lenis-journal@default" && d.scrollKey,
       );

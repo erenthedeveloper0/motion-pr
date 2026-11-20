@@ -54,9 +54,14 @@ delay changes it explains.
   duration, repeat, speed, labels that moved, appeared or disappeared, reordered labels.
 - **Scroll** ([Lenis](../integrations/lenis.md)): start, end and target position, settle
   duration, the normalized progress curve, peak velocity, overshoot, direction changes,
-  smooth-scroll lag and engine options. Scroll-linked GSAP animations are compared by their
-  progress at the same scroll position and by the values they write at the same scroll
-  progress ([GSAP: ScrollTrigger](../integrations/gsap.md#scrolltrigger)).
+  smooth-scroll lag and engine options, for the document, each Lenis instance and (since
+  `0.4.0-alpha`) each scroll container. When a native scroll's positions reached the page
+  unevenly (Firefox animates smooth scrolling off the main thread), its curve and peak velocity
+  are only known to about a frame, and their differences are `uncertain`. Scroll-linked GSAP
+  animations are compared by where they run in the scroll and by the values they write at the
+  same scroll progress ([GSAP: ScrollTrigger](../integrations/gsap.md#scrolltrigger)). Where they
+  run is the `start`/`end` ScrollTrigger resolved (since `0.4.0-alpha`), or their
+  progress at the same scroll position for captures without those positions.
 - **Pixels** ([Visual comparison](visual-comparison.md)): the settled screenshot of each
   checkpoint, and per-frame divergence of the filmstrips.
 
