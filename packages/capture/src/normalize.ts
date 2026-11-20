@@ -230,6 +230,7 @@ export function normalizeAnimations(
       completeness: { status, reasons },
       timeline: raw.timeline,
       progressTrace: raw.progressTrace ?? [],
+      ...(raw.scrollLink ? { scrollLink: { ...raw.scrollLink } } : {}),
       playState: raw.playState,
       group: raw.group,
       meta: raw.meta,

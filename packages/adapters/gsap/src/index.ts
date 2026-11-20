@@ -14,6 +14,8 @@
  * - ScrollTrigger animations follow scroll, so they have no time origin. Their progress is
  *   observed live on GSAP's ticker; for sampling they are rendered at the progress the scroll
  *   reached (`seekProgress`), and time-based seeks show the progress observed at that time.
+ *   Where they run in the scroll is read from ScrollTrigger itself (`scrollLink`: the `start`
+ *   and `end` it resolved, `scrub`, `toggleActions`), which does not depend on scroll timing.
  *
  * Outside a MotionPR capture (no agent in the page) `register()` does nothing and costs nothing.
  */
@@ -23,6 +25,7 @@ import {
   type AdapterAnimation,
   type AdapterCapability,
   type AdapterDiagnostic,
+  type AdapterScrollLink,
   type AdapterTimeline,
   type MotionprAdapter,
   type PlayStateValue,
@@ -62,6 +65,23 @@ export interface GsapAnimationLike {
   /** Present on staggered/keyframed tweens (nested per-target timeline). */
   timeline?: GsapTimelineLike | 0;
   _ease?: (p: number) => number;
+  /** The ScrollTrigger instance driving this animation (set by the ScrollTrigger plugin). */
+  scrollTrigger?: GsapScrollTriggerLike | null;
+}
+
+/** The public, read-only part of a ScrollTrigger instance the adapter reads. */
+export interface GsapScrollTriggerLike {
+  /** Resolved scroll position (px) where progress is 0, recalculated on every refresh. */
+  start: number;
+  /** Resolved scroll position (px) where progress is 1. */
+  end: number;
+  scroller: Element | Window;
+  vars: {
+    scrub?: boolean | number;
+    toggleActions?: string;
+    horizontal?: boolean;
+    containerAnimation?: unknown;
+  };
 }
 
 export type GsapTimelineLike = GsapAnimationLike & {
@@ -114,6 +134,27 @@ const PREFERRED_EASES = [
   "steps",
 ];
 const SAMPLE_COUNT = 65;
+
+const TOGGLE_ACTIONS = new Set([
+  "play",
+  "pause",
+  "resume",
+  "reset",
+  "restart",
+  "complete",
+  "reverse",
+  "none",
+]);
+
+/**
+ * ScrollTrigger's `toggleActions` as four actions (enter, leave, enter back, leave back).
+ * ScrollTrigger's default is `"play"`, the missing ones are `none`.
+ */
+function toggleActions(value: unknown): string {
+  const actions = (typeof value === "string" ? value : "play").trim().split(/\s+/).slice(0, 4);
+  while (actions.length < 4) actions.push("none");
+  return actions.map((a) => (TOGGLE_ACTIONS.has(a) ? a : "none")).join(" ");
+}
 
 function kebab(prop: string): string {
   return prop.startsWith("--") ? prop : prop.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
@@ -216,7 +257,7 @@ class GsapAdapter implements MotionprAdapter {
       out.push({
         level: "info",
         code: "GSAP_SCROLLTRIGGER_OBSERVED",
-        message: `${this.#scrollLinked.size} ScrollTrigger-driven animation(s): progress follows scroll, so MotionPR records it live and samples their values at the progress the scroll reached.`,
+        message: `${this.#scrollLinked.size} ScrollTrigger-driven animation(s): progress follows scroll, so MotionPR records it live, samples their values at the progress the scroll reached, and records the start and end positions ScrollTrigger resolved.`,
       });
     return out;
   }
@@ -435,6 +476,40 @@ class GsapAdapter implements MotionprAdapter {
     return { from: round(from), to: round(to) };
   }
 
+  /**
+   * Where a scroll-linked root runs in the scroll, from its ScrollTrigger's public read-only
+   * state: the `start`/`end` positions it resolved on its last refresh, its scroller and axis,
+   * and how its progress follows the scroll (`scrub`, `toggleActions`). Null without a
+   * ScrollTrigger instance, before it resolved its positions, and for `containerAnimation`
+   * triggers, whose positions lie along another animation rather than the scroll.
+   */
+  #scrollLink(root: GsapAnimationLike): AdapterScrollLink | null {
+    const st = root.scrollTrigger;
+    if (!st || typeof st !== "object" || !st.vars || st.vars.containerAnimation) return null;
+    const { start, end } = st;
+    if (typeof start !== "number" || typeof end !== "number") return null;
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+    const scrub = st.vars.scrub;
+    // ScrollTrigger scrubs for `scrub: true` and any number (0 = no smoothing).
+    const scrubbed = scrub === true || typeof scrub === "number";
+    const scroller = st.scroller;
+    const isContainer =
+      typeof Element !== "undefined" &&
+      scroller instanceof Element &&
+      scroller !== document.documentElement &&
+      scroller !== document.body &&
+      scroller !== document.scrollingElement;
+    const round = (n: number) => Math.round(n * 100) / 100;
+    return {
+      start: round(start),
+      end: round(end),
+      axis: st.vars.horizontal ? "horizontal" : "vertical",
+      scroller: isContainer ? scroller : null,
+      scrub: !scrubbed ? null : typeof scrub === "number" ? round(Math.max(scrub, 0) * 1000) : 0,
+      toggleActions: scrubbed ? null : toggleActions(st.vars.toggleActions),
+    };
+  }
+
   /** Progress a scroll-linked root showed at `timeMs` (performance clock), from its trace. */
   #observedProgress(root: GsapAnimationLike, timeMs: number): number | null {
     const trace = this.#traces.get(root);
@@ -462,6 +537,7 @@ class GsapAdapter implements MotionprAdapter {
       const scrollLinked = Boolean(root.vars.scrollTrigger);
       if (scrollLinked) this.#scrollLinked.add(root);
       const trace = scrollLinked ? (this.#traces.get(root) ?? []) : [];
+      const scrollLink = scrollLinked ? this.#scrollLink(root) : null;
       const leaves: { tween: GsapAnimationLike; owner: GsapAnimationLike }[] = [];
       this.#leaves(root, leaves);
       for (const { tween, owner } of leaves) {
@@ -508,6 +584,7 @@ class GsapAdapter implements MotionprAdapter {
             ? { progressTrace: trace.map((p) => ({ ...p })) }
             : {}),
           ...(scrollRange ? { scrollRange } : {}),
+          ...(scrollLink ? { scrollLink } : {}),
           duration: duration * 1000,
           delay: delaySec * 1000,
           iterations: infinite ? Number.POSITIVE_INFINITY : repeat + 1,

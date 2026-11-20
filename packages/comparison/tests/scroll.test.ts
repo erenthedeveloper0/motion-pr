@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { resolveConfig, type ScrollMotionRecord, type TimelineRecord } from "@motionpr/core";
+import {
+  resolveConfig,
+  type ScrollLink,
+  type ScrollMotionRecord,
+  type TimelineRecord,
+} from "@motionpr/core";
 import { compareScrollRecords, compareTimelineRecords, scrollMetrics } from "../src/index.ts";
 
 const config = resolveConfig({ baseURL: "http://x", scenarios: [{ id: "x" }] }).comparison;
@@ -247,6 +252,159 @@ describe("scroll-linked progress", () => {
     const change = scrollLinkedChange(b, moved, [scroll], [scroll], config);
     expect(change).toMatchObject({ kind: "scroll-progress", severity: "warning" });
     expect(change!.delta!).toBeGreaterThan(0.3);
+  });
+});
+
+describe("scroll-linked positions", () => {
+  const link = (over: Partial<ScrollLink> = {}): ScrollLink => ({
+    start: 400,
+    end: 1300,
+    axis: "vertical",
+    scroller: null,
+    scrub: 0,
+    toggleActions: null,
+    ...over,
+  });
+  const linked = async (l: ScrollLink | undefined) => {
+    const { anim } = await import("./helpers.ts");
+    return {
+      ...anim({ type: "gsap" }),
+      startTime: null,
+      timeline: "scroll" as const,
+      ...(l ? { scrollLink: l } : {}),
+    };
+  };
+  const changes = async (b: ScrollLink | undefined, c: ScrollLink | undefined) => {
+    const { scrollLinkChanges } = await import("../src/scroll-linked.ts");
+    return scrollLinkChanges(await linked(b), await linked(c), config);
+  };
+
+  it("finds nothing when the resolved positions and settings are equal", async () => {
+    expect(await changes(link(), link())).toEqual([]);
+    // Within positionTolerancePx (2px): subpixel layout differences are not changes.
+    expect(await changes(link(), link({ start: 401.5, end: 1298.5 }))).toEqual([]);
+  });
+
+  it("reports a moved start or end with the scroll-position rule", async () => {
+    const found = await changes(link(), link({ start: 550, end: 1310 }));
+    expect(found).toEqual([
+      {
+        kind: "scroll-start",
+        rule: "scroll-position",
+        before: 400,
+        after: 550,
+        delta: 150,
+        unit: "px",
+        measurement: "measured",
+        severity: "warning",
+        message: "Starts at scroll position 400px → 550px (+150px)",
+      },
+      expect.objectContaining({
+        kind: "scroll-end",
+        // Below warnPositionPx (24px): informational.
+        severity: "info",
+        delta: 10,
+        message: "Ends at scroll position 1300px → 1310px (+10px)",
+      }),
+    ]);
+    expect((await changes(link(), link({ start: 300 })))![0]!.message).toBe(
+      "Starts at scroll position 400px → 300px (-100px)",
+    );
+  });
+
+  it("reports scrub and toggleActions changes as scroll settings", async () => {
+    expect(await changes(link(), link({ scrub: 500 }))).toEqual([
+      expect.objectContaining({
+        kind: "scroll-config",
+        rule: "scroll-curve",
+        property: "scrub",
+        before: 0,
+        after: 500,
+        delta: 500,
+        severity: "info",
+        message: "Scroll setting scrub: on → 500ms",
+      }),
+    ]);
+    // Scrubbed → played once triggered changes what drives the animation.
+    const triggered = link({ scrub: null, toggleActions: "play none none none" });
+    expect(await changes(link(), triggered)).toEqual([
+      expect.objectContaining({
+        property: "scrub",
+        severity: "warning",
+        message: "Scroll setting scrub: on → off (plays once triggered)",
+      }),
+    ]);
+    expect(
+      await changes(triggered, { ...triggered, toggleActions: "play none none reverse" }),
+    ).toEqual([
+      expect.objectContaining({
+        property: "toggleActions",
+        severity: "info",
+        message: "Scroll setting toggleActions: play none none none → play none none reverse",
+      }),
+    ]);
+  });
+
+  it("does not compare positions on different scrollers or axes", async () => {
+    const found = await changes(link(), link({ scroller: "test-id:panel", start: 100 }));
+    expect(found).toEqual([
+      expect.objectContaining({
+        kind: "scroll-config",
+        property: "scroller",
+        severity: "warning",
+        message: "Scroll-linked to document → test-id:panel",
+      }),
+    ]);
+    expect((await changes(link(), link({ axis: "horizontal" })))![0]!.message).toBe(
+      "Scroll-linked to document → document (horizontal)",
+    );
+  });
+
+  it("returns null when either capture has no resolved positions", async () => {
+    expect(await changes(link(), undefined)).toBeNull();
+    expect(await changes(undefined, link())).toBeNull();
+  });
+
+  describe("in a comparison", () => {
+    // Progress traces that disagree at the same scroll position, as live recordings under native
+    // smooth scrolling can between two runs of one build.
+    const scroll = lerpScroll(1200);
+    const trace = (offset: number) =>
+      scroll.samples.map((s) => ({
+        time: s.time,
+        progress: Math.min(1, Math.max(0, (s.animatedScroll - offset) / (1200 - offset))),
+      }));
+    const run = async (b: ScrollLink | undefined, c: ScrollLink | undefined) => {
+      const { bundle, checkpoint, scenario } = await import("./helpers.ts");
+      const { compareCaptures } = await import("../src/index.ts");
+      const side = async (l: ScrollLink | undefined, offset: number) =>
+        bundle([
+          scenario("s", [
+            checkpoint("scrolled", [{ ...(await linked(l)), progressTrace: trace(offset) }], {
+              scrollMotion: [scroll],
+            }),
+          ]),
+        ]);
+      const result = await compareCaptures({
+        baseline: { bundle: await side(b, 0), dir: "." },
+        candidate: { bundle: await side(c, 400), dir: "." },
+        config: { ...config, visual: { ...config.visual, enabled: false } },
+      });
+      return result.differences.filter((d) => d.source === "gsap").map((d) => d.detail);
+    };
+
+    it("relies on resolved positions instead of live progress when both captures have them", async () => {
+      expect(await run(link(), link())).toEqual([]);
+      expect(await run(link(), link({ start: 550 }))).toEqual([
+        "Starts at scroll position 400px → 550px (+150px)",
+      ]);
+    });
+
+    it("falls back to progress at the same scroll position for captures without them", async () => {
+      const found = await run(undefined, link());
+      expect(found).toHaveLength(1);
+      expect(found[0]).toMatch(/^Scroll-linked progress at the same scroll position differs/);
+    });
   });
 });
 

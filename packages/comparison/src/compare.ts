@@ -30,7 +30,7 @@ import { compareMatchedAnimation } from "./diff-animation.ts";
 import { matchAnimations } from "./match.ts";
 import { applyOverride, capSeverity, finalizeChanges, timingSeverity } from "./severity.ts";
 import { compareScrollRecords } from "./scroll.ts";
-import { scrollLinkedChange } from "./scroll-linked.ts";
+import { scrollLinkChanges, scrollLinkedChange } from "./scroll-linked.ts";
 import { compareStagger } from "./stagger.ts";
 import { compareTimelineRecords } from "./timelines.ts";
 import { PngCache, compareScreenshots, frameDivergence, type ImageSource } from "./visual.ts";
@@ -199,20 +199,17 @@ async function compareCheckpoint(
 
   for (const m of matches) {
     const cmp = compareMatchedAnimation(m, config);
-    const linked = scrollLinkedChange(
-      m.baseline,
-      m.candidate,
-      b.scrollMotion,
-      c.scrollMotion,
-      config,
-    );
-    if (linked) {
-      const [change] = finalizeChanges([linked], config, null);
-      if (change) {
-        cmp.changes.push(change);
-        cmp.status = "changed";
-        cmp.severity = maxSeverity([cmp.severity, change.severity]);
-      }
+    // Where a scroll-linked animation runs in the scroll: from the positions its engine
+    // resolved when both captures have them, otherwise from progress at the same position.
+    const resolved = scrollLinkChanges(m.baseline, m.candidate, config);
+    const progress = resolved
+      ? null
+      : scrollLinkedChange(m.baseline, m.candidate, b.scrollMotion, c.scrollMotion, config);
+    const linked = resolved ?? (progress ? [progress] : []);
+    for (const change of finalizeChanges(linked, config, null)) {
+      cmp.changes.push(change);
+      cmp.status = "changed";
+      cmp.severity = maxSeverity([cmp.severity, change.severity]);
     }
     if (ctx.crossBrowser && cmp.changes.length)
       cmp.severity = crossEngineChanges(cmp.changes, config);

@@ -94,6 +94,14 @@ export interface AdapterAnimation {
    */
   scrollRange?: { from: number; to: number };
   /**
+   * For a scroll-linked animation: where in the scroll its scroll-driven progress runs and how
+   * that progress follows the scroll, as the engine resolved it (GSAP ScrollTrigger's `start`,
+   * `end`, `scrub` and `toggleActions`). Read from the engine, so two runs of one build at one
+   * viewport report the same values; the comparison then relies on these instead of relating
+   * the live `progressTrace` to the recorded scroll.
+   */
+  scrollLink?: AdapterScrollLink;
+  /**
    * Stable identity for a non-DOM target (e.g. `object:value`), used as the element key when
    * `target` is null. Must not depend on creation order.
    */
@@ -110,6 +118,31 @@ export interface AdapterAnimation {
   easingKind?: "css" | "gsap" | "animejs" | "custom" | "unknown";
   /** `exact` when samples come from a known easing definition, `sampled` for opaque functions. */
   easingSamplesSource?: "exact" | "sampled";
+}
+
+/**
+ * Where a scroll-linked animation runs in the scroll (see {@link AdapterAnimation.scrollLink}).
+ * Positions are scroll offsets of `scroller` in CSS px.
+ */
+export interface AdapterScrollLink {
+  /** Scroll position at which the scroll-driven progress is 0 (ScrollTrigger's `start`). */
+  start: number;
+  /** Scroll position at which the scroll-driven progress is 1 (ScrollTrigger's `end`). */
+  end: number;
+  axis: "vertical" | "horizontal";
+  /** Scroll container whose offset the positions are; null for the document scroller. */
+  scroller: Element | null;
+  /**
+   * How progress follows the scroll: `0` directly (GSAP `scrub: true`), the catch-up time in ms
+   * when smoothed (`scrub: 0.5` → `500`), or `null` when the animation plays in time once the
+   * scroll crosses `start` (no `scrub`).
+   */
+  scrub: number | null;
+  /**
+   * For an animation that plays once triggered (`scrub: null`): what it does on enter, leave,
+   * enter back and leave back, e.g. `"play none none reverse"`. Null otherwise.
+   */
+  toggleActions?: string | null;
 }
 
 /** A timeline reported by an adapter (GSAP / Anime.js). Times on the performance clock (ms). */
@@ -264,6 +297,8 @@ export interface RawAnimation {
   progressTrace: { time: number; progress: number }[];
   /** Scroll-driven progress interval in which a scroll-linked animation is active. */
   scrollRange: { from: number; to: number } | null;
+  /** Resolved scroll positions of a scroll-linked animation (scroller as an element key). */
+  scrollLink: RawScrollLink | null;
   name: string | null;
   element: RawElementIdentity;
   /** Start (local time zero, before delay) relative to the window origin, in ms. */
@@ -278,6 +313,17 @@ export interface RawAnimation {
   meta: Record<string, MetaValue>;
   notes: string[];
   samplable: boolean;
+}
+
+/** {@link AdapterScrollLink} as the agent hands it to Node: the scroller as its element key. */
+export interface RawScrollLink {
+  start: number;
+  end: number;
+  axis: "vertical" | "horizontal";
+  /** Element key of the scroll container; null for the document scroller. */
+  scroller: string | null;
+  scrub: number | null;
+  toggleActions: string | null;
 }
 
 export interface RawSample {

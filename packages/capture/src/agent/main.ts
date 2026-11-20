@@ -29,6 +29,7 @@ import type {
   RawDiagnostic,
   RawKeyframe,
   RawSample,
+  RawScrollLink,
   RawTiming,
   SettleResult,
   TimelineKind,
@@ -438,6 +439,7 @@ export function installAgent(win: Window & typeof globalThis): void {
       easingSamplesSource: null,
       progressTrace: [],
       scrollRange: null,
+      scrollLink: null,
       name,
       element: identifyElement(target, effect.pseudoElement, config),
       startTime: entry.finishedOnDiscovery ? null : start,
@@ -472,6 +474,35 @@ export function installAgent(win: Window & typeof globalThis): void {
       }
     }
     return null;
+  }
+
+  /**
+   * An adapter's resolved scroll positions, checked (adapters are third-party code) and with
+   * the scroll container as its element key. Null when absent or malformed.
+   */
+  function rawScrollLink(link: AdapterAnimation["scrollLink"]): RawScrollLink | null {
+    if (!link || typeof link !== "object") return null;
+    const { start, end, axis, scroller, scrub } = link;
+    const finite = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
+    if (!finite(start) || !finite(end) || (axis !== "vertical" && axis !== "horizontal"))
+      return null;
+    if (scrub !== null && !(finite(scrub) && scrub >= 0)) return null;
+    const actions = scrub === null ? link.toggleActions : null;
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const container =
+      scroller instanceof Element &&
+      scroller.isConnected &&
+      scroller !== document.documentElement &&
+      scroller !== document.body &&
+      scroller !== document.scrollingElement;
+    return {
+      start: round(start),
+      end: round(end),
+      axis,
+      scroller: container ? identifyElement(scroller, null, config).key : null,
+      scrub: scrub === null ? null : round(scrub),
+      toggleActions: typeof actions === "string" ? actions.slice(0, 80) : null,
+    };
   }
 
   function adapterRecord(adapter: MotionprAdapter, a: AdapterAnimation): RawAnimation | null {
@@ -513,6 +544,7 @@ export function installAgent(win: Window & typeof globalThis): void {
       easingSamplesSource: a.easingSamplesSource ?? null,
       progressTrace: (a.progressTrace ?? []).map((p) => ({ time: p.t, progress: p.progress })),
       scrollRange: a.scrollRange ? { from: a.scrollRange.from, to: a.scrollRange.to } : null,
+      scrollLink: rawScrollLink(a.scrollLink),
       name: a.name,
       element,
       startTime: a.startTime,
