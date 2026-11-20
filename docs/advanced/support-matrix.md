@@ -5,22 +5,22 @@ description: Browsers, runtimes, engines and platforms MotionPR is tested with, 
 
 # Support matrix
 
-| Area                                | Supported                                          | How it is verified                                                                                                               |
-| ----------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Node.js                             | 22.12 or newer                                     | `engines`; `doctor` checks it. Tests run on Node.js 24 (and the package on 22)                                                   |
-| Chromium                            | Chrome for Testing 158.0.8127.18 (Playwright 1.65) | Every browser test                                                                                                               |
-| Firefox                             | Firefox 159.0, Playwright build 1572               | Every browser test except the multi-engine CLI runs                                                                              |
-| WebKit                              | WebKit 27.2, Playwright build 2388                 | Every browser test except the multi-engine CLI runs                                                                              |
-| Several engines in one project      | Verified                                           | CLI runs with `--browser all`, per-engine baselines, cross-browser comparison, 0.1 migration                                     |
-| Native CSS transitions / animations | Verified in all three engines                      | Capture engine and engine edge-case tests, demo app                                                                              |
-| Web Animations API                  | Verified in all three engines                      | Reversed, cancelled, finished, delayed, keyframed, reused                                                                        |
-| CSS scroll-driven animations        | Metadata only                                      | Progress follows scroll                                                                                                          |
-| GSAP                                | Verified with 3.15.1 (range `>=3.12 <4`)           | 20 browser tests per engine; ScrollTrigger: live progress, values sampled where the scroll went (unreleased after `0.2.0-alpha`) |
-| Anime.js                            | Verified with 4.5.0 (range `>=4 <5`)               | 22 browser tests per engine, unit tests; v3 is not supported                                                                     |
-| Lenis                               | Verified with 1.3.27 (range `>=1.1 <2`)            | 15 browser tests per engine; scroll motion, never replayed                                                                       |
-| macOS                               | Verified (arm64), all three engines                | Development machine                                                                                                              |
-| Linux                               | Covered by the repository's CI, all three engines  | `ubuntu-latest`, one job per engine                                                                                              |
-| Windows                             | Covered by the repository's CI, Chromium           | `windows-latest`: unit tests, Chromium browser suites, demo app, packaged CLI. Firefox and WebKit are not covered                |
+| Area                                | Supported                                          | How it is verified                                                                                                |
+| ----------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Node.js                             | 22.12 or newer                                     | `engines`; `doctor` checks it. Tests run on Node.js 24 (and the package on 22)                                    |
+| Chromium                            | Chrome for Testing 158.0.8127.18 (Playwright 1.65) | Every browser test                                                                                                |
+| Firefox                             | Firefox 159.0, Playwright build 1572               | Every browser test except the multi-engine CLI runs                                                               |
+| WebKit                              | WebKit 27.2, Playwright build 2388                 | Every browser test except the multi-engine CLI runs                                                               |
+| Several engines in one project      | Verified                                           | CLI runs with `--browser all`, per-engine baselines, cross-browser comparison, 0.1 migration                      |
+| Native CSS transitions / animations | Verified in all three engines                      | Capture engine and engine edge-case tests, demo app                                                               |
+| Web Animations API                  | Verified in all three engines                      | Reversed, cancelled, finished, delayed, keyframed, reused                                                         |
+| CSS scroll-driven animations        | Metadata only                                      | Progress follows scroll                                                                                           |
+| GSAP                                | Verified with 3.15.1 (range `>=3.12 <4`)           | 20 browser tests per engine; ScrollTrigger: live progress, values sampled where the scroll went                   |
+| Anime.js                            | Verified with 4.5.0 (range `>=4 <5`)               | 22 browser tests per engine, unit tests; v3 is not supported                                                      |
+| Lenis                               | Verified with 1.3.27 (range `>=1.1 <2`)            | 15 browser tests per engine; scroll motion, never replayed                                                        |
+| macOS                               | Verified (arm64), all three engines                | Development machine                                                                                               |
+| Linux                               | Covered by the repository's CI, all three engines  | `ubuntu-latest`, one job per engine                                                                               |
+| Windows                             | Covered by the repository's CI, Chromium           | `windows-latest`: unit tests, Chromium browser suites, demo app, packaged CLI. Firefox and WebKit are not covered |
 
 ## Browser tests per engine
 

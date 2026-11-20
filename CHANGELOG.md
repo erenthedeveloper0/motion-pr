@@ -5,11 +5,12 @@ workspace packages it bundles are versioned with it. Format:
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MotionPR is an alpha: until `1.0`, any
 prerelease may change the capture format or the API, and every such change is listed here.
 
-## [Unreleased]
+## [0.3.0-alpha] — 2026-11-20
 
 The values GSAP ScrollTrigger animations write are sampled and compared (roadmap: scroll-linked
-tween values), and the repository's CI runs on Windows (roadmap: Windows in CI). Capture schema and comparison schema stay at version 2, and the adapter protocol at
-1: every new field and method is optional, so 0.2 captures and custom adapters work unchanged.
+tween values), and the repository's CI runs on Windows (roadmap: Windows in CI). Capture schema
+and comparison schema stay at version 2, and the adapter protocol at 1: every new field and
+method is optional, so 0.2 captures and custom adapters work unchanged.
 
 ### Added
 
@@ -64,7 +65,8 @@ tween values), and the repository's CI runs on Windows (roadmap: Windows in CI).
 
 Baselines accepted with `0.2.0-alpha` have no samples for ScrollTrigger animations. Comparisons
 against them report the completeness change (`metadata-only → complete`) as `uncertain` and
-compare no values; accept a new baseline to compare values.
+compare no values; accept a new baseline to compare values. Code that looks for the GSAP
+diagnostic `GSAP_SCROLLTRIGGER_METADATA_ONLY` should look for `GSAP_SCROLLTRIGGER_OBSERVED`.
 
 ### Known limitations
 
@@ -266,7 +268,7 @@ published or tagged, so this release collects their work and the version starts 
 - Filled values are never written to captures or reports; inputs are masked in screenshots; query
   values in recorded URLs are redacted by default. MotionPR sends no telemetry.
 
-[Unreleased]: https://github.com/erenthedeveloper0/motionpr/compare/v0.2.0-alpha...main
+[0.3.0-alpha]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.3.0-alpha
 [0.2.0-alpha]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.2.0-alpha
 [0.1.0-alpha.1]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.1.0-alpha.1
 [0.1.0-alpha]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.1.0-alpha

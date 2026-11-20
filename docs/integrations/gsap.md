@@ -142,8 +142,8 @@ frozen during replay so frames are deterministic. Infinite ones are set to their
 
 ## ScrollTrigger
 
-_New after `0.2.0-alpha` (unreleased): `0.2.0-alpha` records ScrollTrigger animations as timing
-and live progress only._
+_New in `0.3.0-alpha`: `0.2.0-alpha` recorded ScrollTrigger animations as timing and live
+progress only._
 
 A ScrollTrigger animation has no start time: with `scrub` its progress follows the scroll, with
 `toggleActions` it plays once its trigger enters. Scroll is never replayed, so the adapter records

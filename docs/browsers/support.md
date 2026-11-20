@@ -41,7 +41,7 @@ Everything below is covered by automated tests that run in each engine against a
 | Deterministic replay (identical frames on repeated runs)     | Verified | Verified | Verified |
 | GSAP adapter (tweens, timelines, labels, staggers, reverse)  | Verified | Verified | Verified |
 | GSAP ScrollTrigger (metadata and live progress)              | Verified | Verified | Verified |
-| GSAP ScrollTrigger values (unreleased, after `0.2.0-alpha`)  | Verified | Verified | Verified |
+| GSAP ScrollTrigger values                                    | Verified | Verified | Verified |
 | Anime.js v4 adapter (timelines, staggers, WAAPI, eases)      | Verified | Verified | Verified |
 | Lenis adapter (scroll motion, velocity, reduced motion)      | Verified | Verified | Verified |
 | GSAP with Lenis in one page                                  | Verified | Verified | Verified |

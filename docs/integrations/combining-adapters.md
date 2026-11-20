@@ -68,10 +68,9 @@ assume a GSAP animation is controlled by Lenis just because both are present.
 For scroll-linked GSAP animations the comparison relates progress to scroll position: if the
 same scroll position yields different progress (a moved ScrollTrigger `start`/`end`, a different
 scrub range), it reports _“Scroll-linked progress at the same scroll position differs by up to
-N%”_. In `0.2.0-alpha` the _values_ a scroll-linked tween writes (e.g. `yPercent`) are not
-sampled, so a change of parallax distance alone is not detected. Unreleased builds after
-`0.2.0-alpha` sample them at the progress the scroll reached and compare them at the same
-progress: _“Scroll-linked translateY differs by up to 120px at the same scroll progress”_ (see
+N%”_. The _values_ a scroll-linked tween writes (e.g. `yPercent`) are sampled at the progress the
+scroll reached and compared at the same progress, so a changed parallax distance is found too:
+_“Scroll-linked translateY differs by up to 120px at the same scroll progress”_ (see
 [GSAP: ScrollTrigger](gsap.md#scrolltrigger)).
 
 ## Filtering by engine

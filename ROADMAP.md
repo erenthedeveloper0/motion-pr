@@ -1,16 +1,16 @@
 # Roadmap
 
-What comes after `0.2.0-alpha`, roughly in order. Nothing under "Towards a beta" or "Later" is
+What comes after `0.3.0-alpha`, roughly in order. Nothing under "Towards a beta" or "Later" is
 built yet; what is built is in [the changelog](CHANGELOG.md) and
 [Limitations](docs/advanced/limitations.md). Order changes with what users run into; open an
 issue to argue for something.
 
 ## Done
 
-- **Windows in CI** (unreleased, on `main` after `0.2.0-alpha`). The unit tests, the Chromium
+- **Windows in CI** (`0.3.0-alpha`). The unit tests, the Chromium
   browser suites, the demo app's expectations and the packaged CLI run on `windows-latest`.
   Firefox and WebKit on Windows are not covered yet.
-- **Scroll-linked tween values** (unreleased, on `main` after `0.2.0-alpha`). GSAP ScrollTrigger
+- **Scroll-linked tween values** (`0.3.0-alpha`). GSAP ScrollTrigger
   animations are sampled at the progress the scroll reached and compared at the same progress, so
   a changed parallax distance is found, not only a moved `start`/`end`. Repeating ScrollTrigger
   animations stay timing-only. See [GSAP: ScrollTrigger](docs/integrations/gsap.md#scrolltrigger).

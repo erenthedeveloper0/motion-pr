@@ -5,7 +5,7 @@ description: What this alpha does not do, and where each limitation is documente
 
 # Limitations
 
-MotionPR is in alpha (`0.2.0-alpha`). Everything below is a known limitation of this release, not
+MotionPR is in alpha (`0.3.0-alpha`). Everything below is a known limitation of this release, not
 a hidden one.
 
 ## Browsers and platforms
@@ -36,10 +36,10 @@ a hidden one.
   WebGL, is not visible without a [custom adapter](custom-adapters.md).
 - **Scroll is never replayed.** Scroll motion is recorded live; filmstrip frames of scroll windows
   show the final scroll position, and the scroll graph is the source of truth.
-- **Scroll-linked tween values** (GSAP ScrollTrigger) are not sampled in `0.2.0-alpha`: a changed
-  `start`/`end` is found, a changed parallax distance alone is not. Unreleased builds after
-  `0.2.0-alpha` sample them where the scroll went ([GSAP](../integrations/gsap.md#scrolltrigger));
-  repeating ScrollTrigger animations are still timing and live progress only.
+- **Scroll-linked tween values** (GSAP ScrollTrigger) are sampled only where the scroll went
+  ([GSAP](../integrations/gsap.md#scrolltrigger)): a part of the range the scenario never scrolled
+  through has no values to compare. Repeating ScrollTrigger animations are timing and live
+  progress only.
 - **Scroll-linked progress under native smooth scrolling** in Firefox and WebKit is noisy.
   Progress at the same scroll position relates two live recordings (progress and scroll
   position); in MotionPR's tests with native smooth scrolling, two runs of the same build
