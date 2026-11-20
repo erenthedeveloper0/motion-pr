@@ -97,6 +97,7 @@ describe("normalizeAnimations", () => {
     easingKind: null,
     easingSamplesSource: null,
     progressTrace: [],
+    scrollRange: null,
     name: "rise",
     element: {
       key: "test-id:card",

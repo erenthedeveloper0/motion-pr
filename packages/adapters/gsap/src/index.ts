@@ -11,6 +11,9 @@
  *   sampled from GSAP's ease function.
  * - For deterministic replay it pauses the root animations and renders them at exact times with
  *   `totalTime(t, true)` (events suppressed), then restores their state.
+ * - ScrollTrigger animations follow scroll, so they have no time origin. Their progress is
+ *   observed live on GSAP's ticker; for sampling they are rendered at the progress the scroll
+ *   reached (`seekProgress`), and time-based seeks show the progress observed at that time.
  *
  * Outside a MotionPR capture (no agent in the page) `register()` does nothing and costs nothing.
  */
@@ -170,6 +173,8 @@ class GsapAdapter implements MotionprAdapter {
   readonly #scrollLinked = new Set<GsapAnimationLike>();
   /** Live progress of scroll-linked roots this window (performance clock), bounded. */
   #traces = new Map<GsapAnimationLike, { t: number; progress: number }[]>();
+  /** Collected record id → its scroll-linked root, for `seekProgress`. */
+  #scrollRoots = new Map<string, GsapAnimationLike>();
   readonly #gsap: GsapLike;
   readonly #roots = new Map<GsapAnimationLike, RootState>();
   readonly #names = new WeakMap<GsapAnimationLike, string>();
@@ -210,8 +215,8 @@ class GsapAdapter implements MotionprAdapter {
     if (this.#scrollLinked.size)
       out.push({
         level: "info",
-        code: "GSAP_SCROLLTRIGGER_METADATA_ONLY",
-        message: `${this.#scrollLinked.size} ScrollTrigger-driven animation(s): progress follows scroll, so MotionPR records their timing as metadata and correlates them with recorded scroll motion.`,
+        code: "GSAP_SCROLLTRIGGER_OBSERVED",
+        message: `${this.#scrollLinked.size} ScrollTrigger-driven animation(s): progress follows scroll, so MotionPR records it live and samples their values at the progress the scroll reached.`,
       });
     return out;
   }
@@ -221,6 +226,7 @@ class GsapAdapter implements MotionprAdapter {
     this.#gsap.ticker.remove?.(this.#tick);
     this.#roots.clear();
     this.#mappings.clear();
+    this.#scrollRoots.clear();
   }
 
   idOf(anim: GsapAnimationLike): string {
@@ -292,9 +298,26 @@ class GsapAdapter implements MotionprAdapter {
   #windowRoots(): GsapAnimationLike[] {
     const roots = new Set<GsapAnimationLike>();
     for (const state of this.#roots.values()) {
+      if (this.#smoothsScrollLinked(state.root)) continue;
       if (this.#ranThisWindow(state)) roots.add(this.#topRoot(state.root));
     }
     return [...roots];
+  }
+
+  /**
+   * ScrollTrigger's `scrub: <seconds>` smoothing is a tween of the scroll-linked animation's
+   * `totalProgress`. Its effect is that animation's recorded progress, not motion of its own, so
+   * it is not reported (it is still tracked: settling waits for it and replay freezes it).
+   */
+  #smoothsScrollLinked(anim: GsapAnimationLike): boolean {
+    const targets = typeof anim.targets === "function" ? anim.targets() : [];
+    return (
+      targets.length > 0 &&
+      targets.every((t) => {
+        const target = t as Partial<GsapAnimationLike> | null;
+        return typeof target?.totalTime === "function" && Boolean(target.vars?.scrollTrigger);
+      })
+    );
   }
 
   #mapping(root: GsapAnimationLike): RootMapping {
@@ -395,9 +418,42 @@ class GsapAdapter implements MotionprAdapter {
     return best;
   }
 
+  /**
+   * Where a leaf is active within its scroll-linked root, as a fraction of the root's progress.
+   * Null when the root repeats (one progress value then stands for several states).
+   */
+  #scrollRange(
+    leaf: GsapAnimationLike,
+    root: GsapAnimationLike,
+  ): { from: number; to: number } | null {
+    const total = root.totalDuration();
+    if (root.repeat() !== 0 || !(total > 0)) return null;
+    const from = this.#toRootLocal(leaf, root, 0).time / total;
+    const to = this.#toRootLocal(leaf, root, leaf.totalDuration()).time / total;
+    if (!Number.isFinite(from) || !Number.isFinite(to) || to - from <= 1e-9) return null;
+    const round = (n: number) => Math.round(Math.min(Math.max(n, 0), 1) * 1e6) / 1e6;
+    return { from: round(from), to: round(to) };
+  }
+
+  /** Progress a scroll-linked root showed at `timeMs` (performance clock), from its trace. */
+  #observedProgress(root: GsapAnimationLike, timeMs: number): number | null {
+    const trace = this.#traces.get(root);
+    if (!trace?.length) return null;
+    if (timeMs <= trace[0]!.t) return trace[0]!.progress;
+    for (let i = 1; i < trace.length; i++) {
+      const b = trace[i]!;
+      if (timeMs < b.t) {
+        // Progress changes on GSAP's ticker, so it holds its value between observations.
+        return trace[i - 1]!.progress;
+      }
+    }
+    return trace[trace.length - 1]!.progress;
+  }
+
   collect(): AdapterAnimation[] {
     const out: AdapterAnimation[] = [];
     const mappings = new Map<GsapAnimationLike, RootMapping>();
+    this.#scrollRoots = new Map();
     for (const root of this.#windowRoots()) {
       const mapping = this.#mapping(root);
       mappings.set(root, mapping);
@@ -429,9 +485,10 @@ class GsapAdapter implements MotionprAdapter {
           (typeof tween.vars.id === "string" ? tween.vars.id : null);
         const staggered = owner !== tween;
         const notes: string[] = [];
-        if (scrollLinked)
+        const scrollRange = scrollLinked ? this.#scrollRange(tween, root) : null;
+        if (scrollLinked && !scrollRange)
           notes.push(
-            "ScrollTrigger-driven animation: progress follows scroll; MotionPR records metadata only (experimental).",
+            "Repeating ScrollTrigger-driven animation: progress follows scroll; MotionPR records its timing and live progress only.",
           );
         const playState: PlayStateValue = root.paused()
           ? "paused"
@@ -450,6 +507,7 @@ class GsapAdapter implements MotionprAdapter {
           ...(scrollLinked && trace.length > 1
             ? { progressTrace: trace.map((p) => ({ ...p })) }
             : {}),
+          ...(scrollRange ? { scrollRange } : {}),
           duration: duration * 1000,
           delay: delaySec * 1000,
           iterations: infinite ? Number.POSITIVE_INFINITY : repeat + 1,
@@ -490,12 +548,14 @@ class GsapAdapter implements MotionprAdapter {
         };
         targets.forEach((target, index) => {
           const isElement = typeof Element !== "undefined" && target instanceof Element;
+          const id = `${this.idOf(tween)}:${index}`;
+          if (scrollRange) this.#scrollRoots.set(id, root);
           out.push({
             ...base,
-            id: `${this.idOf(tween)}:${index}`,
+            id,
             target: isElement ? target : null,
             notes: isElement ? notes : [...notes, "Target is not a DOM element; timing only."],
-            samplable: isElement && !scrollLinked,
+            samplable: isElement && (!scrollLinked || scrollRange !== null),
           });
         });
       }
@@ -567,9 +627,25 @@ class GsapAdapter implements MotionprAdapter {
 
   seek(timeMs: number): void {
     for (const [root, mapping] of this.#mappings) {
+      if (this.#scrollLinked.has(root)) {
+        // No time origin: show the progress the page showed at that time. The trace holds
+        // `progress()`, which equals total progress only without repeats; a repeating root is
+        // left as it is.
+        const progress = this.#observedProgress(root, timeMs);
+        if (progress !== null && root.repeat() === 0)
+          root.totalTime(progress * mapping.totalDuration, true);
+        continue;
+      }
       const local = (timeMs - mapping.zeroAbs) * mapping.ratePerMs;
       root.totalTime(Math.min(Math.max(local, 0), mapping.totalDuration), true);
     }
+  }
+
+  seekProgress(id: string, progress: number): void {
+    const root = this.#scrollRoots.get(id);
+    if (!root || !this.#mappings.has(root)) return;
+    const p = Math.min(Math.max(progress, 0), 1);
+    root.totalTime(p * root.totalDuration(), true);
   }
 
   endReplay(): void {

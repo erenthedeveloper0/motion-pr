@@ -249,3 +249,106 @@ describe("scroll-linked progress", () => {
     expect(change!.delta!).toBeGreaterThan(0.3);
   });
 });
+
+describe("scroll-linked values", () => {
+  /**
+   * A ScrollTrigger-style record sampled at scroll progress `lo`..`hi` (as the agent does: only
+   * where the scroll went), writing translateY = `distance` × progress and a color.
+   */
+  async function scrollSampled(
+    distance: number,
+    [lo, hi]: [number, number],
+    color = (p: number) => `rgb(${Math.round(255 * p)}, 0, 0)`,
+  ) {
+    const { anim } = await import("./helpers.ts");
+    const base = anim({ type: "gsap", props: ["transform", "background-color"], samples: 11 });
+    return {
+      ...base,
+      startTime: null,
+      timeline: "scroll" as const,
+      samples: base.samples.map((s, i) => {
+        const p = lo + ((hi - lo) * i) / 10;
+        return {
+          ...s,
+          scrollProgress: p,
+          values: { "background-color": color(p) },
+          numeric: { ...s.numeric, translateX: 0, translateY: distance * p },
+        };
+      }),
+    };
+  }
+  const compare = async (
+    b: Awaited<ReturnType<typeof scrollSampled>>,
+    c: Awaited<ReturnType<typeof scrollSampled>>,
+  ) => {
+    const { compareMatchedAnimation } = await import("../src/diff-animation.ts");
+    return compareMatchedAnimation(
+      { baseline: b, candidate: c, method: "exact", confidence: "high", notes: [] },
+      config,
+    ).changes;
+  };
+
+  it("compares at equal progress, not by sample index, when the scrolls covered different ranges", async () => {
+    // Same animation; the candidate's scroll began further in. By index, every sample differs.
+    const changes = await compare(
+      await scrollSampled(-120, [0, 1]),
+      await scrollSampled(-120, [0.3, 1]),
+    );
+    expect(changes).toEqual([]);
+  });
+
+  it("reports a changed distance with the progress where it differs most", async () => {
+    const changes = await compare(
+      await scrollSampled(-120, [0, 0.8]),
+      await scrollSampled(-240, [0.2, 1]),
+    );
+    expect(changes.map((c) => c.message)).toEqual([
+      "Scroll-linked translateY differs by up to 96px at the same scroll progress (at 80%: -96px → -192px)",
+    ]);
+    expect(changes[0]).toMatchObject({
+      kind: "trajectory",
+      severity: "warning",
+      before: -96,
+      after: -192,
+      delta: -96,
+      measurement: "measured",
+    });
+  });
+
+  it("reports other properties (colors) at equal progress", async () => {
+    const changes = await compare(
+      await scrollSampled(-120, [0, 1]),
+      await scrollSampled(-120, [0, 1], (p) => `rgb(0, 0, ${Math.round(255 * p)})`),
+    );
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ kind: "keyframes", property: "background-color (scroll)" });
+    expect(changes[0]!.message).toBe(
+      "Scroll-linked background-color differs at the same scroll progress (at 100%: rgba(255, 0, 0, 1) → rgba(0, 0, 255, 1))",
+    );
+  });
+
+  it("is uncertain when the two scrolls reached no common progress", async () => {
+    const changes = await compare(
+      await scrollSampled(-120, [0, 0.4]),
+      await scrollSampled(-240, [0.6, 1]),
+    );
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ kind: "completeness", severity: "uncertain" });
+    expect(changes[0]!.message).toMatch(
+      /reached 0%–40% scroll progress in the baseline and 60%–100%/,
+    );
+  });
+
+  it("does not compare values against a baseline captured before they were sampled", async () => {
+    const { anim } = await import("./helpers.ts");
+    const old = {
+      ...anim({ type: "gsap", props: ["transform", "background-color"] }),
+      startTime: null,
+      timeline: "scroll" as const,
+      samples: [],
+      completeness: { status: "metadata-only" as const, reasons: ["metadata only"] },
+    };
+    const changes = await compare(old as never, await scrollSampled(-240, [0, 1]));
+    expect(changes.map((c) => [c.kind, c.severity])).toEqual([["completeness", "uncertain"]]);
+  });
+});

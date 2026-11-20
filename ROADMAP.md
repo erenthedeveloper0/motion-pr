@@ -1,12 +1,19 @@
 # Roadmap
 
-What comes after `0.2.0-alpha`, roughly in order. Nothing under "Towards a beta" or "Later" is
+What comes after `0.3.0-alpha`, roughly in order. Nothing under "Towards a beta" or "Later" is
 built yet; what is built is in [the changelog](CHANGELOG.md) and
 [Limitations](docs/advanced/limitations.md). Order changes with what users run into; open an
 issue to argue for something.
 
 ## Done
 
+- **Windows in CI** (`0.3.0-alpha`). The unit tests, the Chromium
+  browser suites, the demo app's expectations and the packaged CLI run on `windows-latest`.
+  Firefox and WebKit on Windows are not covered yet.
+- **Scroll-linked tween values** (`0.3.0-alpha`). GSAP ScrollTrigger
+  animations are sampled at the progress the scroll reached and compared at the same progress, so
+  a changed parallax distance is found, not only a moved `start`/`end`. Repeating ScrollTrigger
+  animations stay timing-only. See [GSAP: ScrollTrigger](docs/integrations/gsap.md#scrolltrigger).
 - **Firefox and WebKit captures, with per-browser baselines** (`0.2.0-alpha`). Chromium, Firefox
   and WebKit through one capture pipeline; baselines, captures, comparisons and reports per
   engine; `--browser all`; explicit cross-browser comparison; every browser suite and the demo
@@ -16,13 +23,13 @@ issue to argue for something.
 
 1. **Example projects.** Small, runnable projects (plain HTML, React with GSAP, Astro with Lenis)
    with their scenarios and committed baselines, tested in CI like the demo app.
-2. **Windows in CI.** Paths are handled in code; nothing runs it on Windows yet.
-3. **Scroll-linked tween values.** Sample the values ScrollTrigger animations write at recorded
-   scroll positions, so a changed parallax distance is found, not only a moved `start`/`end`.
-4. **Nested native scroll containers.** Record scroll motion of overflow containers, not only the
+2. **Stable ScrollTrigger positions under native smooth scrolling.** Progress at the same scroll
+   position is noisy in Firefox and WebKit (up to 28% between runs of one build); compare
+   ScrollTrigger's resolved `start`/`end` positions instead of relating two live recordings.
+3. **Nested native scroll containers.** Record scroll motion of overflow containers, not only the
    document scroller, and let `scrollTo`/`wheel` steps target them.
-5. **Shadow DOM.** Selectors that pierce shadow roots for replay, with browser tests.
-6. **Adapter protocol 2.** Freeze the adapter contract for custom engines before `1.0`, with a
+4. **Shadow DOM.** Selectors that pierce shadow roots for replay, with browser tests.
+5. **Adapter protocol 2.** Freeze the adapter contract for custom engines before `1.0`, with a
    conformance suite adapters can run.
 
 ## Later

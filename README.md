@@ -122,7 +122,7 @@ in [Severity & thresholds](docs/features/severity.md).
 
 ## Status
 
-**Alpha — `0.2.0-alpha`.** It works end to end in Chromium, Firefox and WebKit for the engines below, and
+**Alpha — `0.3.0-alpha`.** It works end to end in Chromium, Firefox and WebKit for the engines below, and
 every claim in the documentation is backed by an automated test. Do not put it on a path that
 blocks production releases yet: the capture format and the public API may change before `1.0`.
 Older captures are migrated when they are read.
@@ -135,8 +135,8 @@ Older captures are migrated when they are read.
 - **Three browser engines**: Chromium, Firefox and WebKit (Playwright 1.65's builds), each with its
   own baseline, captures and report; `--browser all` runs them in one go, and comparing two
   engines is explicit.
-- **Adapters** for GSAP (tweens, timelines, staggers, keyframes; ScrollTrigger as metadata plus
-  live progress), Anime.js v4 (animations, timelines, staggers, `waapi.animate`) and Lenis (scroll
+- **Adapters** for GSAP (tweens, timelines, staggers, keyframes; ScrollTrigger values sampled by
+  scroll progress), Anime.js v4 (animations, timelines, staggers, `waapi.animate`) and Lenis (scroll
   motion), all through public APIs and no-ops outside a capture.
 - **Scroll motion** as its own record, recorded live and compared by distance, settle time,
   normalized progress curve, peak velocity, overshoot and lag.
@@ -150,8 +150,8 @@ Older captures are migrated when they are read.
 
 ### Not built yet
 
-Windows in CI · replaying scroll-linked tween values · nested native scroll containers · Shadow DOM
-selector piercing · example projects · engines in parallel within one run. The
+Nested native scroll containers · Shadow DOM selector piercing · example projects · engines in
+parallel within one run. The
 [roadmap](ROADMAP.md) orders them, and [Limitations](docs/advanced/limitations.md) lists every
 known gap.
 
@@ -163,7 +163,7 @@ known gap.
 | ------------------------------------------------ | ------------------------------ | --------------------------------------------------------------------------- |
 | Native CSS (transitions, animations)             | Animation                      | Verified, no setup                                                          |
 | Web Animations API (`element.animate`)           | Animation                      | Verified, no setup                                                          |
-| GSAP · `@erenthedeveloper0/motionpr/gsap`        | Animation, timelines           | Verified with 3.15.1 (`>=3.12 <4`); ScrollTrigger: metadata + live progress |
+| GSAP · `@erenthedeveloper0/motionpr/gsap`        | Animation, timelines           | Verified with 3.15.1 (`>=3.12 <4`); ScrollTrigger: values where scroll went |
 | Anime.js · `@erenthedeveloper0/motionpr/animejs` | Animation, timelines, staggers | Verified with 4.5.0 (`>=4 <5`); v3 is not supported                         |
 | Lenis · `@erenthedeveloper0/motionpr/lenis`      | Scroll motion                  | Verified with 1.3.27 (`>=1.1 <2`)                                           |
 | CSS scroll-driven animations                     | Animation                      | Metadata only                                                               |

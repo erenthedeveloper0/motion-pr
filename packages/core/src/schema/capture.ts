@@ -134,6 +134,12 @@ export const frameSampleSchema = z.object({
   box: boxSchema.nullable(),
   /** Asset id of the nearest filmstrip frame, if frames were captured. */
   frame: z.string().nullable(),
+  /**
+   * Scroll-linked animations only: the progress of the scroll-driven animation (0..1, the scale
+   * of `progressTrace`) at which the values were rendered. `windowTime` is then when the page
+   * first showed that progress.
+   */
+  scrollProgress: z.number().optional(),
 });
 export type FrameSample = z.infer<typeof frameSampleSchema>;
 

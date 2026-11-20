@@ -46,8 +46,8 @@ browser: { name: "webkit" },          // or keep chromium and pass --browser web
   WOFF2, Wayland and others). `--with-deps` installs them with `apt` on the distributions
   Playwright supports (Ubuntu and Debian releases); elsewhere, use the official Playwright Docker
   images. `--headed` needs a display server.
-- **Windows:** Playwright's WebKit runs on Windows, but it is the least mature build and MotionPR's
-  CI does not cover Windows.
+- **Windows:** Playwright's WebKit runs on Windows, but it is the least mature build, and
+  MotionPR's CI covers only Chromium on Windows.
 
 ## Frame rate and timers
 

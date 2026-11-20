@@ -125,18 +125,19 @@ One element animated over time. This is the record of the menu from
 }
 ```
 
-| Field                   | Meaning                                                                                              |
-| ----------------------- | ---------------------------------------------------------------------------------------------------- |
-| `id`                    | `<element key>::<type>::<name>`: the matching key ([identification](animation-identification.md))    |
-| `type`                  | `css-transition`, `css-animation`, `web-animation`, `gsap`, `animejs`, `custom`                      |
-| `source` / `driver`     | Who observed it (`native`, `gsap`, `animejs`, …) and what renders it (`css`, `waapi`, `javascript`)  |
-| `startTime`             | Local time zero relative to the window origin, in ms (frame-quantized)                               |
-| `timing.easing.samples` | The eased output at 65 evenly spaced inputs: the curve itself, for any easing an engine can evaluate |
-| `samples[]`             | Computed values, decomposed transform and border box at `capture.samples` times during replay        |
-| `completeness`          | `complete`, `partial` or `metadata-only`, with reasons. Partial data is compared as `incomplete`     |
-| `provenance`            | Per field: `declared`, `observed`, `inferred` or `unavailable` (adapters fill this in)               |
-| `parent`                | The `TimelineRecord` this animation belongs to                                                       |
-| `progressTrace`         | Live progress of scroll-linked animations (GSAP ScrollTrigger), window-relative                      |
+| Field                      | Meaning                                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `id`                       | `<element key>::<type>::<name>`: the matching key ([identification](animation-identification.md))    |
+| `type`                     | `css-transition`, `css-animation`, `web-animation`, `gsap`, `animejs`, `custom`                      |
+| `source` / `driver`        | Who observed it (`native`, `gsap`, `animejs`, …) and what renders it (`css`, `waapi`, `javascript`)  |
+| `startTime`                | Local time zero relative to the window origin, in ms (frame-quantized)                               |
+| `timing.easing.samples`    | The eased output at 65 evenly spaced inputs: the curve itself, for any easing an engine can evaluate |
+| `samples[]`                | Computed values, decomposed transform and border box at `capture.samples` times during replay        |
+| `completeness`             | `complete`, `partial` or `metadata-only`, with reasons. Partial data is compared as `incomplete`     |
+| `provenance`               | Per field: `declared`, `observed`, `inferred` or `unavailable` (adapters fill this in)               |
+| `parent`                   | The `TimelineRecord` this animation belongs to                                                       |
+| `progressTrace`            | Live progress of scroll-linked animations (GSAP ScrollTrigger), window-relative                      |
+| `samples[].scrollProgress` | Scroll-linked animations only (since `0.3.0-alpha`): the progress the sample was rendered at         |
 
 ## TimelineRecord
 

@@ -5,7 +5,7 @@ description: What this alpha does not do, and where each limitation is documente
 
 # Limitations
 
-MotionPR is in alpha (`0.2.0-alpha`). Everything below is a known limitation of this release, not
+MotionPR is in alpha (`0.3.0-alpha`). Everything below is a known limitation of this release, not
 a hidden one.
 
 ## Browsers and platforms
@@ -24,8 +24,9 @@ a hidden one.
 - **Timer-driven interruptions are environmental.** When an app cancels or reverses motion from a
   `setTimeout`, where the animation stood at that moment depends on scheduling. Sampled path and
   end-value differences of cancelled animations are `uncertain`.
-- **Verified on macOS and Linux CI.** Windows paths are handled in code, but no CI job runs on
-  Windows, for any engine.
+- **Windows is verified with Chromium only.** The repository's CI runs the unit tests, the
+  Chromium browser suites, the demo app's expectations and the packaged CLI on Windows. Firefox
+  and WebKit are verified on macOS and Linux.
 - **Pixels depend on the platform.** Visual comparison is a warning by default for this reason;
   capture baselines where CI runs ([Baseline management](../ci/baseline-management.md)).
 
@@ -35,9 +36,16 @@ a hidden one.
   WebGL, is not visible without a [custom adapter](custom-adapters.md).
 - **Scroll is never replayed.** Scroll motion is recorded live; filmstrip frames of scroll windows
   show the final scroll position, and the scroll graph is the source of truth.
-- **Scroll-linked tween values** (GSAP ScrollTrigger) are not sampled. Their progress is compared
-  against scroll position, so a changed `start`/`end` is found but a changed parallax distance
-  alone is not.
+- **Scroll-linked tween values** (GSAP ScrollTrigger) are sampled only where the scroll went
+  ([GSAP](../integrations/gsap.md#scrolltrigger)): a part of the range the scenario never scrolled
+  through has no values to compare. Repeating ScrollTrigger animations are timing and live
+  progress only.
+- **Scroll-linked progress under native smooth scrolling** in Firefox and WebKit is noisy.
+  Progress at the same scroll position relates two live recordings (progress and scroll
+  position); in MotionPR's tests with native smooth scrolling, two runs of the same build
+  differed by up to 11% in Firefox and 28% in WebKit (none in Chromium), which is reported as an
+  `info` or `warning`. The values a ScrollTrigger animation writes are compared by progress and
+  were stable in all three engines.
 - **CSS scroll-driven animations** are recorded as metadata only.
 - **Nested scroll containers**: native scroll motion is recorded for the document scroller only.
   Containers scrolled by Lenis (`wrapper`) are recorded through the Lenis adapter but not covered by
@@ -48,7 +56,8 @@ a hidden one.
 ## Engines
 
 - **GSAP:** Draggable, Observer and Flip are not observed; `new gsap.core.Timeline()` needs
-  `track()`; ScrollTrigger is metadata plus live progress. See [GSAP](../integrations/gsap.md).
+  `track()`; repeating ScrollTrigger animations are timing and live progress only. See
+  [GSAP](../integrations/gsap.md).
 - **Anime.js:** v3 is not supported; `composition: "blend"` is metadata only; per-keyframe timing
   of `keyframes` is not reconstructed; `createTimer()`, `createAnimatable()`, `createDraggable()`
   and `onScroll()` are not instrumented. See [Anime.js](../integrations/animejs.md).

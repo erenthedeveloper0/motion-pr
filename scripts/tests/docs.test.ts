@@ -27,9 +27,10 @@ function exportedNames(source: string): string[] {
   return names;
 }
 
+/** Markdown files under `dir`, as `/`-separated paths (the site's page list uses `/` on Windows too). */
 function markdownFiles(dir: string): string[] {
   return readdirSync(join(root, dir)).flatMap((name) => {
-    const rel = join(dir, name);
+    const rel = `${dir}/${name}`;
     return statSync(join(root, rel)).isDirectory()
       ? markdownFiles(rel)
       : rel.endsWith(".md")
@@ -205,7 +206,7 @@ describe("docs", () => {
 describe("versions", () => {
   it("keeps every package and MOTIONPR_VERSION on the public package's version", () => {
     const version = (JSON.parse(read("packages/cli/package.json")) as { version: string }).version;
-    expect(version).toBe("0.2.0-alpha");
+    expect(version).toBe("0.3.0-alpha");
     for (const dir of [
       "core",
       "capture",

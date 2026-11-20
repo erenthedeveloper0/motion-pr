@@ -5,6 +5,77 @@ workspace packages it bundles are versioned with it. Format:
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MotionPR is an alpha: until `1.0`, any
 prerelease may change the capture format or the API, and every such change is listed here.
 
+## [0.3.0-alpha] — 2026-11-20
+
+The values GSAP ScrollTrigger animations write are sampled and compared (roadmap: scroll-linked
+tween values), and the repository's CI runs on Windows (roadmap: Windows in CI). Capture schema
+and comparison schema stay at version 2, and the adapter protocol at 1: every new field and
+method is optional, so 0.2 captures and custom adapters work unchanged.
+
+### Added
+
+- **ScrollTrigger values.** Scroll-linked GSAP animations (`scrub` and `toggleActions`) are
+  sampled at `capture.samples` evenly spaced progress values between the lowest and highest
+  progress the page showed in the checkpoint, rendered with `totalTime(t, true)`. Scroll is still
+  never replayed. A tween inside a scrubbed timeline is sampled in its own part of the timeline's
+  progress. Each sample carries `scrollProgress`; its `windowTime` is when the page first showed
+  that progress.
+- **Comparison at the same scroll progress**, over the progress both captures reached, so a
+  changed parallax distance, fade or color is found, not only a moved `start`/`end`: _Scroll-linked
+  translateY differs by up to 120px at the same scroll progress (at 100%: -120px → -240px)_.
+  Transforms and opacity use the `trajectory`, `size` and `opacity` thresholds, other properties
+  the `keyframes` rule. A moved `start` alone changes progress, not these values, so it is reported
+  once. Captures that reached no common progress get one `uncertain` finding.
+- Completeness reasons for scroll-linked records: `partial` with _Sampled only where the scroll
+  went: 50%–80% scroll progress (the animation runs from 50% to 100%)_, `metadata-only` when the
+  scroll never reached the animation's part of the range.
+- Adapter protocol: `AdapterAnimation.scrollRange` and `MotionprAdapter.seekProgress(id, progress)`
+  for custom adapters with scroll-linked animations; `FrameSample.scrollProgress` in captures.
+- Browser tests for ScrollTrigger (scrubbed tween and timeline, `toggleActions`, `scrub: 0.5`,
+  partial and missed ranges, two runs of one build, changed distance and fade, moved start, replay
+  safety) in Chromium, Firefox and WebKit, and unit tests for the comparison.
+- **Windows in CI.** A `chromium on Windows` job runs the unit tests, the browser suites and the
+  demo app's expected differences in Chromium on `windows-latest`, and installs and runs the packed
+  package in a clean project.
+
+### Changed
+
+- While MotionPR renders a checkpoint at a time (filmstrip frames, the settled screenshot, other
+  animations' samples), ScrollTrigger animations show the progress the page showed at that time.
+- A checkpoint's motion window extends to the last progress change of a scroll-linked animation,
+  such as a `toggleActions` tween still playing after the scroll stopped.
+- ScrollTrigger records no longer carry the _metadata only (experimental)_ note: they are
+  `complete` when the scroll covered their range. The GSAP adapter's info diagnostic
+  `GSAP_SCROLLTRIGGER_METADATA_ONLY` is now `GSAP_SCROLLTRIGGER_OBSERVED`.
+- Repeating ScrollTrigger animations (a `repeat` on the scroll-driven tween or timeline) keep
+  timing and live progress only, with a note saying so.
+
+### Fixed
+
+- With `scrub: <seconds>`, ScrollTrigger smooths progress with an internal tween of the animation's
+  `totalProgress`. It could be recorded as a GSAP animation without an element (seen in WebKit as
+  an `uncertain` _Added: gsap on adapter:gsap:…_). It is no longer reported; settling still waits
+  for it and replay still freezes it.
+- The repository's packaging check and tests could not run on Windows: `scripts/pack-check.mjs`
+  now runs npm, npx, pnpm and the installed bin through `cmd.exe` and no longer needs `cp`, the
+  documentation checks compare `/`-separated page paths, and the CLI tests link the package with
+  a junction instead of a directory symlink.
+
+### Upgrading
+
+Baselines accepted with `0.2.0-alpha` have no samples for ScrollTrigger animations. Comparisons
+against them report the completeness change (`metadata-only → complete`) as `uncertain` and
+compare no values; accept a new baseline to compare values. Code that looks for the GSAP
+diagnostic `GSAP_SCROLLTRIGGER_METADATA_ONLY` should look for `GSAP_SCROLLTRIGGER_OBSERVED`.
+
+### Known limitations
+
+- Progress at the same scroll position under native smooth scrolling is noisy in Firefox and
+  WebKit: two runs of one build differed by up to 11% (Firefox) and 28% (WebKit) in MotionPR's
+  tests. This is unchanged from `0.2.0-alpha`; the new value comparison is stable in all three
+  engines.
+- Firefox and WebKit are not tested on Windows; Chromium is.
+
 ## [0.2.0-alpha] — 2026-11-15
 
 Firefox and WebKit become supported browser engines next to Chromium, each with its own
@@ -197,6 +268,7 @@ published or tagged, so this release collects their work and the version starts 
 - Filled values are never written to captures or reports; inputs are masked in screenshots; query
   values in recorded URLs are redacted by default. MotionPR sends no telemetry.
 
+[0.3.0-alpha]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.3.0-alpha
 [0.2.0-alpha]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.2.0-alpha
 [0.1.0-alpha.1]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.1.0-alpha.1
 [0.1.0-alpha]: https://github.com/erenthedeveloper0/motionpr/releases/tag/v0.1.0-alpha
