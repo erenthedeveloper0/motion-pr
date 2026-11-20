@@ -437,6 +437,7 @@ export function installAgent(win: Window & typeof globalThis): void {
       easingKind: null,
       easingSamplesSource: null,
       progressTrace: [],
+      scrollRange: null,
       name,
       element: identifyElement(target, effect.pseudoElement, config),
       startTime: entry.finishedOnDiscovery ? null : start,
@@ -475,6 +476,7 @@ export function installAgent(win: Window & typeof globalThis): void {
 
   function adapterRecord(adapter: MotionprAdapter, a: AdapterAnimation): RawAnimation | null {
     if (a.target && isIgnoredTarget(a.target)) return null;
+    adapterSources.set(`${adapter.name}:${a.id}`, { adapter, id: a.id });
     if (a.name && config.ignoreAnimationNames.includes(a.name)) return null;
     const properties = a.properties.filter((p) => !config.ignoreProperties.includes(p));
     const infinite = !Number.isFinite(a.iterations);
@@ -510,6 +512,7 @@ export function installAgent(win: Window & typeof globalThis): void {
       easingKind: a.easingKind ?? null,
       easingSamplesSource: a.easingSamplesSource ?? null,
       progressTrace: (a.progressTrace ?? []).map((p) => ({ time: p.t, progress: p.progress })),
+      scrollRange: a.scrollRange ? { from: a.scrollRange.from, to: a.scrollRange.to } : null,
       name: a.name,
       element,
       startTime: a.startTime,
@@ -536,9 +539,13 @@ export function installAgent(win: Window & typeof globalThis): void {
       notes: [...(a.notes ?? [])],
       samplable:
         a.samplable &&
-        typeof adapter.seek === "function" &&
-        a.startTime !== null &&
-        a.target !== null,
+        a.target !== null &&
+        (a.startTime !== null
+          ? typeof adapter.seek === "function"
+          : // Scroll-linked: rendered at the progress the scroll reached.
+            a.scrollRange !== undefined &&
+            (a.progressTrace?.length ?? 0) > 1 &&
+            typeof adapter.seekProgress === "function"),
     };
   }
 
@@ -669,6 +676,7 @@ export function installAgent(win: Window & typeof globalThis): void {
     }
     const timelines: RawTimeline[] = [];
     const scrollTracks: RawScrollTrack[] = [];
+    adapterSources.clear();
     for (const adapter of adapters) {
       try {
         for (const a of adapter.collect()) {
@@ -831,6 +839,9 @@ export function installAgent(win: Window & typeof globalThis): void {
     for (const r of records) {
       const ext = recordExtent(r);
       if (ext) end = Math.max(end, ext.end);
+      // A scroll-linked animation moves until its observed progress last changed (a
+      // ScrollTrigger with toggleActions plays on after the scroll stopped).
+      else if (r.progressTrace.length > 1) end = Math.max(end, r.progressTrace.at(-1)!.time);
     }
     const capped = end > config.maxWindowMs;
     end = Math.max(0, Math.min(end, config.maxWindowMs));
@@ -1066,13 +1077,82 @@ export function installAgent(win: Window & typeof globalThis): void {
           seek(t);
           series.push(readSample(e, t, local));
         }
+      } else if (rec.samplable && rec.startTime === null && rec.scrollRange && !e.native) {
+        series.push(...sampleScrollLinked(e, rec.scrollRange, active, count));
       }
       out.push(series);
     }
     return out;
   }
 
+  /**
+   * Samples a scroll-linked animation over the part of its scroll range the page showed in this
+   * window: evenly spaced progress values between the lowest and highest observed progress
+   * (within the animation's own range), each rendered through the adapter. Scroll is not
+   * replayed; the progress values are the recorded ones.
+   */
+  function sampleScrollLinked(
+    e: ReplayEntry,
+    range: { from: number; to: number },
+    active: number,
+    count: number,
+  ): RawSample[] {
+    const rec = e.record;
+    const source = adapterSources.get(rec.uid);
+    const trace = rec.progressTrace;
+    if (!source?.adapter.seekProgress || trace.length < 2 || count < 2) return [];
+    let lo = Number.POSITIVE_INFINITY;
+    let hi = Number.NEGATIVE_INFINITY;
+    for (const p of trace) {
+      lo = Math.min(lo, p.progress);
+      hi = Math.max(hi, p.progress);
+    }
+    lo = Math.max(lo, range.from);
+    hi = Math.min(hi, range.to);
+    if (!(hi - lo > 1e-4)) return [];
+    const span = range.to - range.from;
+    const series: RawSample[] = [];
+    for (let k = 0; k < count; k++) {
+      const progress = round6(lo + ((hi - lo) * k) / (count - 1));
+      // When the page first showed this progress (never before the window origin: nothing
+      // moved before it), so the other animations are rendered as they were at that moment.
+      const t = Math.max(0, firstReached(trace, progress));
+      seek(t);
+      try {
+        source.adapter.seekProgress(source.id, progress);
+      } catch (error) {
+        diagnostics.push({
+          level: "warning",
+          code: "ADAPTER_SEEK_FAILED",
+          message: `Adapter "${source.adapter.name}" failed to seek ${rec.uid} by progress: ${String(error)}`,
+        });
+        return [];
+      }
+      const local = rec.timing.delay + (active * (progress - range.from)) / span;
+      series.push({ ...readSample(e, t, local), scrollProgress: progress });
+    }
+    return series;
+  }
+
+  /** Window time at which a progress trace first reached `progress` (it changes in steps). */
+  function firstReached(
+    trace: readonly { time: number; progress: number }[],
+    progress: number,
+  ): number {
+    const eps = 1e-6;
+    if (Math.abs(trace[0]!.progress - progress) <= eps) return trace[0]!.time;
+    for (let i = 1; i < trace.length; i++) {
+      const a = trace[i - 1]!.progress;
+      const b = trace[i]!.progress;
+      if ((a < progress && b >= progress - eps) || (a > progress && b <= progress + eps))
+        return trace[i]!.time;
+    }
+    return trace[trace.length - 1]!.time;
+  }
+
   const adapterTargets = new Map<string, Element>();
+  /** Raw record uid → the adapter that reported it and the adapter's own id. */
+  const adapterSources = new Map<string, { adapter: MotionprAdapter; id: string }>();
   function adapterTarget(rec: RawAnimation): Element | null {
     const el = adapterTargets.get(rec.uid);
     if (el) return el;

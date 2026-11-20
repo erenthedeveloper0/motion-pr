@@ -126,6 +126,28 @@ function propertyTracks(raw: RawAnimation, samples: FrameSample[]): PropertyTrac
   });
 }
 
+const percent = (n: number) => `${Math.round(n * 1000) / 10}%`;
+
+/**
+ * Why a scroll-linked animation's samples do not cover its whole scroll range (null when they
+ * do, or when the animation is not sampled by scroll progress). "Scroll progress" is the
+ * progress of the scroll-driven animation (a ScrollTrigger's tween or timeline), 0..1.
+ */
+function scrollCoverage(raw: RawAnimation, samples: readonly FrameSample[]): string | null {
+  const range = raw.scrollRange;
+  if (!range || !raw.samplable) return null;
+  const span = range.to - range.from;
+  if (!samples.length)
+    return raw.progressTrace.length > 1
+      ? "The scroll in this checkpoint did not reach the part of the scroll range where this animation runs, so no values were sampled."
+      : "The scroll-driven progress did not change in this checkpoint, so no values were sampled.";
+  const covered = samples.map((s) => s.scrollProgress ?? 0);
+  const lo = Math.min(...covered);
+  const hi = Math.max(...covered);
+  if (lo - range.from <= span * 1e-3 && range.to - hi <= span * 1e-3) return null;
+  return `Sampled only where the scroll went: ${percent(lo)}–${percent(hi)} scroll progress (the animation runs from ${percent(range.from)} to ${percent(range.to)}).`;
+}
+
 /**
  * Converts raw agent output into validated-shape animation records. Assigns stable ids
  * (`element::type::name`, suffixed `#2`, `#3` for duplicates in the same checkpoint).
@@ -158,10 +180,13 @@ export function normalizeAnimations(
         numeric: numericSnapshot(s.values),
         box: s.box,
         frame: nearestFrame(frames, s.t),
+        ...(s.scrollProgress !== undefined ? { scrollProgress: s.scrollProgress } : {}),
       };
     });
 
     const reasons = [...raw.notes];
+    const coverage = scrollCoverage(raw, frameSamples);
+    if (coverage) reasons.push(coverage);
     let status: AnimationRecord["completeness"]["status"] = "complete";
     if (!raw.samplable || frameSamples.length === 0) {
       status = "metadata-only";

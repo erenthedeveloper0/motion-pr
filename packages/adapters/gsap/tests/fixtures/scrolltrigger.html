@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>gsap scrolltrigger fixture</title>
+    <!--
+      Native scrolling with three ScrollTrigger animations (viewport 800×500, page 3000px):
+      - parallax: a scrubbed tween, active from scroll 400 to 1300 (`?distance=`, `?start=`,
+        `?scrub=` seconds of smoothing instead of `scrub: true`)
+      - story: a scrubbed timeline of two tweens, active from scroll 1000 to 2000 (`?fade=`)
+      - reveal: a time-based tween played once its trigger enters (scroll 1600)
+    -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #fff;
+        font: 16px sans-serif;
+      }
+      body {
+        position: relative;
+        height: 3000px;
+      }
+      section {
+        position: absolute;
+        left: 0;
+        width: 100%;
+      }
+      .band {
+        top: 900px;
+        height: 400px;
+        background: #eee;
+      }
+      .story {
+        top: 1500px;
+        height: 500px;
+        background: #ddd;
+      }
+      .finale {
+        top: 2000px;
+        height: 200px;
+      }
+      .box {
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        background: rgb(0, 0, 255);
+      }
+      [data-testid="parallax"] {
+        top: 100px;
+        left: 40px;
+      }
+      [data-testid="story-a"] {
+        top: 60px;
+        left: 40px;
+      }
+      [data-testid="story-b"] {
+        top: 220px;
+        left: 40px;
+        background: rgb(255, 0, 0);
+      }
+      [data-testid="reveal"] {
+        top: 40px;
+        left: 40px;
+        background: rgb(0, 160, 0);
+      }
+    </style>
+  </head>
+  <body>
+    <section class="band"><div class="box" data-testid="parallax"></div></section>
+    <section class="story">
+      <div class="box" data-testid="story-a"></div>
+      <div class="box" data-testid="story-b"></div>
+    </section>
+    <section class="finale"><div class="box" data-testid="reveal"></div></section>
+    <script src="/gsap.min.js"></script>
+    <script src="/ScrollTrigger.min.js"></script>
+    <script src="/adapter.js"></script>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const { motionprGsap } = MotionprGsap;
+      window.registered = motionprGsap.register(gsap);
+      gsap.registerPlugin(ScrollTrigger);
+      window.callbacks = 0;
+
+      gsap.to("[data-testid=parallax]", {
+        y: Number(params.get("distance") ?? -120),
+        ease: "none",
+        onUpdate: () => window.callbacks++,
+        scrollTrigger: {
+          trigger: ".band",
+          start: params.get("start") ?? "top bottom",
+          end: "bottom top",
+          scrub: params.has("scrub") ? Number(params.get("scrub")) : true,
+        },
+      });
+
+      const story = gsap.timeline({
+        scrollTrigger: { trigger: ".story", start: "top bottom", end: "bottom top", scrub: true },
+      });
+      story
+        .to("[data-testid=story-a]", { x: 200, ease: "none", duration: 1 })
+        .to("[data-testid=story-b]", {
+          opacity: Number(params.get("fade") ?? 0.2),
+          ease: "none",
+          duration: 1,
+        });
+      motionprGsap.track(story, "story");
+
+      gsap.from("[data-testid=reveal]", {
+        opacity: 0,
+        x: -40,
+        duration: 0.4,
+        ease: "power2.out",
+        scrollTrigger: { trigger: ".finale", start: "top 80%" },
+      });
+    </script>
+  </body>
+</html>

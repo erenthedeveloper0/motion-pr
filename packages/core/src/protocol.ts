@@ -87,6 +87,13 @@ export interface AdapterAnimation {
   /** Live progress observations (performance clock) for animations that follow scroll. */
   progressTrace?: { t: number; progress: number }[];
   /**
+   * For a scroll-linked animation: the part of the scroll-driven progress (the values in
+   * `progressTrace`, 0..1) during which this animation is active, e.g. `{ from: 0.5, to: 1 }`
+   * for the second of two tweens in a scrubbed timeline. With `samplable` and the adapter's
+   * `seekProgress()`, the agent samples the values it writes at the progress the scroll reached.
+   */
+  scrollRange?: { from: number; to: number };
+  /**
    * Stable identity for a non-DOM target (e.g. `object:value`), used as the element key when
    * `target` is null. Must not depend on creation order.
    */
@@ -194,8 +201,17 @@ export interface MotionprAdapter {
   isAnimating?(): boolean;
   /** Prepare deterministic replay: pause tracked animations, remember their state. */
   beginReplay?(): void;
-  /** Synchronously render every tracked animation at absolute performance-clock time `timeMs`. */
+  /**
+   * Synchronously render every tracked animation at absolute performance-clock time `timeMs`.
+   * Scroll-linked animations show the progress the page showed at that time.
+   */
   seek?(timeMs: number): void;
+  /**
+   * Synchronously render the scroll-linked animation `id` (an id from `collect()`) at `progress`
+   * (0..1, the scale of its `progressTrace`) without firing callbacks. Called between
+   * `beginReplay` and `endReplay`, after `seek`.
+   */
+  seekProgress?(id: string, progress: number): void;
   /** Restore the state captured in `beginReplay`. */
   endReplay?(): void;
   /** Timelines that ran in the current window. */
@@ -246,6 +262,8 @@ export interface RawAnimation {
   easingSamplesSource: "exact" | "sampled" | null;
   /** Window-relative live progress observations (scroll-linked animations). */
   progressTrace: { time: number; progress: number }[];
+  /** Scroll-driven progress interval in which a scroll-linked animation is active. */
+  scrollRange: { from: number; to: number } | null;
   name: string | null;
   element: RawElementIdentity;
   /** Start (local time zero, before delay) relative to the window origin, in ms. */
@@ -271,6 +289,8 @@ export interface RawSample {
   box: Box | null;
   /** Effect iteration progress reported by the engine (after effect-level easing). */
   iterationProgress: number | null;
+  /** Scroll-driven progress (0..1) at which a scroll-linked animation was rendered. */
+  scrollProgress?: number;
 }
 
 /**

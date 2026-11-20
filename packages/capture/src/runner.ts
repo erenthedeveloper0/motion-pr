@@ -1107,10 +1107,11 @@ async function captureCheckpoint(
   await agent("beginReplay");
   try {
     samples = await agent("sample", config.capture.samples);
+    // Frames follow time-based animations; scroll-linked ones are shown as the page showed them.
     const wantFrames =
       (step.frames ?? config.capture.frames.enabled) &&
       collected.end > 0 &&
-      collected.animations.some((a) => a.samplable);
+      collected.animations.some((a) => a.samplable && a.startTime !== null);
     if (wantFrames) {
       const fmt = config.capture.frames;
       const grid = frameTimes(collected.end, fmt.fps, fmt.maxFrames);

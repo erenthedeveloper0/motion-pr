@@ -529,6 +529,195 @@ function sampledChanges(
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
+/** True when a record's samples were rendered at scroll-driven progress (scroll-linked). */
+export function sampledByScrollProgress(r: AnimationRecord): boolean {
+  return r.samples.length > 0 && r.samples.every((s) => s.scrollProgress !== undefined);
+}
+
+/** Evenly spaced points compared across the shared scroll progress. */
+const SCROLL_POINTS = 33;
+const pct = (n: number) => `${Math.round(n * 1000) / 10}%`;
+
+function byScrollProgress(r: AnimationRecord): FrameSample[] {
+  return [...r.samples].sort((a, b) => a.scrollProgress! - b.scrollProgress!);
+}
+
+/** The two samples around scroll progress `p` and the interpolation weight between them. */
+function bracket(samples: readonly FrameSample[], p: number): [FrameSample, FrameSample, number] {
+  const first = samples[0]!;
+  if (p <= first.scrollProgress!) return [first, first, 0];
+  for (let i = 1; i < samples.length; i++) {
+    const b = samples[i]!;
+    if (p <= b.scrollProgress!) {
+      const a = samples[i - 1]!;
+      const span = b.scrollProgress! - a.scrollProgress!;
+      return [a, b, span > 0 ? (p - a.scrollProgress!) / span : 1];
+    }
+  }
+  const last = samples[samples.length - 1]!;
+  return [last, last, 0];
+}
+
+function numberAt(
+  samples: readonly FrameSample[],
+  p: number,
+  read: (s: FrameSample) => number | undefined,
+): number | undefined {
+  const [a, b, w] = bracket(samples, p);
+  const va = read(a);
+  const vb = read(b);
+  if (typeof va !== "number" || typeof vb !== "number") return undefined;
+  return va + (vb - va) * w;
+}
+
+/** A computed value at scroll progress `p`: colors and lengths interpolated, others nearest. */
+function valueAt(samples: readonly FrameSample[], p: number, property: string): string | undefined {
+  const [a, b, w] = bracket(samples, p);
+  const va = a.values[property];
+  const vb = b.values[property];
+  if (va === undefined || vb === undefined) return va ?? vb;
+  const ca = parseCssColor(va);
+  const cb = parseCssColor(vb);
+  if (ca && cb) {
+    const mix = (x: number, y: number) => x + (y - x) * w;
+    return `rgba(${mix(ca.r, cb.r)}, ${mix(ca.g, cb.g)}, ${mix(ca.b, cb.b)}, ${mix(ca.a, cb.a)})`;
+  }
+  const na = parseCssNumeric(va);
+  const nb = parseCssNumeric(vb);
+  if (na && nb && na.unit === nb.unit) return `${na.value + (nb.value - na.value) * w}${na.unit}`;
+  return w < 0.5 ? va : vb;
+}
+
+/**
+ * Values of a scroll-linked animation (GSAP ScrollTrigger) compared at the same scroll progress,
+ * over the progress both captures reached. Where the animation sits in the scroll (a moved
+ * `start`/`end`) is the progress-at-position comparison's job; this finds what the animation
+ * writes there: a parallax distance, a fade's end opacity, a color.
+ */
+export function scrollLinkedValueChanges(
+  b: AnimationRecord,
+  c: AnimationRecord,
+  config: ComparisonConfig,
+): ChangeDraft[] {
+  const sb = byScrollProgress(b);
+  const sc = byScrollProgress(c);
+  const lo = Math.max(sb[0]!.scrollProgress!, sc[0]!.scrollProgress!);
+  const hi = Math.min(sb.at(-1)!.scrollProgress!, sc.at(-1)!.scrollProgress!);
+  const span = (s: FrameSample[]) =>
+    `${pct(s[0]!.scrollProgress!)}–${pct(s.at(-1)!.scrollProgress!)}`;
+  if (hi < lo - 1e-6) {
+    return [
+      {
+        kind: "completeness",
+        rule: "trajectory",
+        before: span(sb),
+        after: span(sc),
+        measurement: "incomplete",
+        severity: "uncertain",
+        message: `Scroll-linked values cannot be compared: the scroll reached ${span(sb)} scroll progress in the baseline and ${span(sc)} in the candidate`,
+      },
+    ];
+  }
+  const points =
+    hi - lo < 1e-6
+      ? [lo]
+      : Array.from({ length: SCROLL_POINTS }, (_, k) => lo + ((hi - lo) * k) / (SCROLL_POINTS - 1));
+  const out: ChangeDraft[] = [];
+  const animated = new Set([...b.properties, ...c.properties].map((p) => p.property));
+  const transforms = ["transform", "translate", "scale", "rotate"].some((p) => animated.has(p));
+
+  for (const ch of NUMERIC_CHANNELS) {
+    if (ch.kind === "opacity" ? !animated.has("opacity") : !transforms) continue;
+    let max = 0;
+    let at = lo;
+    let before = 0;
+    let after = 0;
+    for (const p of points) {
+      const vb = numberAt(sb, p, (s) => s.numeric[ch.key]);
+      const vc = numberAt(sc, p, (s) => s.numeric[ch.key]);
+      if (vb === undefined || vc === undefined) continue;
+      if (Math.abs(vc - vb) > max) {
+        max = Math.abs(vc - vb);
+        at = p;
+        before = vb;
+        after = vc;
+      }
+    }
+    const [tol, warn] = channelTolerance(ch.kind, ch.unit, config);
+    const severity = magnitudeSeverity(max, tol, warn);
+    if (!severity) continue;
+    out.push({
+      kind: ch.kind,
+      rule: ch.kind,
+      property: `${ch.label} (scroll)`,
+      before: round(before),
+      after: round(after),
+      delta: round(after - before),
+      unit: ch.unit,
+      measurement: "measured",
+      severity,
+      message: `Scroll-linked ${ch.label} differs by up to ${round(max)}${ch.unit} at the same scroll progress (at ${pct(at)}: ${round(before)}${ch.unit} → ${round(after)}${ch.unit})`,
+    });
+  }
+
+  // Other animated properties: colors, lengths, and values that only differ as text.
+  const numericCovered = new Set(["transform", "opacity", "translate", "scale", "rotate"]);
+  for (const pb of b.properties) {
+    const property = pb.property;
+    if (numericCovered.has(property) || !c.properties.some((p) => p.property === property))
+      continue;
+    let worst: { at: number; before: string; after: string; delta: number | null } | null = null;
+    let worstSeverity: ChangeDraft["severity"] | null = null;
+    let unit: string | undefined;
+    for (const p of points) {
+      const vb = valueAt(sb, p, property);
+      const vc = valueAt(sc, p, property);
+      if (vb === undefined || vc === undefined || vb === vc) continue;
+      const cb = parseCssColor(vb);
+      const cc = parseCssColor(vc);
+      const nb = parseCssNumeric(vb);
+      const nc = parseCssNumeric(vc);
+      let delta: number | null = null;
+      let severity: ChangeDraft["severity"] | null;
+      if (cb && cc) {
+        delta = colorDistance(cb, cc);
+        severity = delta < 0.01 ? null : delta >= 0.08 ? "warning" : "info";
+      } else if (nb && nc && nb.unit === nc.unit) {
+        delta = nc.value - nb.value;
+        unit = nb.unit;
+        severity = magnitudeSeverity(
+          Math.abs(delta),
+          nb.unit === "px" ? config.properties.sizeTolerancePx : 1e-3,
+          nb.unit === "px" ? config.properties.warnPositionPx : 0.1,
+        );
+      } else severity = "warning";
+      if (!severity) continue;
+      if (!worst || Math.abs(delta ?? Number.POSITIVE_INFINITY) > Math.abs(worst.delta ?? 0)) {
+        worst = { at: p, before: vb, after: vc, delta };
+        worstSeverity = severity;
+      }
+    }
+    if (!worst || !worstSeverity) continue;
+    const shown = (v: string) => {
+      const n = parseCssNumeric(v);
+      return n ? `${round(n.value)}${n.unit}` : v;
+    };
+    out.push({
+      kind: "keyframes",
+      rule: "keyframes",
+      property: `${property} (scroll)`,
+      before: shown(worst.before),
+      after: shown(worst.after),
+      ...(worst.delta !== null ? { delta: round(worst.delta) } : {}),
+      ...(unit ? { unit } : {}),
+      measurement: "measured",
+      severity: worstSeverity,
+      message: `Scroll-linked ${property} differs at the same scroll progress (at ${pct(worst.at)}: ${shown(worst.before)} → ${shown(worst.after)})`,
+    });
+  }
+  return out;
+}
+
 export function compareMatchedAnimation(
   match: AnimationMatch,
   config: ComparisonConfig,
@@ -551,12 +740,17 @@ export function compareMatchedAnimation(
   const easing = easingChange(b, c, config);
   if (easing.change) drafts.push(easing.change);
   drafts.push(...propertySetChanges(b, c));
-  drafts.push(...keyframeValueChanges(b, c, config));
+  // Scroll-linked animations are sampled at the progress the scroll reached, which differs
+  // between captures: their values are compared at equal progress, not by sample index.
+  const scrollSampled = sampledByScrollProgress(b) && sampledByScrollProgress(c);
+  if (scrollSampled) drafts.push(...scrollLinkedValueChanges(b, c, config));
+  else if (!sampledByScrollProgress(b) && !sampledByScrollProgress(c))
+    drafts.push(...keyframeValueChanges(b, c, config));
   // An animation the app cancelled mid-way (on a timer, an event) stops wherever it was when the
   // cancel ran, and that moment depends on scheduling: its sampled path and end values are not
   // definite evidence of a change. Declared timing and easing still are.
   const canceled = b.meta.canceled === true || c.meta.canceled === true;
-  for (const draft of sampledChanges(b, c, config))
+  for (const draft of scrollSampled ? [] : sampledChanges(b, c, config))
     drafts.push(
       canceled && draft.severity !== "uncertain"
         ? {
