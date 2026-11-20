@@ -74,13 +74,14 @@ beforeAll(async () => {
   );
   await writeFile(join(dir, "server.mjs"), SERVER);
   await writeFile(join(dir, "index.html"), PAGE(300));
-  // The config imports the package like a user's would; link the workspace package.
+  // The config imports the package like a user's would; link the workspace package (a junction:
+  // on Windows it needs no symlink privilege; other systems ignore the type).
   await mkdir(join(dir, "node_modules/@erenthedeveloper0"), { recursive: true });
   const { symlink } = await import("node:fs/promises");
   await symlink(
     join(ROOT, "packages/cli"),
     join(dir, "node_modules/@erenthedeveloper0/motionpr"),
-    "dir",
+    "junction",
   );
 });
 
@@ -232,7 +233,7 @@ describe("motionpr run with GSAP, Anime.js and Lenis in one app", () => {
       await symlink(
         join(ROOT, "packages/cli"),
         join(project, "node_modules/@erenthedeveloper0/motionpr"),
-        "dir",
+        "junction",
       );
       await writeFile(
         join(project, "motionpr.config.mjs"),
@@ -328,7 +329,7 @@ async function pageProject(prefix: string, steps: unknown[] = DEFAULT_STEPS) {
   await symlink(
     join(ROOT, "packages/cli"),
     join(project, "node_modules/@erenthedeveloper0/motionpr"),
-    "dir",
+    "junction",
   );
   const url = `http://127.0.0.1:${projectPort}`;
   await writeFile(

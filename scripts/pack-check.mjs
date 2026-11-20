@@ -10,9 +10,10 @@
 //
 // pnpm packs the tarball because it rewrites the workspace's catalog:/workspace: specifiers;
 // that tarball, unchanged, is what gets published.
-import { execFileSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import {
   copyFileSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -39,6 +40,16 @@ const npmEnv = {
   npm_config_update_notifier: "false",
 };
 const failures = [];
+// npm, npx, pnpm and the bin npm installs are .cmd shims on Windows, which Node only runs through
+// a shell; every argument is quoted for cmd.exe.
+const IS_WINDOWS = process.platform === "win32";
+const run = (cmd, cmdArgs, options = {}) =>
+  IS_WINDOWS
+    ? execSync(
+        [cmd, ...cmdArgs].map((a) => (/^[\w.:\\/=-]+$/.test(a) ? a : `"${a}"`)).join(" "),
+        options,
+      )
+    : execFileSync(cmd, cmdArgs, options);
 const check = (ok, message) => {
   console.log(`  ${ok ? "✓" : "✗"} ${message}`);
   if (!ok) failures.push(message);
@@ -58,14 +69,15 @@ const ALLOWED = [
 
 let tarballPath;
 try {
-  execFileSync("pnpm", ["pack", "--pack-destination", work], { cwd: cli, stdio: "pipe" });
+  run("pnpm", ["pack", "--pack-destination", work], { cwd: cli, stdio: "pipe" });
   const tarball = readdirSync(work).find((f) => f.endsWith(".tgz"));
   if (!tarball) throw new Error("pnpm pack produced no tarball");
   tarballPath = join(work, tarball);
   const size = statSync(tarballPath).size;
   const extract = join(work, "extract");
   mkdirSync(extract);
-  execFileSync("tar", ["-xzf", tarballPath, "-C", extract]);
+  // Relative paths: GNU tar (in Git for Windows) reads "C:\…" as a remote host.
+  execFileSync("tar", ["-xzf", tarball, "-C", "extract"], { cwd: work });
   const pkgDir = join(extract, "package");
   const files = [];
   const walk = (dir) => {
@@ -107,7 +119,7 @@ try {
 
   // npm's own packer must agree with pnpm's on what ships.
   const npmList = JSON.parse(
-    execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {
+    run("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {
       cwd: cli,
       env: npmEnv,
       stdio: ["ignore", "pipe", "pipe"],
@@ -217,15 +229,15 @@ try {
       join(app, "package.json"),
       JSON.stringify({ name: "motionpr-install-check", private: true, type: "module" }),
     );
-    execFileSync("npm", ["install", "--no-audit", "--no-fund", "--save-dev", tarballPath], {
+    run("npm", ["install", "--no-audit", "--no-fund", "--save-dev", tarballPath], {
       cwd: app,
       stdio: "pipe",
       env: npmEnv,
     });
-    const bin = join(app, "node_modules/.bin/motionpr");
-    const version = execFileSync(bin, ["--version"], { cwd: app }).toString().trim();
+    const bin = join(app, "node_modules/.bin", IS_WINDOWS ? "motionpr.cmd" : "motionpr");
+    const version = run(bin, ["--version"], { cwd: app }).toString().trim();
     check(version === pkg.version, `installed CLI runs (motionpr --version → ${version})`);
-    const help = execFileSync(bin, ["--help"], { cwd: app }).toString();
+    const help = run(bin, ["--help"], { cwd: app }).toString();
     check(
       [
         "init",
@@ -240,7 +252,7 @@ try {
       ].every((c) => help.includes(c)),
       "motionpr --help lists every command",
     );
-    const npx = execFileSync("npx", ["--no-install", "motionpr", "--version"], {
+    const npx = run("npx", ["--no-install", "motionpr", "--version"], {
       cwd: app,
       env: npmEnv,
     })
@@ -306,10 +318,10 @@ export { config, motionprGsap, SUPPORTED_GSAP_RANGE, createAnimeInstrumentation,
     const typesNode = join(root, "node_modules/@types/node");
     if (existsSync(typesNode)) {
       mkdirSync(join(app, "node_modules/@types"), { recursive: true });
-      execFileSync("cp", ["-RL", typesNode, join(app, "node_modules/@types/node")]);
+      const copy = (from, to) => cpSync(from, to, { recursive: true, dereference: true });
+      copy(typesNode, join(app, "node_modules/@types/node"));
       const undici = join(realpathSync(typesNode), "../../undici-types");
-      if (existsSync(undici))
-        execFileSync("cp", ["-RL", undici, join(app, "node_modules/undici-types")]);
+      if (existsSync(undici)) copy(undici, join(app, "node_modules/undici-types"));
     }
     const tsc = join(root, "node_modules/typescript/bin/tsc");
     let typeErrors = "";

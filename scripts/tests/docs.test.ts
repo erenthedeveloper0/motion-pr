@@ -27,9 +27,10 @@ function exportedNames(source: string): string[] {
   return names;
 }
 
+/** Markdown files under `dir`, as `/`-separated paths (the site's page list uses `/` on Windows too). */
 function markdownFiles(dir: string): string[] {
   return readdirSync(join(root, dir)).flatMap((name) => {
-    const rel = join(dir, name);
+    const rel = `${dir}/${name}`;
     return statSync(join(root, rel)).isDirectory()
       ? markdownFiles(rel)
       : rel.endsWith(".md")
