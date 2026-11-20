@@ -28,6 +28,12 @@ const fixtures = fileURLToPath(new URL("./fixtures", import.meta.url));
 let server: StaticServer;
 let browser: Browser;
 let workDir: string;
+/**
+ * Whether this browser animates `behavior: "smooth"` scrolls here. Chromium on Windows follows
+ * the system's animation effects and jumps when they are off, as on GitHub's Windows runners.
+ * (The fixture's page-driven scrolls animate themselves and do not depend on it.)
+ */
+let smoothScrollAnimates = true;
 
 beforeAll(async () => {
   server = await serveDirectory(fixtures);
@@ -35,6 +41,17 @@ beforeAll(async () => {
   browser = await launchBrowser(resolveConfig({ baseURL: server.url, scenarios: [{ id: "x" }] }), {
     browserName: TEST_BROWSER,
   });
+  const page = await browser.newPage({ viewport: { width: 800, height: 600 } });
+  await page.goto(`${server.url}/containers.html`);
+  smoothScrollAnimates = await page.evaluate(
+    () =>
+      new Promise<boolean>((resolve) => {
+        const feed = document.querySelector("[data-testid=feed]")!;
+        feed.scrollTo({ top: 1200, behavior: "smooth" });
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve(feed.scrollTop < 1200)));
+      }),
+  );
+  await page.close();
 });
 
 afterAll(async () => {
@@ -107,8 +124,14 @@ describe(`native scroll containers: recording (${TEST_BROWSER})`, () => {
     expect(feed.samples.at(-1)).toMatchObject({ animatedScroll: 1200, limit: 1700 });
     const metrics = scrollMetrics(feed, comparisonConfig());
     expect(metrics).toMatchObject({ start: 0, end: 1200, distance: 1200, unsettled: false });
-    expect(metrics.duration!).toBeGreaterThan(50);
     expect(cp.window.trigger).toMatchObject({ type: "scroll-motion", event: "scroll" });
+    if (!smoothScrollAnimates) {
+      // The browser jumps instead of animating. A scrollTo step's scrolling is under test, so
+      // the jump is still recorded; the card is skipped over and never fades in.
+      expect(metrics.duration!).toBeLessThan(50);
+      return;
+    }
+    expect(metrics.duration!).toBeGreaterThan(50);
     // The card fades in when it enters the feed, while the feed scrolls.
     const card = cp.animations.find((a) => a.element.key === "test-id:card");
     expect(card).toBeDefined();
@@ -234,8 +257,24 @@ describe(`native scroll containers: wheel over an element (${TEST_BROWSER})`, ()
 
 describe(`native scroll containers: comparison (${TEST_BROWSER})`, () => {
   const scenario = [...settled("feed", feedTo1200), ...settled("carousel", nextSlide)];
+  /**
+   * Scroll findings two runs of one build must never produce: a warning or a critical, or any
+   * difference in where a scroller started, ended or was heading or how long it took. The shape
+   * and speed of a native scroll follow frame scheduling (when each position reached the page),
+   * so they may differ a little: `info` (headless WebKit renders at 30 fps, so a 180 ms scroll
+   * has six samples), or `uncertain` when positions reached the page unevenly (Firefox scrolls
+   * off the main thread; frames right after an input event are off the cadence).
+   */
+  const regressions = (differences: { severity: string; detail: string }[]) =>
+    differences.filter(
+      (d) =>
+        d.severity === "warning" ||
+        d.severity === "critical" ||
+        /^Scroll (starts at|ends at|target|takes) /.test(d.detail) ||
+        (d.severity === "uncertain" && !/reached the page unevenly/.test(d.detail)),
+    );
 
-  it("finds no scroll difference between two runs of one build", async () => {
+  it("finds no scroll regression between two runs of one build", async () => {
     const a = await capture(scenario);
     const b = await capture(scenario);
     const result = await compareCaptures({
@@ -244,15 +283,7 @@ describe(`native scroll containers: comparison (${TEST_BROWSER})`, () => {
       config: comparisonConfig(),
     });
     const scroll = result.differences.filter((d) => d.category === "scroll");
-    if (TEST_BROWSER === "firefox") {
-      // Firefox animates smooth scrolling off the main thread and its positions reach the page
-      // up to a frame late: the easing curve and peak velocity of two runs differ (up to 19% and
-      // 73% in these tests), which is uncertain. Positions, duration and settling agree.
-      expect(scroll.every((d) => d.severity === "uncertain")).toBe(true);
-      expect(scroll.every((d) => /reached the page unevenly/.test(d.detail))).toBe(true);
-    } else {
-      expect(scroll).toEqual([]);
-    }
+    expect(regressions(scroll)).toEqual([]);
     expect(
       result.differences
         .filter((d) => d.severity !== "info" && d.severity !== "uncertain")
@@ -279,10 +310,9 @@ describe(`native scroll containers: comparison (${TEST_BROWSER})`, () => {
         detail: "Scroll setting scrollSnapType: x mandatory → none",
       }),
     );
+    // The feed did not change.
     expect(
-      result.differences.filter(
-        (d) => d.scrollKey === "native:test-id:feed:vertical" && d.severity !== "uncertain",
-      ),
+      regressions(result.differences.filter((d) => d.scrollKey === "native:test-id:feed:vertical")),
     ).toEqual([]);
   });
 

@@ -8,9 +8,13 @@
       - feed: 300px tall, 2000px of content, scrolled by steps; the card 900px into it fades in
         when it enters the feed (IntersectionObserver rooted at the feed).
       - carousel: 400px wide, five 400px slides with scroll snapping; "next" scrolls it by
-        `?step=` px (default 400) with smooth behavior, from application code.
-      - chat: does not overflow until "send" appends messages and smooth-scrolls to the end.
-      - below: a container below the fold; covered: a container under an overlay.
+        `?step=` px (default 400) from application code.
+      - chat: does not overflow until "send" appends messages and scrolls to the end.
+      Both animate scrollLeft/scrollTop themselves (300 ms ease-out, one write per frame), as
+      carousel libraries do: `behavior: "smooth"` depends on the platform (Chromium on Windows
+      jumps when the system's animation effects are off, as on GitHub's Windows runners).
+      - below: a container below the fold (fixed, so the document itself never scrolls);
+        covered: a container under an overlay.
       `?snap=none` turns off the carousel's snapping.
     -->
     <style>
@@ -81,7 +85,8 @@
         border-bottom: 1px solid #eee;
       }
       [data-testid="below"] {
-        position: absolute;
+        /* Off-screen without making the document scrollable: only containers can scroll here. */
+        position: fixed;
         top: 1400px;
         left: 16px;
         width: 200px;
@@ -147,10 +152,27 @@
         { root: feed },
       ).observe(card);
 
+      /** Scrolls `el` to `to` over 300 ms (ease-out cubic), writing one position per frame. */
+      function animateScroll(el, axis, to) {
+        const key = axis === "x" ? "scrollLeft" : "scrollTop";
+        const from = el[key];
+        // Snapping would pull every intermediate position to a slide; restore it at the end.
+        el.style.scrollSnapType = "none";
+        let start = null;
+        const frame = (now) => {
+          start ??= now;
+          const p = Math.min(1, (now - start) / 300);
+          el[key] = from + (to - from) * (1 - (1 - p) ** 3);
+          if (p < 1) requestAnimationFrame(frame);
+          else el.style.scrollSnapType = "";
+        };
+        requestAnimationFrame(frame);
+      }
+
       const carousel = document.querySelector("[data-testid=carousel]");
       const step = Number(params.get("step") ?? 400);
       document.querySelector("[data-testid=next]").addEventListener("click", () => {
-        carousel.scrollBy({ left: step, behavior: "smooth" });
+        animateScroll(carousel, "x", carousel.scrollLeft + step);
       });
 
       const chat = document.querySelector("[data-testid=chat]");
@@ -160,7 +182,7 @@
           m.className = "message";
           chat.append(m);
         }
-        chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
+        animateScroll(chat, "y", chat.scrollHeight - chat.clientHeight);
       });
     </script>
   </body>
